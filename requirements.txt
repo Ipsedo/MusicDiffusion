@@ -1,0 +1,12 @@
+torch
+jupyter
+numpy
+matplotlib
+
+# pre-commit
+pre-commit
+black
+pycln
+isort
+mypy
+pytest
