@@ -1,2 +1,2 @@
-from .noiser import Noiser
 from .denoiser import Denoiser
+from .noiser import Noiser

@@ -3,7 +3,7 @@ from typing import Tuple
 import pytest
 import torch as th
 
-from music_diffusion_model.networks import Noiser, Denoiser
+from music_diffusion_model.networks import Denoiser, Noiser
 
 
 @pytest.mark.parametrize("steps", [10, 20])
