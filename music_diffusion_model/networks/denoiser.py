@@ -39,7 +39,7 @@ class Denoiser(nn.Module):
 
         self.__betas = th.linspace(beta_1, beta_t, steps=self.__steps)[
             None, :, None, None, None
-        ]
+        ].flip([1])
 
         self.__alphas = 1 - self.__betas
         self.__alpha_cumprod = th.cumprod(self.__alphas, dim=1)
@@ -66,7 +66,7 @@ class Denoiser(nn.Module):
         assert len(x_noised.size()) == 5
         assert x_noised.size(1) == self.__steps
 
-        t = th.arange(self.__steps)
+        t = th.arange(self.__steps).flip([0])
 
         eps = self.__eps((x_noised, t))
         out: th.Tensor = (1.0 / th.sqrt(self.__alphas)) * (
