@@ -21,7 +21,7 @@ class MNISTDataset(Dataset):
 
     def __getitem__(self, index: int) -> th.Tensor:
         # None -> one channel
-        return self.__tensor[index, None]
+        return 2.0 * self.__tensor[index, None] / 255.0 - 1.0
 
     def __len__(self) -> int:
         return self.__tensor.size(0)
