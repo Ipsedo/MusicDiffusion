@@ -12,22 +12,32 @@ class Noiser(nn.Module):
 
         alphas = 1 - betas
         alphas_cum_prod = th.cumprod(alphas, dim=0)
-        self.__sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)[
+        sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)[
             None, :, None, None, None
         ]
-        self.__sqrt_minus_one_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)[
+        sqrt_minus_one_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)[
             None, :, None, None, None
         ]
+
+        self.sqrt_alphas_cum_prod: th.Tensor
+        self.sqrt_minus_one_alphas_cum_prod: th.Tensor
+
+        self.register_buffer("sqrt_alphas_cum_prod", sqrt_alphas_cum_prod)
+        self.register_buffer(
+            "sqrt_minus_one_alphas_cum_prod", sqrt_minus_one_alphas_cum_prod
+        )
 
     def forward(self, x: th.Tensor) -> th.Tensor:
         assert len(x.size()) == 4
         b, c, w, h = x.size()
 
-        noise = th.randn(b, self.__steps, c, w, h)
+        device = "cuda" if next(self.buffers()).is_cuda else "cpu"
+
+        noise = th.randn(b, self.__steps, c, w, h, device=device)
 
         x_t = (
-            self.__sqrt_alphas_cum_prod * x.unsqueeze(1)
-            + self.__sqrt_minus_one_alphas_cum_prod * noise
+            self.sqrt_alphas_cum_prod * x.unsqueeze(1)
+            + self.sqrt_minus_one_alphas_cum_prod * noise
         )
 
         return x_t

@@ -9,7 +9,7 @@ from music_diffusion_model.networks import Denoiser, Noiser
 @pytest.mark.parametrize("steps", [10, 20])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [1, 2])
-@pytest.mark.parametrize("img_sizes", [(8, 8), (16, 16)])
+@pytest.mark.parametrize("img_sizes", [(8, 8), (16, 16), (16, 32)])
 def test_noiser(
     steps: int, batch_size: int, channels: int, img_sizes: Tuple[int, int]
 ) -> None:
@@ -30,7 +30,7 @@ def test_noiser(
 @pytest.mark.parametrize("steps", [10, 20])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [1, 2])
-@pytest.mark.parametrize("img_sizes", [(8, 8), (16, 16)])
+@pytest.mark.parametrize("img_sizes", [(8, 8), (16, 16), (16, 32)])
 @pytest.mark.parametrize("time_size", [2, 3])
 def test_denoiser(
     steps: int,
@@ -51,3 +51,13 @@ def test_denoiser(
     assert o.size(2) == channels
     assert o.size(3) == img_sizes[0]
     assert o.size(4) == img_sizes[1]
+
+    x = th.randn(batch_size, channels, *img_sizes)
+
+    o = denoiser.sample(x)
+
+    assert len(o.size()) == 4
+    assert o.size(0) == batch_size
+    assert o.size(1) == channels
+    assert o.size(2) == img_sizes[0]
+    assert o.size(3) == img_sizes[1]

@@ -1,5 +1,7 @@
 torch
 jupyter
+mlflow
+tqdm
 numpy
 matplotlib
 

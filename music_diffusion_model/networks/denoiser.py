@@ -37,13 +37,23 @@ class Denoiser(nn.Module):
 
         self.__steps = steps
 
-        self.__betas = th.linspace(beta_1, beta_t, steps=self.__steps)[
+        betas = th.linspace(beta_1, beta_t, steps=self.__steps)[
             None, :, None, None, None
         ]
+        alphas = 1.0 - betas
+        alpha_cumprod = th.cumprod(alphas, dim=1)
 
-        self.__alphas = 1.0 - self.__betas
-        self.__alpha_cumprod = th.cumprod(self.__alphas, dim=1).flip([1])
-        self.__alphas = self.__alphas.flip([1])
+        alpha_cumprod = alpha_cumprod.flip([1])
+        alphas = alphas.flip([1])
+        betas = betas.flip([1])
+
+        self.alphas: th.Tensor
+        self.alpha_cumprod: th.Tensor
+        self.betas: th.Tensor
+
+        self.register_buffer("alphas", alphas)
+        self.register_buffer("alpha_cumprod", alpha_cumprod)
+        self.register_buffer("betas", betas)
 
         self.__channels = channels
 
@@ -70,11 +80,13 @@ class Denoiser(nn.Module):
         assert len(x_t.size()) == 5
         assert x_t.size(1) == self.__steps
 
-        t = th.arange(self.__steps).flip([0])
+        device = "cuda" if next(self.parameters()).is_cuda else "cpu"
+
+        t = th.arange(self.__steps, device=device).flip([0])
 
         eps = self.__eps((x_t, t))
-        out: th.Tensor = (1.0 / th.sqrt(self.__alphas)) * (
-            x_t - eps * self.__betas / th.sqrt(1.0 - self.__alpha_cumprod)
+        out: th.Tensor = (1.0 / th.sqrt(self.alphas)) * (
+            x_t - eps * self.betas / th.sqrt(1.0 - self.alpha_cumprod)
         )
 
         return out
@@ -83,14 +95,27 @@ class Denoiser(nn.Module):
         assert len(x_t.size()) == 4
         assert x_t.size(1) == self.__channels
 
-        for t in reversed(range(0, self.__steps)):
-            z = th.randn_like(x_t) if t > 1 else th.zeros_like(x_t)
-            eps = self.__eps((x_t.unsqueeze(1), th.tensor([t]))).squeeze(1)
-            x_t = (1.0 / th.sqrt(self.__alphas[:, t])) * (
+        device = "cuda" if next(self.parameters()).is_cuda else "cpu"
+
+        for t in range(1, self.__steps):
+            z = (
+                th.randn_like(x_t, device=device)
+                if t > 1
+                else th.zeros_like(x_t, device=device)
+            )
+
+            eps = self.__eps(
+                (
+                    x_t.unsqueeze(1),
+                    th.tensor([self.__steps - t], device=device),
+                )
+            ).squeeze(1)
+
+            x_t = (1.0 / th.sqrt(self.alphas[:, t])) * (
                 x_t
                 - eps
-                * (1.0 - self.__alphas[:, t])
-                / th.sqrt(1.0 - self.__alpha_cumprod[:, t])
-            ) + self.__betas[:, t] * z
+                * (1.0 - self.alphas[:, t])
+                / th.sqrt(1.0 - self.alpha_cumprod[:, t])
+            ) + self.betas[:, t] * z
 
         return x_t
