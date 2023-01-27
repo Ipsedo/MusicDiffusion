@@ -85,9 +85,9 @@ def train(train_options: TrainOptions) -> None:
                     x = x.cuda()
 
                 x_noised = noiser(x)
-                x_denoised = denoiser(x_noised.flip([1])).flip([1])
-
                 x_noised = th.clip(x_noised, 0.0, 1.0)
+
+                x_denoised = denoiser(x_noised.flip([1])).flip([1])
                 x_denoised = th.clip(x_denoised, 0.0, 1.0)
 
                 loss = th_f.kl_div(x_denoised, x_noised, reduction="none")

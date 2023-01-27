@@ -8,11 +8,11 @@ def main() -> None:
         epochs=1000,
         steps=256,
         beta_1=1e-4,
-        beta_t=2e-2,
+        beta_t=2e-1,
         input_channels=1,
         time_size=16,
         cuda=True,
-        learning_rate=1e-5,
+        learning_rate=1e-4,
     )
 
     train(train_options)

@@ -109,7 +109,7 @@ class Denoiser(nn.Module):
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
 
-        for t in range(1, self.__steps):
+        for t in range(self.__steps):
             z = (
                 th.randn_like(x_t, device=device)
                 if t > 1
@@ -119,7 +119,7 @@ class Denoiser(nn.Module):
             eps = self.__eps(
                 (
                     x_t.unsqueeze(1),
-                    th.tensor([self.__steps - t], device=device),
+                    th.tensor([self.__steps - t - 1], device=device),
                 )
             ).squeeze(1)
 
