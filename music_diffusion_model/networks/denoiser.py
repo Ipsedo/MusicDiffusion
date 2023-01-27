@@ -1,12 +1,7 @@
 import torch as th
 import torch.nn as nn
 
-from .convolutions import (
-    AbstractConv,
-    StrideConvBlock,
-    StrideConvTrBlock,
-    StrideEndConvTrBlock,
-)
+from .convolutions import AbstractConv, ConvBlock, ConvEndBlock
 from .time import TimeWrapper
 
 
@@ -71,30 +66,26 @@ class Denoiser(nn.Module):
 
         layer_conv_tr = [
             (32, 16),
-            (16, self.__channels),
+            (16, 8),
         ]
 
         self.__eps = nn.Sequential(
             TimeWrapper(
                 ConvWrapper(
-                    StrideConvBlock(layers_conv[0][0], layers_conv[0][1])
+                    ConvBlock(layers_conv[0][0], layers_conv[0][1], 0.5)
                 ),
                 steps,
                 time_size,
             ),
             *[
-                ConvWrapper(StrideConvBlock(c_i, c_o))
+                ConvWrapper(ConvBlock(c_i, c_o, 0.5))
                 for c_i, c_o in layers_conv[1:]
             ],
             *[
-                ConvWrapper(StrideConvTrBlock(c_i, c_o))
-                for c_i, c_o in layer_conv_tr[:-1]
+                ConvWrapper(ConvBlock(c_i, c_o, 2.0))
+                for c_i, c_o in layer_conv_tr
             ],
-            ConvWrapper(
-                StrideEndConvTrBlock(
-                    layer_conv_tr[-1][0], layer_conv_tr[-1][1]
-                )
-            ),
+            ConvWrapper(ConvEndBlock(layer_conv_tr[-1][1], self.__channels)),
         )
 
     def forward(self, x_t: th.Tensor) -> th.Tensor:
