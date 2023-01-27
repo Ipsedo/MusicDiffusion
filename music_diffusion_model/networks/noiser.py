@@ -21,8 +21,9 @@ class Noiser(nn.Module):
 
     def forward(self, x: th.Tensor) -> th.Tensor:
         assert len(x.size()) == 4
+        b, c, w, h = x.size()
 
-        noise = th.rand_like(x.unsqueeze(1).repeat(1, self.__steps, 1, 1, 1))
+        noise = th.randn(b, self.__steps, c, w, h)
 
         x_t = (
             self.__sqrt_alphas_cum_prod * x.unsqueeze(1)
