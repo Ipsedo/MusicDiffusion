@@ -88,7 +88,7 @@ def train(train_options: TrainOptions) -> None:
                 x_denoised = denoiser(x_noised.flip([1])).flip([1])
 
                 loss = th_f.mse_loss(x_denoised, x_noised, reduction="none")
-                loss = loss.sum(dim=1).mean()
+                loss = loss.sum(dim=[1, 2, 3, 4]).mean()
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()

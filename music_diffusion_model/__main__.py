@@ -5,7 +5,7 @@ def main() -> None:
     train_options = TrainOptions(
         run_name="mnist",
         batch_size=4,
-        epochs=10,
+        epochs=1000,
         steps=256,
         beta_1=1e-4,
         beta_t=0.2,

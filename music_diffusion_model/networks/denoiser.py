@@ -1,14 +1,17 @@
-from typing import Callable
-
 import torch as th
 import torch.nn as nn
 
-from .convolutions import ConvBlock, ConvEndBlock
+from .convolutions import (
+    AbstractConv,
+    StrideConvBlock,
+    StrideConvTrBlock,
+    StrideEndConvTrBlock,
+)
 from .time import TimeWrapper
 
 
 class ConvWrapper(nn.Module):
-    def __init__(self, conv: Callable[[th.Tensor], th.Tensor]) -> None:
+    def __init__(self, conv: AbstractConv) -> None:
 
         super().__init__()
 
@@ -21,7 +24,11 @@ class ConvWrapper(nn.Module):
         x = x.flatten(0, 1)
         out: th.Tensor = self.__conv(x)
 
-        return out.view(b, t, -1, w, h)
+        new_w, new_h = int(w * self.__conv.scale_factor), int(
+            h * self.__conv.scale_factor
+        )
+
+        return out.view(b, t, -1, new_w, new_h)
 
 
 class Denoiser(nn.Module):
@@ -57,23 +64,37 @@ class Denoiser(nn.Module):
 
         self.__channels = channels
 
-        layers = [
-            (self.__channels, 8),
-            (8, 16),
+        layers_conv = [
+            (self.__channels + time_size, 16),
             (16, 32),
+        ]
+
+        layer_conv_tr = [
             (32, 16),
-            (16, 8),
-            (8, self.__channels),
+            (16, self.__channels),
         ]
 
         self.__eps = nn.Sequential(
             TimeWrapper(
-                ConvWrapper(ConvBlock(layers[0][0] + time_size, layers[0][1])),
+                ConvWrapper(
+                    StrideConvBlock(layers_conv[0][0], layers_conv[0][1])
+                ),
                 steps,
                 time_size,
             ),
-            *[ConvWrapper(ConvBlock(c_i, c_o)) for c_i, c_o in layers[1:1]],
-            ConvWrapper(ConvEndBlock(layers[-1][0], layers[-1][1]))
+            *[
+                ConvWrapper(StrideConvBlock(c_i, c_o))
+                for c_i, c_o in layers_conv[1:]
+            ],
+            *[
+                ConvWrapper(StrideConvTrBlock(c_i, c_o))
+                for c_i, c_o in layer_conv_tr[:-1]
+            ],
+            ConvWrapper(
+                StrideEndConvTrBlock(
+                    layer_conv_tr[-1][0], layer_conv_tr[-1][1]
+                )
+            ),
         )
 
     def forward(self, x_t: th.Tensor) -> th.Tensor:

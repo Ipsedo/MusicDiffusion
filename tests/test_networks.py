@@ -9,7 +9,7 @@ from music_diffusion_model.networks import Denoiser, Noiser
 @pytest.mark.parametrize("steps", [10, 20])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [1, 2])
-@pytest.mark.parametrize("img_sizes", [(8, 8), (16, 16), (16, 32)])
+@pytest.mark.parametrize("img_sizes", [(28, 28), (28, 56)])
 def test_noiser(
     steps: int, batch_size: int, channels: int, img_sizes: Tuple[int, int]
 ) -> None:
@@ -30,7 +30,7 @@ def test_noiser(
 @pytest.mark.parametrize("steps", [10, 20])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [1, 2])
-@pytest.mark.parametrize("img_sizes", [(8, 8), (16, 16), (16, 32)])
+@pytest.mark.parametrize("img_sizes", [(28, 28), (28, 56)])
 @pytest.mark.parametrize("time_size", [2, 3])
 def test_denoiser(
     steps: int,
