@@ -111,6 +111,6 @@ def train(train_options: TrainOptions) -> None:
 
             o = denoiser.sample(z)
 
-            plt.matshow(o[0, 0].detach().cpu())
+            plt.matshow(o[0, 0].detach().cpu(), cmap="Greys")
             plt.title(f"Epoch {e}")
             plt.show()
