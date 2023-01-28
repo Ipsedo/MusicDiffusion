@@ -22,7 +22,7 @@ class ConvEndBlock(AbstractConv):
                 stride=(1, 1),
                 padding=(1, 1),
             ),
-            nn.Sigmoid(),
+            nn.Tanh(),
         )
 
     @property
@@ -40,7 +40,7 @@ class StrideConvBlock(AbstractConv):
                 stride=(2, 2),
                 padding=(1, 1),
             ),
-            nn.ReLU(),
+            nn.GELU(),
             PixelNorm(),
         )
 
@@ -60,7 +60,7 @@ class StrideConvTrBlock(AbstractConv):
                 padding=(1, 1),
                 output_padding=(0, 0),
             ),
-            nn.ReLU(),
+            nn.GELU(),
             PixelNorm(),
         )
 
@@ -80,7 +80,7 @@ class StrideEndConvTrBlock(AbstractConv):
                 padding=(1, 1),
                 output_padding=(0, 0),
             ),
-            nn.Sigmoid(),
+            nn.Tanh(),
         )
 
     @property
@@ -100,7 +100,7 @@ class ConvBlock(AbstractConv):
                 stride=(1, 1),
                 padding=(1, 1),
             ),
-            nn.ReLU(),
+            nn.GELU(),
             PixelNorm(),
             nn.Upsample(
                 scale_factor=scale_factor,

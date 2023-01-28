@@ -59,33 +59,56 @@ class Denoiser(nn.Module):
 
         self.__channels = channels
 
-        layers_conv = [
-            (self.__channels + time_size, 16),
+        encoder_layers = [
             (16, 32),
+            (32, 64),
+            (64, 128),
         ]
 
-        layer_conv_tr = [
+        decoder_layers = [
+            (128, 64),
+            (64, 32),
             (32, 16),
-            (16, 8),
         ]
 
         self.__eps = nn.Sequential(
             TimeWrapper(
                 ConvWrapper(
-                    ConvBlock(layers_conv[0][0], layers_conv[0][1], 0.5)
+                    ConvBlock(
+                        self.__channels + time_size,
+                        encoder_layers[0][0],
+                        scale_factor=1.0,
+                    )
                 ),
                 steps,
                 time_size,
             ),
             *[
-                ConvWrapper(ConvBlock(c_i, c_o, 0.5))
-                for c_i, c_o in layers_conv[1:]
+                ConvWrapper(
+                    ConvBlock(
+                        c_i,
+                        c_o,
+                        scale_factor=0.5,
+                    )
+                )
+                for c_i, c_o in encoder_layers
             ],
             *[
-                ConvWrapper(ConvBlock(c_i, c_o, 2.0))
-                for c_i, c_o in layer_conv_tr
+                ConvWrapper(
+                    ConvBlock(
+                        c_i,
+                        c_o,
+                        scale_factor=2.0,
+                    )
+                )
+                for c_i, c_o in decoder_layers
             ],
-            ConvWrapper(ConvEndBlock(layer_conv_tr[-1][1], self.__channels)),
+            ConvWrapper(
+                ConvEndBlock(
+                    decoder_layers[-1][1],
+                    self.__channels,
+                )
+            ),
         )
 
     def forward(self, x_t: th.Tensor) -> th.Tensor:
@@ -112,7 +135,7 @@ class Denoiser(nn.Module):
         for t in range(self.__steps):
             z = (
                 th.randn_like(x_t, device=device)
-                if t > 1
+                if self.__steps - t - 1 > 1
                 else th.zeros_like(x_t, device=device)
             )
 

@@ -10,7 +10,7 @@ def main() -> None:
         beta_1=1e-4,
         beta_t=2e-1,
         input_channels=1,
-        time_size=16,
+        time_size=8,
         cuda=True,
         learning_rate=1e-4,
     )

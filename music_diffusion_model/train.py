@@ -90,8 +90,7 @@ def train(train_options: TrainOptions) -> None:
                 x_denoised = denoiser(x_noised.flip([1])).flip([1])
                 x_denoised = th.clip(x_denoised, 0.0, 1.0)
 
-                loss = th_f.kl_div(x_denoised, x_noised, reduction="none")
-                loss = loss.mean()
+                loss = th_f.kl_div(x_denoised, x_noised, reduction="batchmean")
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()
@@ -101,7 +100,7 @@ def train(train_options: TrainOptions) -> None:
                     f"Epoch {e} / {train_options.epochs - 1}, loss = {loss.item():.4f}"
                 )
 
-            z = th.randn(1, train_options.input_channels, 28, 28)
+            z = th.randn(1, train_options.input_channels, 32, 32)
 
             if train_options.cuda:
                 z = z.cuda()
