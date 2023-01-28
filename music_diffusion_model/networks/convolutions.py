@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import Literal
 
 import torch.nn as nn
-
-from .normalization import PixelNorm
 
 
 class AbstractConv(ABC, nn.Sequential):
@@ -13,7 +12,11 @@ class AbstractConv(ABC, nn.Sequential):
 
 
 class ConvEndBlock(AbstractConv):
-    def __init__(self, in_channels: int, out_channels: int) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+    ) -> None:
         super().__init__(
             nn.Conv2d(
                 in_channels,
@@ -30,10 +33,18 @@ class ConvEndBlock(AbstractConv):
         return 1.0
 
 
-class StrideConvBlock(AbstractConv):
-    def __init__(self, in_channels: int, out_channels: int) -> None:
+class StrideConv(AbstractConv):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        scale: Literal["up", "down"],
+    ):
+        conv_constructor = nn.Conv2d if scale == "down" else nn.ConvTranspose2d
+        self.__scale_factor = 0.5 if scale == "down" else 2.0
+
         super().__init__(
-            nn.Conv2d(
+            conv_constructor(
                 in_channels,
                 out_channels,
                 kernel_size=(4, 4),
@@ -41,56 +52,19 @@ class StrideConvBlock(AbstractConv):
                 padding=(1, 1),
             ),
             nn.GELU(),
-            PixelNorm(),
         )
 
     @property
     def scale_factor(self) -> float:
-        return 0.5
-
-
-class StrideConvTrBlock(AbstractConv):
-    def __init__(self, in_channels: int, out_channels: int) -> None:
-        super().__init__(
-            nn.ConvTranspose2d(
-                in_channels,
-                out_channels,
-                kernel_size=(4, 4),
-                stride=(2, 2),
-                padding=(1, 1),
-                output_padding=(0, 0),
-            ),
-            nn.GELU(),
-            PixelNorm(),
-        )
-
-    @property
-    def scale_factor(self) -> float:
-        return 2.0
-
-
-class StrideEndConvTrBlock(AbstractConv):
-    def __init__(self, in_channels: int, out_channels: int) -> None:
-        super().__init__(
-            nn.ConvTranspose2d(
-                in_channels,
-                out_channels,
-                kernel_size=(4, 4),
-                stride=(2, 2),
-                padding=(1, 1),
-                output_padding=(0, 0),
-            ),
-            nn.Tanh(),
-        )
-
-    @property
-    def scale_factor(self) -> float:
-        return 2.0
+        return self.__scale_factor
 
 
 class ConvBlock(AbstractConv):
     def __init__(
-        self, in_channels: int, out_channels: int, scale_factor: float
+        self,
+        in_channels: int,
+        out_channels: int,
+        scale_factor: float,
     ) -> None:
         super().__init__(
             nn.Conv2d(
