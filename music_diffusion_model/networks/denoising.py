@@ -112,17 +112,17 @@ class Denoiser(nn.Module):
             ),
         )
 
-    def forward(self, x_t: th.Tensor) -> th.Tensor:
-        assert len(x_t.size()) == 5
-        assert x_t.size(1) == self.__steps
+    def forward(self, x_0_to_t: th.Tensor) -> th.Tensor:
+        assert len(x_0_to_t.size()) == 5
+        assert x_0_to_t.size(1) == self.__steps
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
 
         t = th.arange(self.__steps, device=device).flip([0])
 
-        eps_theta: th.Tensor = self.__eps((x_t, t))
+        eps_theta: th.Tensor = self.__eps((x_0_to_t.flip([1]), t))
 
-        return eps_theta
+        return eps_theta.flip([1])
 
     def sample(self, x_t: th.Tensor) -> th.Tensor:
         assert len(x_t.size()) == 4
@@ -158,4 +158,4 @@ class Denoiser(nn.Module):
         scale: th.Tensor = self.betas / (
             2 * self.alphas * (1.0 - self.alpha_cumprod)
         )
-        return scale
+        return scale.flip([1])
