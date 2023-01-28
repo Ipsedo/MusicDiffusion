@@ -35,7 +35,7 @@ class Denoiser(nn.Module):
         time_size: int,
         beta_1: float,
         beta_t: float,
-    ):
+    ) -> None:
         super().__init__()
 
         self.__steps = steps

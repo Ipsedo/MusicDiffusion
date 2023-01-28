@@ -39,7 +39,7 @@ class StrideConv(AbstractConv):
         in_channels: int,
         out_channels: int,
         scale: Literal["up", "down"],
-    ):
+    ) -> None:
         conv_constructor = nn.Conv2d if scale == "down" else nn.ConvTranspose2d
         self.__scale_factor = 0.5 if scale == "down" else 2.0
 

@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class PixelNorm(nn.Module):
-    def __init__(self, epsilon: float = 1e-8):
+    def __init__(self, epsilon: float = 1e-8) -> None:
         super(PixelNorm, self).__init__()
 
         self.__epsilon = epsilon

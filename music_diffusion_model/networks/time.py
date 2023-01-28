@@ -5,7 +5,7 @@ import torch.nn as nn
 
 
 class TimeEmbeder(nn.Embedding):
-    def __init__(self, steps: int, size: int):
+    def __init__(self, steps: int, size: int) -> None:
         super().__init__(steps, size)
 
 
@@ -15,7 +15,7 @@ class TimeWrapper(nn.Module):
         module: Callable[[th.Tensor], th.Tensor],
         steps: int,
         time_size: int,
-    ):
+    ) -> None:
         super().__init__()
 
         self.__emb = TimeEmbeder(steps, time_size)
