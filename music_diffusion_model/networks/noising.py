@@ -44,4 +44,4 @@ class Noiser(nn.Module):
             + self.sqrt_minus_one_alphas_cum_prod * eta
         )
 
-        return x_t, eta
+        return x_t, eta * self.sqrt_minus_one_alphas_cum_prod
