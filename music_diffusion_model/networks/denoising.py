@@ -152,3 +152,10 @@ class Denoiser(nn.Module):
             ) + self.betas[:, t] * z
 
         return x_t
+
+    @property
+    def loss_scale(self) -> th.Tensor:
+        scale: th.Tensor = self.betas / (
+            2 * self.alphas * (1.0 - self.alpha_cumprod)
+        )
+        return scale
