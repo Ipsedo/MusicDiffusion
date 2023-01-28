@@ -33,7 +33,9 @@ def train(train_options: TrainOptions) -> None:
     with mlflow.start_run(run_name=train_options.run_name):
 
         noiser = Noiser(
-            train_options.steps, train_options.beta_1, train_options.beta_t
+            train_options.steps,
+            train_options.beta_1,
+            train_options.beta_t,
         )
 
         denoiser = Denoiser(
@@ -90,7 +92,8 @@ def train(train_options: TrainOptions) -> None:
                 x_denoised = denoiser(x_noised.flip([1])).flip([1])
                 x_denoised = th.clip(x_denoised, 0.0, 1.0)
 
-                loss = th_f.kl_div(x_denoised, x_noised, reduction="batchmean")
+                loss = th_f.kl_div(x_denoised, x_noised, reduction="none")
+                loss = loss.sum(dim=1).mean()
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()
@@ -99,6 +102,8 @@ def train(train_options: TrainOptions) -> None:
                 tqdm_bar.set_description(
                     f"Epoch {e} / {train_options.epochs - 1}, loss = {loss.item():.4f}"
                 )
+
+                mlflow.log_metric("loss", loss.item())
 
             z = th.randn(1, train_options.input_channels, 32, 32)
 

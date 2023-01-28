@@ -101,7 +101,6 @@ class ConvBlock(AbstractConv):
                 padding=(1, 1),
             ),
             nn.GELU(),
-            PixelNorm(),
             nn.Upsample(
                 scale_factor=scale_factor,
                 mode="area",

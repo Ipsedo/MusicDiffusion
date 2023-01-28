@@ -12,7 +12,7 @@ def main() -> None:
         input_channels=1,
         time_size=8,
         cuda=True,
-        learning_rate=1e-4,
+        learning_rate=1e-3,
     )
 
     train(train_options)
