@@ -15,6 +15,7 @@ TrainOptions = NamedTuple(
     [
         ("run_name", str),
         ("batch_size", int),
+        ("step_batch_size", int),
         ("epochs", int),
         ("steps", int),
         ("beta_1", float),
@@ -82,6 +83,8 @@ def train(train_options: TrainOptions) -> None:
             }
         )
 
+        device = "cuda" if train_options.cuda else "cpu"
+
         for e in range(train_options.epochs):
 
             tqdm_bar = tqdm(dataloader)
@@ -90,12 +93,19 @@ def train(train_options: TrainOptions) -> None:
                 if train_options.cuda:
                     x = x.cuda()
 
-                x_noised, eps = noiser(x)
-                eps_theta = denoiser(x_noised)
+                t = th.randint(
+                    0,
+                    train_options.steps,
+                    (train_options.step_batch_size,),
+                    device=device,
+                )
+
+                x_noised, eps = noiser(x, t)
+                eps_theta = denoiser(x_noised, t)
 
                 loss = th_f.mse_loss(eps_theta, eps, reduction="none")
-                loss = loss * denoiser.loss_scale
-                loss = loss.sum(dim=1).mean()
+                loss = loss * denoiser.loss_scale(t)
+                loss = loss.mean()
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()

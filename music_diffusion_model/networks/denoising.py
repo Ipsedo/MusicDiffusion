@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 import torch as th
 import torch.nn as nn
 
@@ -59,15 +57,15 @@ class Denoiser(nn.Module):
         self.register_buffer("betas", betas)
 
         encoder_layers = [
-            (8, 16),
-            (16, 24),
-            (24, 32),
+            (16, 32),
+            (32, 48),
+            (48, 64),
         ]
 
         decoder_layers = [
-            (32, 24),
-            (24, 16),
-            (16, 8),
+            (64, 48),
+            (48, 32),
+            (32, 16),
         ]
 
         self.__eps = nn.Sequential(
@@ -110,21 +108,11 @@ class Denoiser(nn.Module):
             ),
         )
 
-    def forward(
-        self, x_0_to_t: th.Tensor, t: Optional[List[int]] = None
-    ) -> th.Tensor:
+    def forward(self, x_0_to_t: th.Tensor, t: th.Tensor) -> th.Tensor:
         assert len(x_0_to_t.size()) == 5
-        assert x_0_to_t.size(1) == self.__steps if t is None else len(t)
+        assert x_0_to_t.size(1) == t.size(0)
 
-        device = "cuda" if next(self.parameters()).is_cuda else "cpu"
-
-        times = (
-            th.arange(self.__steps, device=device)
-            if t is None
-            else th.tensor(t)
-        )
-
-        eps_theta: th.Tensor = self.__eps((x_0_to_t, times))
+        eps_theta: th.Tensor = self.__eps((x_0_to_t, t))
 
         return eps_theta
 
@@ -157,9 +145,10 @@ class Denoiser(nn.Module):
 
         return x_t
 
-    @property
-    def loss_scale(self) -> th.Tensor:
-        scale: th.Tensor = self.betas / (
-            2.0 * self.alphas * (1.0 - self.alpha_cumprod)
+    def loss_scale(self, t: th.Tensor) -> th.Tensor:
+        scale: th.Tensor = th.index_select(self.betas, dim=1, index=t) / (
+            2.0
+            * th.index_select(self.alphas, dim=1, index=t)
+            * (1.0 - th.index_select(self.alpha_cumprod, dim=1, index=t))
         )
         return scale
