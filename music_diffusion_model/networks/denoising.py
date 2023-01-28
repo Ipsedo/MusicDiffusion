@@ -46,10 +46,6 @@ class Denoiser(nn.Module):
         alphas = 1.0 - betas
         alpha_cumprod = th.cumprod(alphas, dim=1)
 
-        alpha_cumprod = alpha_cumprod.flip([1])
-        alphas = alphas.flip([1])
-        betas = betas.flip([1])
-
         self.alphas: th.Tensor
         self.alpha_cumprod: th.Tensor
         self.betas: th.Tensor
@@ -118,11 +114,11 @@ class Denoiser(nn.Module):
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
 
-        t = th.arange(self.__steps, device=device).flip([0])
+        t = th.arange(self.__steps, device=device)
 
-        eps_theta: th.Tensor = self.__eps((x_0_to_t.flip([1]), t))
+        eps_theta: th.Tensor = self.__eps((x_0_to_t, t))
 
-        return eps_theta.flip([1])
+        return eps_theta
 
     def sample(self, x_t: th.Tensor) -> th.Tensor:
         assert len(x_t.size()) == 4
@@ -130,17 +126,17 @@ class Denoiser(nn.Module):
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
 
-        for t in range(self.__steps):
+        for t in reversed(range(self.__steps)):
             z = (
                 th.randn_like(x_t, device=device)
-                if self.__steps - t - 1 > 1
+                if t > 0
                 else th.zeros_like(x_t, device=device)
             )
 
             eps = self.__eps(
                 (
                     x_t.unsqueeze(1),
-                    th.tensor([self.__steps - t - 1], device=device),
+                    th.tensor([t], device=device),
                 )
             ).squeeze(1)
 
@@ -156,6 +152,6 @@ class Denoiser(nn.Module):
     @property
     def loss_scale(self) -> th.Tensor:
         scale: th.Tensor = self.betas / (
-            2 * self.alphas * (1.0 - self.alpha_cumprod)
+            2.0 * self.alphas * (1.0 - self.alpha_cumprod)
         )
-        return scale.flip([1])
+        return scale
