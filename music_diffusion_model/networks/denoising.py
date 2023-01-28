@@ -142,7 +142,7 @@ class Denoiser(nn.Module):
                 - eps
                 * (1.0 - self.alphas[:, t])
                 / th.sqrt(1.0 - self.alpha_cumprod[:, t])
-            ) + self.betas[:, t] * z
+            ) + th.sqrt(self.betas[:, t]) * z
 
         return x_t
 
