@@ -119,12 +119,12 @@ class Denoiser(nn.Module):
 
         t = th.arange(self.__steps, device=device).flip([0])
 
-        eps = self.__eps((x_t, t))
-        out: th.Tensor = (1.0 / th.sqrt(self.alphas)) * (
-            x_t - eps * self.betas / th.sqrt(1.0 - self.alpha_cumprod)
+        eps_theta = self.__eps((x_t, t))
+        mu_theta: th.Tensor = (1.0 / th.sqrt(self.alphas)) * (
+            x_t - eps_theta * self.betas / th.sqrt(1.0 - self.alpha_cumprod)
         )
 
-        return out
+        return mu_theta
 
     def sample(self, x_t: th.Tensor) -> th.Tensor:
         assert len(x_t.size()) == 4

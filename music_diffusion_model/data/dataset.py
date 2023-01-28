@@ -25,6 +25,7 @@ class MNISTDataset(Dataset):
 
     def __getitem__(self, index: int) -> th.Tensor:
         # None -> one channel
+        # pad 28 * 28 -> 32 * 32
         return (
             th_f.pad(
                 self.__tensor[index],

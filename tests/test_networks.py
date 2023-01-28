@@ -17,7 +17,7 @@ def test_noiser(
 
     x = th.randn(batch_size, channels, img_sizes[0], img_sizes[1])
 
-    x_noised, eta = noiser(x)
+    x_noised, eps = noiser(x)
 
     assert len(x_noised.size()) == 5
     assert x_noised.size(0) == batch_size
@@ -26,12 +26,12 @@ def test_noiser(
     assert x_noised.size(3) == img_sizes[0]
     assert x_noised.size(4) == img_sizes[1]
 
-    assert len(eta.size()) == 5
-    assert eta.size(0) == batch_size
-    assert eta.size(1) == steps
-    assert eta.size(2) == channels
-    assert eta.size(3) == img_sizes[0]
-    assert eta.size(4) == img_sizes[1]
+    assert len(eps.size()) == 5
+    assert eps.size(0) == batch_size
+    assert eps.size(1) == steps
+    assert eps.size(2) == channels
+    assert eps.size(3) == img_sizes[0]
+    assert eps.size(4) == img_sizes[1]
 
 
 @pytest.mark.parametrize("steps", [10, 20])
