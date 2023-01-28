@@ -3,7 +3,6 @@ from os.path import exists, isdir
 from statistics import mean
 from typing import NamedTuple
 
-import matplotlib.pyplot as plt
 import mlflow
 import torch as th
 import torch.nn.functional as th_f
@@ -13,6 +12,7 @@ from tqdm import tqdm
 
 from .data import ChangeType, ChannelMinMaxNorm, MNISTDataset, RangeChange
 from .networks import Denoiser, Noiser
+from .utils import Saver
 
 TrainOptions = NamedTuple(
     "TrainOptions",
@@ -31,6 +31,7 @@ TrainOptions = NamedTuple(
         ("metric_window", int),
         ("save_every", int),
         ("output_directory", str),
+        ("nb_samples", int),
     ],
 )
 
@@ -70,6 +71,15 @@ def train(train_options: TrainOptions) -> None:
         optim = th.optim.Adam(
             denoiser.parameters(),
             lr=train_options.learning_rate,
+        )
+
+        saver = Saver(
+            noiser,
+            denoiser,
+            optim,
+            train_options.output_directory,
+            train_options.save_every,
+            train_options.nb_samples,
         )
 
         dataset = MNISTDataset()
@@ -151,11 +161,4 @@ def train(train_options: TrainOptions) -> None:
 
                 mlflow.log_metric("loss", loss.item())
 
-            z = th.randn(
-                1, train_options.input_channels, 32, 32, device=device
-            )
-            o = denoiser.sample(z)
-
-            plt.matshow(o[0, 0].detach().cpu(), cmap="Greys")
-            plt.title(f"Epoch {e}")
-            plt.show()
+                saver.save()

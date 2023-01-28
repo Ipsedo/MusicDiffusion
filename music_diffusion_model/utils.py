@@ -47,20 +47,28 @@ class Saver:
                 ),
             )
 
-            # TODO generic
-            x_t = th.randn(self.__nb_sample, 1, 32, 32)
-            x_0 = self.__denoiser.sample(x_t)
-
-            for i in range(self.__nb_sample):
-                fig = plt.figure()
-                plt.matshow(x_0[i, 0], cmap="Greys")
-                plt.title(f"Save {self.__curr_save}, sample {i}")
-                plt.savefig(
-                    join(
-                        self.__output_dir, f"sample_{self.__curr_save}_{i}.png"
-                    )
+            with th.no_grad():
+                device = (
+                    "cuda"
+                    if next(self.__denoiser.parameters()).is_cuda
+                    else "cpu"
                 )
-                plt.close(fig)
+
+                # TODO generic
+                x_t = th.randn(self.__nb_sample, 1, 32, 32, device=device)
+                x_0 = self.__denoiser.sample(x_t)
+
+                for i in range(self.__nb_sample):
+                    fig = plt.figure()
+                    plt.matshow(x_0[i, 0].cpu(), cmap="Greys")
+                    plt.title(f"Save {self.__curr_save}, sample {i}")
+                    plt.savefig(
+                        join(
+                            self.__output_dir,
+                            f"sample_{self.__curr_save}_{i}.png",
+                        )
+                    )
+                    plt.close(fig)
 
             self.__curr_save += 1
 
