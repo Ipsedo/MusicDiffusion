@@ -1,4 +1,5 @@
-from os.path import join
+from os import mkdir
+from os.path import exists, isdir, join
 
 import matplotlib.pyplot as plt
 import torch as th
@@ -17,6 +18,11 @@ class Saver:
         save_every: int,
         nb_sample: int,
     ) -> None:
+
+        if not exists(output_dir):
+            mkdir(output_dir)
+        elif not isdir(output_dir):
+            raise NotADirectoryError(output_dir)
 
         self.__output_dir = output_dir
         self.__save_every = save_every

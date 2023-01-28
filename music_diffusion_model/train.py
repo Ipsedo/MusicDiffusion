@@ -1,5 +1,3 @@
-from os import mkdir
-from os.path import exists, isdir
 from statistics import mean
 from typing import NamedTuple
 
@@ -37,11 +35,6 @@ TrainOptions = NamedTuple(
 
 
 def train(train_options: TrainOptions) -> None:
-
-    if not exists(train_options.output_directory):
-        mkdir(train_options.output_directory)
-    elif not isdir(train_options.output_directory):
-        raise NotADirectoryError(train_options.output_directory)
 
     mlflow.set_experiment("music_diffusion_model")
 
