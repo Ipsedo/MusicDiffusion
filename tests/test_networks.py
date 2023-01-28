@@ -11,7 +11,10 @@ from music_diffusion_model.networks import Denoiser, Noiser
 @pytest.mark.parametrize("channels", [1, 2])
 @pytest.mark.parametrize("img_sizes", [(32, 32), (32, 64)])
 def test_noiser(
-    steps: int, batch_size: int, channels: int, img_sizes: Tuple[int, int]
+    steps: int,
+    batch_size: int,
+    channels: int,
+    img_sizes: Tuple[int, int],
 ) -> None:
     noiser = Noiser(steps, 1e-4, 2e-1)
 
