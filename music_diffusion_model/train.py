@@ -54,7 +54,8 @@ def train(train_options: TrainOptions) -> None:
             denoiser.cuda()
 
         optim = th.optim.Adam(
-            denoiser.parameters(), lr=train_options.learning_rate
+            denoiser.parameters(),
+            lr=train_options.learning_rate,
         )
 
         dataset = MNISTDataset()
