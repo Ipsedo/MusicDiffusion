@@ -25,6 +25,7 @@ class ConvEndBlock(AbstractConv):
                 stride=(1, 1),
                 padding=(1, 1),
             ),
+            nn.Tanh(),
         )
 
     @property

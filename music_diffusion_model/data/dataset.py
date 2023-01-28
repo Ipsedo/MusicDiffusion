@@ -4,7 +4,6 @@ from os.path import abspath, dirname, join
 
 import numpy as np
 import torch as th
-import torch.nn.functional as th_f
 from torch.utils.data import Dataset
 
 _RESOURCE_FOLDER = abspath(join(dirname(__file__), "..", "resources"))
@@ -24,17 +23,7 @@ class MNISTDataset(Dataset):
         self.__tensor = th.from_numpy(mnist)
 
     def __getitem__(self, index: int) -> th.Tensor:
-        # None -> one channel
-        # pad 28 * 28 -> 32 * 32
-        return (
-            th_f.pad(
-                self.__tensor[index],
-                (2, 2, 2, 2),
-                mode="constant",
-                value=0.0,
-            )[None]
-            / 255.0
-        )
+        return self.__tensor[index][None]
 
     def __len__(self) -> int:
         return self.__tensor.size(0)

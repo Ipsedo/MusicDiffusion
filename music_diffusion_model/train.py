@@ -1,3 +1,5 @@
+from os import mkdir
+from os.path import exists, isdir
 from statistics import mean
 from typing import NamedTuple
 
@@ -6,9 +8,10 @@ import mlflow
 import torch as th
 import torch.nn.functional as th_f
 from torch.utils.data import DataLoader
+from torchvision.transforms import Compose, Pad
 from tqdm import tqdm
 
-from .data import MNISTDataset
+from .data import ChangeType, ChannelMinMaxNorm, MNISTDataset, RangeChange
 from .networks import Denoiser, Noiser
 
 TrainOptions = NamedTuple(
@@ -26,11 +29,19 @@ TrainOptions = NamedTuple(
         ("cuda", bool),
         ("learning_rate", float),
         ("metric_window", int),
+        ("save_every", int),
+        ("output_directory", str),
     ],
 )
 
 
 def train(train_options: TrainOptions) -> None:
+
+    if not exists(train_options.output_directory):
+        mkdir(train_options.output_directory)
+    elif not isdir(train_options.output_directory):
+        raise NotADirectoryError(train_options.output_directory)
+
     mlflow.set_experiment("music_diffusion_model")
 
     with mlflow.start_run(run_name=train_options.run_name):
@@ -72,6 +83,15 @@ def train(train_options: TrainOptions) -> None:
             pin_memory=True,
         )
 
+        transform = Compose(
+            [
+                Pad(2, 0, "constant"),
+                ChangeType(th.float),
+                ChannelMinMaxNorm(),
+                RangeChange(-1.0, 1.0),
+            ]
+        )
+
         mlflow.log_params(
             {
                 "batch_size": train_options.batch_size,
@@ -94,8 +114,11 @@ def train(train_options: TrainOptions) -> None:
             tqdm_bar = tqdm(dataloader)
 
             for x in tqdm_bar:
+
                 if train_options.cuda:
                     x = x.cuda()
+
+                x = transform(x)
 
                 t = th.randint(
                     0,
@@ -108,6 +131,7 @@ def train(train_options: TrainOptions) -> None:
                 )
 
                 x_noised, eps = noiser(x, t)
+                x_noised = th.clip(x_noised, -1.0, 1.0)
                 eps_theta = denoiser(x_noised, t)
 
                 loss = th_f.mse_loss(eps_theta, eps, reduction="none")

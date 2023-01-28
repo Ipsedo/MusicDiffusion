@@ -15,6 +15,8 @@ def main() -> None:
         cuda=True,
         learning_rate=1e-3,
         metric_window=64,
+        save_every=1024,
+        output_directory="/home/samuel/PycharmProjects/MusicDiffusionModel/out/train_mnist",
     )
 
     train(train_options)
