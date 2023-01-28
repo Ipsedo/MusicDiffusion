@@ -117,11 +117,9 @@ def train(train_options: TrainOptions) -> None:
 
                 mlflow.log_metric("loss", loss.item())
 
-            z = th.randn(1, train_options.input_channels, 32, 32)
-
-            if train_options.cuda:
-                z = z.cuda()
-
+            z = th.randn(
+                1, train_options.input_channels, 32, 32, device=device
+            )
             o = denoiser.sample(z)
 
             plt.matshow(o[0, 0].detach().cpu(), cmap="Greys")
