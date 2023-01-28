@@ -35,8 +35,8 @@ class Noiser(nn.Module):
         assert len(x.size()) == 4
         assert len(t.size()) == 2
         assert x.size(0) == t.size(0)
-        b, c, w, h = x.size()
 
+        b, c, w, h = x.size()
         nb_steps = t.size(1)
 
         device = "cuda" if next(self.buffers()).is_cuda else "cpu"
