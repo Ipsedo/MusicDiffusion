@@ -18,9 +18,9 @@ class TimeWrapper(nn.Module):
     ):
         super().__init__()
 
-        self.__module = module
-
         self.__emb = TimeEmbeder(steps, time_size)
+
+        self.__module = module
 
     def forward(self, x_and_time: Tuple[th.Tensor, th.Tensor]) -> th.Tensor:
         x, t = x_and_time
