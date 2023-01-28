@@ -7,7 +7,7 @@ def main() -> None:
         batch_size=8,
         step_batch_size=32,
         epochs=1000,
-        steps=256,
+        steps=1024,
         beta_1=1e-4,
         beta_t=2e-2,
         input_channels=1,
