@@ -93,7 +93,7 @@ def train(train_options: TrainOptions) -> None:
                 eps_theta = denoiser(x_noised.flip([1])).flip([1])
 
                 loss = th_f.mse_loss(eps_theta, eps, reduction="none")
-                loss = loss * denoiser.loss_scale
+                loss = loss * denoiser.loss_scale.flip([1])
                 loss = loss.sum(dim=1).mean()
 
                 optim.zero_grad(set_to_none=True)

@@ -35,11 +35,13 @@ class Noiser(nn.Module):
 
         device = "cuda" if next(self.buffers()).is_cuda else "cpu"
 
-        eta_t = (
-            th.randn(b, 1, c, w, h, device=device)
-            * self.sqrt_minus_one_alphas_cum_prod
+        eps = th.randn(b, 1, c, w, h, device=device).repeat(
+            1, self.__steps, 1, 1, 1
         )
 
-        x_t = self.sqrt_alphas_cum_prod * x.unsqueeze(1) + eta_t
+        x_t = (
+            self.sqrt_alphas_cum_prod * x.unsqueeze(1)
+            + eps * self.sqrt_minus_one_alphas_cum_prod
+        )
 
-        return x_t, eta_t
+        return x_t, eps
