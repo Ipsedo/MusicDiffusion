@@ -1,7 +1,7 @@
 import torch as th
 import torch.nn as nn
 
-from .convolutions import AbstractConv, ConvBlock, ConvEndBlock
+from .convolutions import AbstractConv, ConvBlock, ConvEndBlock, StrideConv
 from .time import TimeWrapper
 
 
@@ -19,8 +19,9 @@ class ConvWrapper(nn.Module):
         x = x.flatten(0, 1)
         out: th.Tensor = self.__conv(x)
 
-        new_w, new_h = int(w * self.__conv.scale_factor), int(
-            h * self.__conv.scale_factor
+        new_w, new_h = (
+            int(w * self.__conv.scale_factor),
+            int(h * self.__conv.scale_factor),
         )
 
         return out.view(b, t, -1, new_w, new_h)
@@ -85,20 +86,20 @@ class Denoiser(nn.Module):
             ),
             *[
                 ConvWrapper(
-                    ConvBlock(
+                    StrideConv(
                         c_i,
                         c_o,
-                        scale_factor=0.5,
+                        scale="down",
                     )
                 )
                 for c_i, c_o in encoder_layers
             ],
             *[
                 ConvWrapper(
-                    ConvBlock(
+                    StrideConv(
                         c_i,
                         c_o,
-                        scale_factor=2.0,
+                        scale="up",
                     )
                 )
                 for c_i, c_o in decoder_layers

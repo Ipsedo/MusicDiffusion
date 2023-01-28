@@ -32,6 +32,9 @@ def train(train_options: TrainOptions) -> None:
 
     with mlflow.start_run(run_name=train_options.run_name):
 
+        if train_options.cuda:
+            th.backends.cudnn.benchmark = True
+
         noiser = Noiser(
             train_options.steps,
             train_options.beta_1,
