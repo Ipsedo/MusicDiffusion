@@ -5,7 +5,7 @@ def main() -> None:
     train_options = TrainOptions(
         run_name="mnist",
         batch_size=8,
-        step_batch_size=8,
+        step_batch_size=32,
         epochs=1000,
         steps=256,
         beta_1=1e-4,
@@ -14,6 +14,7 @@ def main() -> None:
         time_size=8,
         cuda=True,
         learning_rate=1e-3,
+        metric_window=64,
     )
 
     train(train_options)

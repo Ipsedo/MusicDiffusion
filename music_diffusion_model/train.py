@@ -1,3 +1,4 @@
+from statistics import mean
 from typing import NamedTuple
 
 import matplotlib.pyplot as plt
@@ -24,6 +25,7 @@ TrainOptions = NamedTuple(
         ("time_size", int),
         ("cuda", bool),
         ("learning_rate", float),
+        ("metric_window", int),
     ],
 )
 
@@ -85,6 +87,8 @@ def train(train_options: TrainOptions) -> None:
 
         device = "cuda" if train_options.cuda else "cpu"
 
+        losses = [0.0 for _ in range(train_options.metric_window)]
+
         for e in range(train_options.epochs):
 
             tqdm_bar = tqdm(dataloader)
@@ -105,14 +109,17 @@ def train(train_options: TrainOptions) -> None:
 
                 loss = th_f.mse_loss(eps_theta, eps, reduction="none")
                 loss = loss * denoiser.loss_scale(t)
-                loss = loss.mean()
+                loss = loss.sum(dim=[2, 3, 4]).mean()
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()
                 optim.step()
 
+                del losses[0]
+                losses.append(loss.item())
+
                 tqdm_bar.set_description(
-                    f"Epoch {e} / {train_options.epochs - 1}, loss = {loss.item():.4f}"
+                    f"Epoch {e} / {train_options.epochs - 1}, loss = {mean(losses):.4f}"
                 )
 
                 mlflow.log_metric("loss", loss.item())
