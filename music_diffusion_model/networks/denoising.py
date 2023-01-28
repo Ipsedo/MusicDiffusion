@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 import torch as th
 import torch.nn as nn
 
@@ -57,15 +59,15 @@ class Denoiser(nn.Module):
         self.register_buffer("betas", betas)
 
         encoder_layers = [
-            (16, 32),
-            (32, 64),
-            (64, 128),
+            (8, 16),
+            (16, 24),
+            (24, 32),
         ]
 
         decoder_layers = [
-            (128, 64),
-            (64, 32),
-            (32, 16),
+            (32, 24),
+            (24, 16),
+            (16, 8),
         ]
 
         self.__eps = nn.Sequential(
@@ -108,15 +110,21 @@ class Denoiser(nn.Module):
             ),
         )
 
-    def forward(self, x_0_to_t: th.Tensor) -> th.Tensor:
+    def forward(
+        self, x_0_to_t: th.Tensor, t: Optional[List[int]] = None
+    ) -> th.Tensor:
         assert len(x_0_to_t.size()) == 5
-        assert x_0_to_t.size(1) == self.__steps
+        assert x_0_to_t.size(1) == self.__steps if t is None else len(t)
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
 
-        t = th.arange(self.__steps, device=device)
+        times = (
+            th.arange(self.__steps, device=device)
+            if t is None
+            else th.tensor(t)
+        )
 
-        eps_theta: th.Tensor = self.__eps((x_0_to_t, t))
+        eps_theta: th.Tensor = self.__eps((x_0_to_t, times))
 
         return eps_theta
 

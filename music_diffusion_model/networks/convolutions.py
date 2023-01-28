@@ -52,6 +52,7 @@ class StrideConv(AbstractConv):
                 padding=(1, 1),
             ),
             nn.GELU(),
+            nn.BatchNorm2d(out_channels),
         )
 
     @property
@@ -75,6 +76,7 @@ class ConvBlock(AbstractConv):
                 padding=(1, 1),
             ),
             nn.GELU(),
+            nn.BatchNorm2d(out_channels),
             nn.Upsample(
                 scale_factor=scale_factor,
                 mode="area",

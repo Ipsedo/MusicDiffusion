@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Optional, Tuple
 
 import torch as th
 import torch.nn as nn
@@ -29,19 +29,35 @@ class Noiser(nn.Module):
             "sqrt_minus_one_alphas_cum_prod", sqrt_minus_one_alphas_cum_prod
         )
 
-    def forward(self, x: th.Tensor) -> Tuple[th.Tensor, th.Tensor]:
+    def forward(
+        self, x: th.Tensor, t: Optional[List[int]] = None
+    ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x.size()) == 4
         b, c, w, h = x.size()
 
         device = "cuda" if next(self.buffers()).is_cuda else "cpu"
 
-        eps = th.randn(b, 1, c, w, h, device=device).repeat(
-            1, self.__steps, 1, 1, 1
+        eps = th.randn(b, 1, c, w, h, device=device)
+        eps = eps.repeat(1, self.__steps if t is None else len(t), 1, 1, 1)
+
+        sqrt_alphas_cum_prod, sqrt_minus_one_alphas_cum_prod = (
+            (self.sqrt_alphas_cum_prod, self.sqrt_minus_one_alphas_cum_prod)
+            if t is None
+            else (
+                th.index_select(
+                    self.sqrt_alphas_cum_prod, dim=1, index=th.tensor(t)
+                ),
+                th.index_select(
+                    self.sqrt_minus_one_alphas_cum_prod,
+                    dim=1,
+                    index=th.tensor(t),
+                ),
+            )
         )
 
         x_t = (
-            self.sqrt_alphas_cum_prod * x.unsqueeze(1)
-            + eps * self.sqrt_minus_one_alphas_cum_prod
+            sqrt_alphas_cum_prod * x.unsqueeze(1)
+            + eps * sqrt_minus_one_alphas_cum_prod
         )
 
         return x_t, eps
