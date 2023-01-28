@@ -3,6 +3,7 @@ from typing import NamedTuple
 import matplotlib.pyplot as plt
 import mlflow
 import torch as th
+import torch.nn.functional as th_f
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -85,15 +86,10 @@ def train(train_options: TrainOptions) -> None:
                 if train_options.cuda:
                     x = x.cuda()
 
-                x_noised = noiser(x)
-                x_noised = th.clip(x_noised, 0.0, 1.0)
+                x_noised, eps = noiser(x)
+                eps_theta = denoiser(x_noised.flip([1])).flip([1])
 
-                x_denoised = denoiser(x_noised.flip([1])).flip([1])
-                x_denoised = th.clip(x_denoised, 0.0, 1.0)
-
-                # loss = th_f.mse_loss(x_denoised, x_noised, reduction="none")
-                # loss = loss.sum(dim=1).mean()
-                loss = th.pow(x_denoised, 2).mean()
+                loss = th_f.mse_loss(eps_theta, eps, reduction="mean")
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()
