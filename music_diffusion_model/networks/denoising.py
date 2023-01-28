@@ -27,7 +27,7 @@ class ConvWrapper(nn.Module):
         return out.view(b, t, -1, new_w, new_h)
 
 
-class Denoiser(nn.Sequential):
+class Denoiser(nn.Module):
     def __init__(
         self,
         channels: int,
@@ -36,9 +36,25 @@ class Denoiser(nn.Sequential):
         beta_1: float,
         beta_t: float,
     ):
+        super().__init__()
+
         self.__steps = steps
 
         self.__channels = channels
+
+        betas = th.linspace(beta_1, beta_t, steps=self.__steps)[
+            None, :, None, None, None
+        ]
+        alphas = 1.0 - betas
+        alpha_cumprod = th.cumprod(alphas, dim=1)
+
+        self.alphas: th.Tensor
+        self.alpha_cumprod: th.Tensor
+        self.betas: th.Tensor
+
+        self.register_buffer("alphas", alphas)
+        self.register_buffer("alpha_cumprod", alpha_cumprod)
+        self.register_buffer("betas", betas)
 
         encoder_layers = [
             (16, 32),
@@ -52,7 +68,7 @@ class Denoiser(nn.Sequential):
             (32, 16),
         ]
 
-        super().__init__(
+        self.__eps = nn.Sequential(
             TimeWrapper(
                 ConvWrapper(
                     ConvBlock(
@@ -92,20 +108,6 @@ class Denoiser(nn.Sequential):
             ),
         )
 
-        betas = th.linspace(beta_1, beta_t, steps=self.__steps)[
-            None, :, None, None, None
-        ]
-        alphas = 1.0 - betas
-        alpha_cumprod = th.cumprod(alphas, dim=1)
-
-        self.alphas: th.Tensor
-        self.alpha_cumprod: th.Tensor
-        self.betas: th.Tensor
-
-        self.register_buffer("alphas", alphas)
-        self.register_buffer("alpha_cumprod", alpha_cumprod)
-        self.register_buffer("betas", betas)
-
     def forward(self, x_0_to_t: th.Tensor) -> th.Tensor:
         assert len(x_0_to_t.size()) == 5
         assert x_0_to_t.size(1) == self.__steps
@@ -114,7 +116,7 @@ class Denoiser(nn.Sequential):
 
         t = th.arange(self.__steps, device=device)
 
-        eps_theta: th.Tensor = super().forward((x_0_to_t, t))
+        eps_theta: th.Tensor = self.__eps((x_0_to_t, t))
 
         return eps_theta
 
@@ -131,16 +133,12 @@ class Denoiser(nn.Sequential):
                 else th.zeros_like(x_t, device=device)
             )
 
-            eps = (
-                super()
-                .forward(
-                    (
-                        x_t.unsqueeze(1),
-                        th.tensor([t], device=device),
-                    )
+            eps = self.__eps(
+                (
+                    x_t.unsqueeze(1),
+                    th.tensor([t], device=device),
                 )
-                .squeeze(1)
-            )
+            ).squeeze(1)
 
             x_t = (1.0 / th.sqrt(self.alphas[:, t])) * (
                 x_t
