@@ -100,7 +100,10 @@ def train(train_options: TrainOptions) -> None:
                 t = th.randint(
                     0,
                     train_options.steps,
-                    (train_options.step_batch_size,),
+                    (
+                        train_options.batch_size,
+                        train_options.step_batch_size,
+                    ),
                     device=device,
                 )
 

@@ -7,15 +7,13 @@ from music_diffusion_model.networks import Denoiser, Noiser
 
 
 @pytest.mark.parametrize("steps", [10, 20])
-@pytest.mark.parametrize(
-    "compute_steps", [th.tensor([1, 4, 6]), th.tensor([0, 9])]
-)
+@pytest.mark.parametrize("step_batch_size", [1, 2])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [1, 2])
 @pytest.mark.parametrize("img_sizes", [(32, 32), (32, 64)])
 def test_noiser(
     steps: int,
-    compute_steps: th.Tensor,
+    step_batch_size: int,
     batch_size: int,
     channels: int,
     img_sizes: Tuple[int, int],
@@ -23,39 +21,34 @@ def test_noiser(
     noiser = Noiser(steps, 1e-4, 2e-1)
 
     x = th.randn(batch_size, channels, img_sizes[0], img_sizes[1])
+    t = th.randint(0, steps, (batch_size, step_batch_size))
 
-    x_noised, eps = noiser(x, compute_steps)
+    x_noised, eps = noiser(x, t)
 
     assert len(x_noised.size()) == 5
     assert x_noised.size(0) == batch_size
-    assert x_noised.size(1) == (
-        steps if compute_steps is None else len(compute_steps)
-    )
+    assert x_noised.size(1) == step_batch_size
     assert x_noised.size(2) == channels
     assert x_noised.size(3) == img_sizes[0]
     assert x_noised.size(4) == img_sizes[1]
 
     assert len(eps.size()) == 5
     assert eps.size(0) == batch_size
-    assert eps.size(1) == (
-        steps if compute_steps is None else len(compute_steps)
-    )
+    assert eps.size(1) == step_batch_size
     assert eps.size(2) == channels
     assert eps.size(3) == img_sizes[0]
     assert eps.size(4) == img_sizes[1]
 
 
 @pytest.mark.parametrize("steps", [10, 20])
-@pytest.mark.parametrize(
-    "compute_steps", [th.tensor([1, 4, 6]), th.tensor([0, 9])]
-)
+@pytest.mark.parametrize("step_batch_size", [1, 2])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [1, 2])
 @pytest.mark.parametrize("img_sizes", [(32, 32), (32, 64)])
 @pytest.mark.parametrize("time_size", [2, 3])
 def test_denoiser(
     steps: int,
-    compute_steps: th.Tensor,
+    step_batch_size: int,
     batch_size: int,
     channels: int,
     img_sizes: Tuple[int, int],
@@ -65,19 +58,18 @@ def test_denoiser(
 
     x = th.randn(
         batch_size,
-        steps if compute_steps is None else len(compute_steps),
+        step_batch_size,
         channels,
         img_sizes[0],
         img_sizes[1],
     )
+    t = th.randint(0, steps, (batch_size, step_batch_size))
 
-    o = denoiser(x, compute_steps)
+    o = denoiser(x, t)
 
     assert len(o.size()) == 5
     assert o.size(0) == batch_size
-    assert o.size(1) == (
-        steps if compute_steps is None else len(compute_steps)
-    )
+    assert o.size(1) == step_batch_size
     assert o.size(2) == channels
     assert o.size(3) == img_sizes[0]
     assert o.size(4) == img_sizes[1]
@@ -91,3 +83,12 @@ def test_denoiser(
     assert o.size(1) == channels
     assert o.size(2) == img_sizes[0]
     assert o.size(3) == img_sizes[1]
+
+    s = denoiser.loss_scale(t)
+
+    assert len(s.size()) == 5
+    assert s.size(0) == batch_size
+    assert s.size(1) == step_batch_size
+    assert s.size(2) == 1
+    assert s.size(3) == 1
+    assert s.size(4) == 1

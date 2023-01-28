@@ -33,25 +33,29 @@ class Noiser(nn.Module):
         self, x: th.Tensor, t: th.Tensor
     ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x.size()) == 4
+        assert len(t.size()) == 2
+        assert x.size(0) == t.size(0)
         b, c, w, h = x.size()
 
         device = "cuda" if next(self.buffers()).is_cuda else "cpu"
 
-        eps = th.randn(b, 1, c, w, h, device=device)
-        eps = eps.repeat(1, t.size(0), 1, 1, 1)
+        eps = th.randn(t.size(0), t.size(1), c, w, h, device=device)
 
         sqrt_alphas_cum_prod, sqrt_minus_one_alphas_cum_prod = (
-            th.index_select(self.sqrt_alphas_cum_prod, dim=1, index=t),
             th.index_select(
-                self.sqrt_minus_one_alphas_cum_prod,
-                dim=1,
-                index=t,
+                self.sqrt_alphas_cum_prod.flatten(0, 1),
+                dim=0,
+                index=t.flatten(),
+            ),
+            th.index_select(
+                self.sqrt_minus_one_alphas_cum_prod.flatten(0, 1),
+                dim=0,
+                index=t.flatten(),
             ),
         )
 
-        x_t = (
-            sqrt_alphas_cum_prod * x.unsqueeze(1)
-            + eps * sqrt_minus_one_alphas_cum_prod
-        )
+        x_t = sqrt_alphas_cum_prod.view(b, t.size(1), 1, 1, 1) * x.unsqueeze(
+            1
+        ) + eps * sqrt_minus_one_alphas_cum_prod.view(b, t.size(1), 1, 1, 1)
 
         return x_t, eps

@@ -110,7 +110,8 @@ class Denoiser(nn.Module):
 
     def forward(self, x_0_to_t: th.Tensor, t: th.Tensor) -> th.Tensor:
         assert len(x_0_to_t.size()) == 5
-        assert x_0_to_t.size(1) == t.size(0)
+        assert x_0_to_t.size(0) == t.size(0)
+        assert x_0_to_t.size(1) == t.size(1)
 
         eps_theta: th.Tensor = self.__eps((x_0_to_t, t))
 
@@ -132,7 +133,7 @@ class Denoiser(nn.Module):
             eps = self.__eps(
                 (
                     x_t.unsqueeze(1),
-                    th.tensor([t], device=device),
+                    th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
                 )
             ).squeeze(1)
 
@@ -146,9 +147,18 @@ class Denoiser(nn.Module):
         return x_t
 
     def loss_scale(self, t: th.Tensor) -> th.Tensor:
-        scale: th.Tensor = th.index_select(self.betas, dim=1, index=t) / (
-            2.0
-            * th.index_select(self.alphas, dim=1, index=t)
-            * (1.0 - th.index_select(self.alpha_cumprod, dim=1, index=t))
-        )
-        return scale
+        assert len(t.size()) == 2
+        b, s = t.size()
+
+        betas = th.index_select(
+            self.betas.flatten(0, 1), dim=0, index=t.flatten()
+        ).view(b, s)
+        alphas = th.index_select(
+            self.alphas.flatten(0, 1), dim=0, index=t.flatten()
+        ).view(b, s)
+        alpha_cumprod = th.index_select(
+            self.alpha_cumprod.flatten(0, 1), dim=0, index=t.flatten()
+        ).view(b, s)
+
+        scale: th.Tensor = betas / (2.0 * alphas * (1.0 - alpha_cumprod))
+        return scale.view(b, s, 1, 1, 1)

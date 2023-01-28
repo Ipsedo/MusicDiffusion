@@ -25,12 +25,13 @@ class TimeWrapper(nn.Module):
     def forward(self, x_and_time: Tuple[th.Tensor, th.Tensor]) -> th.Tensor:
         x, t = x_and_time
         assert len(x.size()) == 5
-        assert len(t.size()) == 1
+        assert len(t.size()) == 2
+        assert x.size(0) == t.size(0)
 
         b, _, _, w, h = x.size()
 
         time_vec = self.__emb(t)
-        time_vec = time_vec[None, :, :, None, None].repeat(b, 1, 1, w, h)
+        time_vec = time_vec[:, :, :, None, None].repeat(1, 1, 1, w, h)
         x_time = th.cat([x, time_vec], dim=2)
 
         return self.__module(x_time)
