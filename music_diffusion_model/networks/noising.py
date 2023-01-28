@@ -37,25 +37,29 @@ class Noiser(nn.Module):
         assert x.size(0) == t.size(0)
         b, c, w, h = x.size()
 
+        nb_steps = t.size(1)
+
         device = "cuda" if next(self.buffers()).is_cuda else "cpu"
 
         eps = th.randn(t.size(0), t.size(1), c, w, h, device=device)
 
+        t = t.flatten()
+
         sqrt_alphas_cum_prod, sqrt_minus_one_alphas_cum_prod = (
             th.index_select(
-                self.sqrt_alphas_cum_prod.flatten(0, 1),
+                self.sqrt_alphas_cum_prod[0],
                 dim=0,
-                index=t.flatten(),
+                index=t,
             ),
             th.index_select(
-                self.sqrt_minus_one_alphas_cum_prod.flatten(0, 1),
+                self.sqrt_minus_one_alphas_cum_prod[0],
                 dim=0,
-                index=t.flatten(),
+                index=t,
             ),
         )
 
-        x_t = sqrt_alphas_cum_prod.view(b, t.size(1), 1, 1, 1) * x.unsqueeze(
+        x_t = sqrt_alphas_cum_prod.view(b, nb_steps, 1, 1, 1) * x.unsqueeze(
             1
-        ) + eps * sqrt_minus_one_alphas_cum_prod.view(b, t.size(1), 1, 1, 1)
+        ) + eps * sqrt_minus_one_alphas_cum_prod.view(b, nb_steps, 1, 1, 1)
 
         return x_t, eps
