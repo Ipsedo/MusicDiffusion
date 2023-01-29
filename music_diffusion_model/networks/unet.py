@@ -64,7 +64,10 @@ class UNet(nn.Module):
 
         out: th.Tensor = self.__start_conv(img)
 
-        for block, down in zip(self.__encoder, self.__encoder_down):
+        for block, down in zip(
+            self.__encoder,
+            self.__encoder_down,
+        ):
             res = block(out)
             residuals.append(res)
             out = down(res)
