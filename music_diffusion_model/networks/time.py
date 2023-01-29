@@ -27,17 +27,14 @@ class TimeWrapper(nn.Module):
         assert len(time.size()) == 2
         assert x.size(0) == time.size(0)
 
-        b, _, _, w, h = x.size()
+        b, t, _, w, h = x.size()
 
         time_vec = self.__emb(time)
         time_vec = time_vec[:, :, :, None, None].repeat(1, 1, 1, w, h)
         x_time = th.cat([x, time_vec], dim=2)
 
-        _, t, _, _, _ = x_time.size()
         x_time = x_time.flatten(0, 1)
-
         res: th.Tensor = self.__unet(x_time)
-
         res = res.view(b, t, -1, w, h)
 
         return res
