@@ -68,10 +68,8 @@ def generate(generate_options: GenerateOptions) -> None:
 
     transform = Compose(
         [
-            [
-                ChannelMinMaxNorm(),
-                RangeChange(-1.0, 1.0),
-            ]
+            ChannelMinMaxNorm(),
+            RangeChange(-1.0, 1.0),
         ]
     )
 
