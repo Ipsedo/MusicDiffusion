@@ -1,0 +1,95 @@
+from os import mkdir
+from os.path import exists, isdir, join
+from typing import List, NamedTuple, Tuple
+
+import torch as th
+from tqdm import tqdm
+
+from .data import (
+    N_FFT,
+    OUTPUT_SIZES,
+    SAMPLE_RATE,
+    STFT_STRIDE,
+    magn_phase_to_wav,
+)
+from .networks import Denoiser
+
+GenerateOptions = NamedTuple(
+    "GenerateOptions",
+    [
+        ("denoiser_dict_state", str),
+        ("steps", int),
+        ("beta_1", float),
+        ("beta_t", float),
+        ("input_channels", int),
+        ("encoder_channels", List[Tuple[int, int]]),
+        ("decoder_channels", List[Tuple[int, int]]),
+        ("time_size", int),
+        ("cuda", bool),
+        ("output_dir", str),
+        ("frames", int),
+        ("musics", int),
+    ],
+)
+
+
+def generate(generate_options: GenerateOptions) -> None:
+
+    if not exists(generate_options.output_dir):
+        mkdir(generate_options.output_dir)
+    elif not isdir(generate_options.output_dir):
+        raise NotADirectoryError(generate_options.output_dir)
+
+    print("Load model...")
+
+    denoiser = Denoiser(
+        generate_options.input_channels,
+        generate_options.steps,
+        generate_options.time_size,
+        generate_options.beta_1,
+        generate_options.beta_t,
+        generate_options.encoder_channels,
+        generate_options.decoder_channels,
+    )
+
+    device = "cuda" if generate_options.cuda else "cpu"
+
+    denoiser.load_state_dict(
+        th.load(generate_options.denoiser_dict_state, map_location=device)
+    )
+
+    denoiser.eval()
+
+    if generate_options.cuda:
+        denoiser.cuda()
+
+    height, width = OUTPUT_SIZES
+
+    with th.no_grad():
+
+        print("Pass rand data to generator...")
+
+        x_t = th.randn(
+            generate_options.musics,
+            generate_options.input_channels,
+            height,
+            width * generate_options.frames,
+            device=device,
+        )
+
+        gen_sound = denoiser.sample(x_t)
+
+        print("Saving sound...")
+
+        for i in tqdm(range(gen_sound.size()[0])):
+            out_sound_path = join(
+                generate_options.output_dir, f"sound_{i}.wav"
+            )
+
+            magn_phase_to_wav(
+                gen_sound[i, None, :, :, :].detach().cpu(),
+                out_sound_path,
+                SAMPLE_RATE,
+                N_FFT,
+                STFT_STRIDE,
+            )

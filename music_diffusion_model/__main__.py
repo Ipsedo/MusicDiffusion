@@ -1,5 +1,39 @@
+import argparse
+
 from .data import create_dataset
+from .generate import GenerateOptions, generate
 from .train import TrainOptions, train
+
+
+def main_generate() -> None:
+    generate_options = GenerateOptions(
+        steps=1024,
+        beta_1=1e-4,
+        beta_t=2e-2,
+        input_channels=2,
+        encoder_channels=[
+            (16, 32),
+            (32, 48),
+            (48, 64),
+            (64, 80),
+            (80, 96),
+        ],
+        decoder_channels=[
+            (96, 80),
+            (80, 64),
+            (64, 48),
+            (48, 32),
+            (32, 16),
+        ],
+        time_size=8,
+        cuda=False,
+        denoiser_dict_state="/home/samuel/PycharmProjects/MusicDiffusionModel/out/train_korn/denoiser_0.pt",
+        output_dir="/home/samuel/PycharmProjects/MusicDiffusionModel/out/generate_train_korn_0",
+        frames=3,
+        musics=3,
+    )
+
+    generate(generate_options)
 
 
 def main_create_dataset() -> None:
@@ -9,34 +43,30 @@ def main_create_dataset() -> None:
     )
 
 
-def main() -> None:
+def main_train() -> None:
     train_options = TrainOptions(
         run_name="korn",
         dataset_path="/home/samuel/PycharmProjects/MusicDiffusionModel/res/korn_dataset",
         batch_size=4,
-        step_batch_size=2,
+        step_batch_size=1,
         epochs=1000,
         steps=1024,
         beta_1=1e-4,
         beta_t=2e-2,
         input_channels=2,
         encoder_channels=[
-            (8, 16),
-            (16, 24),
-            (24, 32),
-            (32, 40),
-            (40, 48),
-            (48, 56),
-            (56, 64),
+            (16, 32),
+            (32, 48),
+            (48, 64),
+            (64, 80),
+            (80, 96),
         ],
         decoder_channels=[
-            (64, 56),
-            (56, 48),
-            (48, 40),
-            (40, 32),
-            (32, 24),
-            (24, 16),
-            (16, 8),
+            (96, 80),
+            (80, 64),
+            (64, 48),
+            (48, 32),
+            (32, 16),
         ],
         time_size=8,
         cuda=True,
@@ -48,6 +78,14 @@ def main() -> None:
     )
 
     train(train_options)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser("music_diffusion_model")
+
+    _ = parser.parse_args()
+
+    main_train()
 
 
 if __name__ == "__main__":
