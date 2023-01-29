@@ -8,7 +8,7 @@ matplotlib
 
 # pre-commit
 pre-commit
-black
+black[d]
 pycln
 isort
 mypy

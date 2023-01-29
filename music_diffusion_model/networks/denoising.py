@@ -42,11 +42,9 @@ class Denoiser(nn.Module):
 
         self.__channels = channels
 
-        betas = th.linspace(beta_1, beta_t, steps=self.__steps)[
-            None, :, None, None, None
-        ]
+        betas = th.linspace(beta_1, beta_t, steps=self.__steps)
         alphas = 1.0 - betas
-        alpha_cumprod = th.cumprod(alphas, dim=1)
+        alpha_cumprod = th.cumprod(alphas, dim=0)
 
         self.alphas: th.Tensor
         self.alpha_cumprod: th.Tensor
@@ -137,12 +135,12 @@ class Denoiser(nn.Module):
                 )
             ).squeeze(1)
 
-            x_t = (1.0 / th.sqrt(self.alphas[:, t])) * (
+            x_t = (1.0 / th.sqrt(self.alphas[None, t])) * (
                 x_t
                 - eps
-                * (1.0 - self.alphas[:, t])
-                / th.sqrt(1.0 - self.alpha_cumprod[:, t])
-            ) + th.sqrt(self.betas[:, t]) * z
+                * (1.0 - self.alphas[None, t])
+                / th.sqrt(1.0 - self.alpha_cumprod[None, t])
+            ) + th.sqrt(self.betas[None, t]) * z
 
         return x_t
 
@@ -152,9 +150,9 @@ class Denoiser(nn.Module):
 
         t = t.flatten()
 
-        betas = th.index_select(self.betas[0], dim=0, index=t)
-        alphas = th.index_select(self.alphas[0], dim=0, index=t)
-        alpha_cumprod = th.index_select(self.alpha_cumprod[0], dim=0, index=t)
+        betas = th.index_select(self.betas, dim=0, index=t)
+        alphas = th.index_select(self.alphas, dim=0, index=t)
+        alpha_cumprod = th.index_select(self.alpha_cumprod, dim=0, index=t)
 
         scale: th.Tensor = betas / (2.0 * alphas * (1.0 - alpha_cumprod))
         return scale.view(b, s)[:, :, None, None, None]

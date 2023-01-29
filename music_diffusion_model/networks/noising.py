@@ -14,12 +14,8 @@ class Noiser(nn.Module):
 
         alphas = 1 - betas
         alphas_cum_prod = th.cumprod(alphas, dim=0)
-        sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)[
-            None, :, None, None, None
-        ]
-        sqrt_minus_one_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)[
-            None, :, None, None, None
-        ]
+        sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
+        sqrt_minus_one_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
 
         self.sqrt_alphas_cum_prod: th.Tensor
         self.sqrt_minus_one_alphas_cum_prod: th.Tensor
@@ -47,12 +43,12 @@ class Noiser(nn.Module):
 
         sqrt_alphas_cum_prod, sqrt_minus_one_alphas_cum_prod = (
             th.index_select(
-                self.sqrt_alphas_cum_prod[0],
+                self.sqrt_alphas_cum_prod,
                 dim=0,
                 index=t,
             ),
             th.index_select(
-                self.sqrt_minus_one_alphas_cum_prod[0],
+                self.sqrt_minus_one_alphas_cum_prod,
                 dim=0,
                 index=t,
             ),
