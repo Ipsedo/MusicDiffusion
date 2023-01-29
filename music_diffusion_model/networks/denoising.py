@@ -82,16 +82,3 @@ class Denoiser(nn.Module):
             ) + th.sqrt(self.betas[t]) * z
 
         return x_t
-
-    def loss_scale(self, t: th.Tensor) -> th.Tensor:
-        assert len(t.size()) == 2
-        b, s = t.size()
-
-        t = t.flatten()
-
-        betas = th.index_select(self.betas, dim=0, index=t)
-        alphas = th.index_select(self.alphas, dim=0, index=t)
-        alpha_cumprod = th.index_select(self.alpha_cumprod, dim=0, index=t)
-
-        scale: th.Tensor = betas / (2.0 * alphas * (1.0 - alpha_cumprod))
-        return scale.view(b, s)[:, :, None, None, None]
