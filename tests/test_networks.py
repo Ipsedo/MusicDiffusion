@@ -54,7 +54,15 @@ def test_denoiser(
     img_sizes: Tuple[int, int],
     time_size: int,
 ) -> None:
-    denoiser = Denoiser(channels, steps, time_size, 1e-4, 2e-1)
+    denoiser = Denoiser(
+        channels,
+        steps,
+        time_size,
+        1e-4,
+        2e-1,
+        [(4, 8), (8, 16), (16, 32)],
+        [(32, 16), (16, 8), (8, 4)],
+    )
 
     x = th.randn(
         batch_size,

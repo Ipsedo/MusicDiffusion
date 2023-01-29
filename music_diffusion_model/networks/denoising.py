@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import torch as th
 import torch.nn as nn
 
@@ -36,6 +38,8 @@ class Denoiser(nn.Module):
         time_size: int,
         beta_1: float,
         beta_t: float,
+        encoder_channels: List[Tuple[int, int]],
+        decoder_channels: List[Tuple[int, int]],
     ) -> None:
         super().__init__()
 
@@ -55,24 +59,12 @@ class Denoiser(nn.Module):
         self.register_buffer("alpha_cumprod", alpha_cumprod)
         self.register_buffer("betas", betas)
 
-        encoder_layers = [
-            (16, 32),
-            (32, 48),
-            (48, 64),
-        ]
-
-        decoder_layers = [
-            (64, 48),
-            (48, 32),
-            (32, 16),
-        ]
-
         self.__eps = TimeWrapper(
             UNet(
                 channels + time_size,
                 channels,
-                encoder_layers,
-                decoder_layers,
+                encoder_channels,
+                decoder_channels,
             ),
             self.__steps,
             time_size,

@@ -57,6 +57,8 @@ def train(train_options: TrainOptions) -> None:
             train_options.time_size,
             train_options.beta_1,
             train_options.beta_t,
+            train_options.encoder_channels,
+            train_options.decoder_channels,
         )
 
         if train_options.cuda:

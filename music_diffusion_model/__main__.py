@@ -11,8 +11,16 @@ def main() -> None:
         beta_1=1e-4,
         beta_t=2e-2,
         input_channels=1,
-        encoder_channels=[],
-        decoder_channels=[],
+        encoder_channels=[
+            (16, 32),
+            (32, 48),
+            (48, 64),
+        ],
+        decoder_channels=[
+            (64, 48),
+            (48, 32),
+            (32, 16),
+        ],
         time_size=8,
         cuda=True,
         learning_rate=1e-3,
