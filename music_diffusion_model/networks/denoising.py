@@ -3,31 +3,8 @@ from typing import List, Tuple
 import torch as th
 import torch.nn as nn
 
-from .convolutions import AbstractConv
 from .time import TimeWrapper
 from .unet import UNet
-
-
-class ConvWrapper(nn.Module):
-    def __init__(self, conv: AbstractConv) -> None:
-
-        super().__init__()
-
-        self.__conv = conv
-
-    def forward(self, x: th.Tensor) -> th.Tensor:
-        assert len(x.size()) == 5
-        b, t, _, w, h = x.size()
-
-        x = x.flatten(0, 1)
-        out: th.Tensor = self.__conv(x)
-
-        new_w, new_h = (
-            int(w * self.__conv.scale_factor),
-            int(h * self.__conv.scale_factor),
-        )
-
-        return out.view(b, t, -1, new_w, new_h)
 
 
 class Denoiser(nn.Module):

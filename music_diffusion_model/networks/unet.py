@@ -21,14 +21,13 @@ class UNet(nn.Module):
         self.__start_conv = ConvBlock(
             in_channels,
             encoding_layers[0][0],
-            scale_factor=1.0,
         )
 
         self.__encoder = nn.ModuleList(
             [
                 nn.Sequential(
-                    ConvBlock(c_i, c_o, 1.0),
-                    ConvBlock(c_o, c_o, 1.0),
+                    ConvBlock(c_i, c_o),
+                    ConvBlock(c_o, c_o),
                 )
                 for c_i, c_o in encoding_layers
             ]
@@ -41,8 +40,8 @@ class UNet(nn.Module):
         self.__decoder = nn.ModuleList(
             [
                 nn.Sequential(
-                    ConvBlock(c_i, c_i, 1.0),
-                    ConvBlock(c_i, c_o, 1.0),
+                    ConvBlock(c_i, c_i),
+                    ConvBlock(c_i, c_o),
                 )
                 for c_i, c_o in decoding_layers
             ]
