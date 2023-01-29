@@ -57,13 +57,9 @@ class Denoiser(nn.Module):
         encoder_layers = [
             (16, 32),
             (32, 48),
-            (48, 64),
-            (64, 80),
         ]
 
         decoder_layers = [
-            (80, 64),
-            (64, 48),
             (48, 32),
             (32, 16),
         ]
