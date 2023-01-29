@@ -3,7 +3,7 @@ from typing import List, Tuple
 import torch as th
 import torch.nn as nn
 
-from .convolutions import ConvBlock, ConvEndBlock, StrideConv
+from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock
 
 
 class UNet(nn.Module):
@@ -35,7 +35,7 @@ class UNet(nn.Module):
         )
 
         self.__encoder_down = nn.ModuleList(
-            [StrideConv(c_o, c_o, "down") for _, c_o in encoding_layers]
+            [StrideConvBlock(c_o, c_o, "down") for _, c_o in encoding_layers]
         )
 
         self.__decoder = nn.ModuleList(
@@ -49,10 +49,10 @@ class UNet(nn.Module):
         )
 
         self.__decoder_up = nn.ModuleList(
-            [StrideConv(c_i, c_i, "up") for c_i, _ in decoding_layers]
+            [StrideConvBlock(c_i, c_i, "up") for c_i, _ in decoding_layers]
         )
 
-        self.__end_conv = ConvEndBlock(
+        self.__end_conv = EndConvBlock(
             decoding_layers[-1][1],
             out_channels,
         )

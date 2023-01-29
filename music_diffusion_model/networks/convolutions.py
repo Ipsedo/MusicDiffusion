@@ -11,7 +11,7 @@ class AbstractConv(ABC, nn.Sequential):
         pass
 
 
-class ConvEndBlock(AbstractConv):
+class EndConvBlock(AbstractConv):
     def __init__(
         self,
         in_channels: int,
@@ -33,7 +33,7 @@ class ConvEndBlock(AbstractConv):
         return 1.0
 
 
-class StrideConv(AbstractConv):
+class StrideConvBlock(AbstractConv):
     def __init__(
         self,
         in_channels: int,
