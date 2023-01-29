@@ -102,6 +102,7 @@ def train(train_options: TrainOptions) -> None:
         mlflow.log_params(
             {
                 "batch_size": train_options.batch_size,
+                "step_batch_size": train_options.step_batch_size,
                 "learning_rate": train_options.learning_rate,
                 "epochs": train_options.epochs,
                 "beta_1": train_options.beta_1,
@@ -109,6 +110,9 @@ def train(train_options: TrainOptions) -> None:
                 "steps": train_options.steps,
                 "time_size": train_options.time_size,
                 "input_channels": train_options.input_channels,
+                "encoder_channels": train_options.encoder_channels,
+                "decoder_channels": train_options.decoder_channels,
+                "input_dataset": train_options.dataset_path,
             }
         )
 

@@ -55,12 +55,16 @@ def main() -> None:
             (48, 64),
             (64, 80),
             (80, 96),
+            (96, 112),
+            (112, 128),
         ],
     )
     model_parser.add_argument(
         "--decoder-channels",
         type=_channels,
         default=[
+            (128, 112),
+            (112, 96),
             (96, 80),
             (80, 64),
             (64, 48),
@@ -85,7 +89,7 @@ def main() -> None:
     train_parser.add_argument("--batch-size", type=int, default=4)
     train_parser.add_argument("--step-batch-size", type=int, default=1)
     train_parser.add_argument("--epochs", type=int, default=1000)
-    train_parser.add_argument("--learning-rate", type=float, default=1e-3)
+    train_parser.add_argument("--learning-rate", type=float, default=1e-4)
     train_parser.add_argument("--metric-window", type=int, default=64)
     train_parser.add_argument("--save-every", type=int, default=4096)
     train_parser.add_argument("-o", "--output-dir", type=str, required=True)
