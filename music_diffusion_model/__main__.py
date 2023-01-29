@@ -22,7 +22,9 @@ def _channels(string: str) -> List[Tuple[int, int]]:
 def main() -> None:
     parser = argparse.ArgumentParser("music_diffusion_model")
 
-    sub_command = parser.add_subparsers(title="mode", dest="mode")
+    sub_command = parser.add_subparsers(
+        title="mode", dest="mode", required=True
+    )
 
     #################
     # Create dataset
@@ -70,7 +72,9 @@ def main() -> None:
     model_parser.add_argument("--cuda", action="store_true")
 
     # Sub command run {train, generate}
-    model_sub_command = model_parser.add_subparsers(title="run", dest="run")
+    model_sub_command = model_parser.add_subparsers(
+        title="run", dest="run", required=True
+    )
 
     # Train parser
     train_parser = model_sub_command.add_parser("train")
