@@ -3,7 +3,6 @@ from typing import List, NamedTuple, Tuple
 
 import mlflow
 import torch as th
-import torch.nn.functional as th_f
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Pad
 from tqdm import tqdm
@@ -141,7 +140,7 @@ def train(train_options: TrainOptions) -> None:
                 x_noised = th.clip(x_noised, -1.0, 1.0)
                 eps_theta = denoiser(x_noised, t)
 
-                loss = th_f.mse_loss(eps_theta, eps, reduction="none")
+                loss = th.pow(eps - eps_theta, 2.0)
                 loss = loss * denoiser.loss_scale(t)
                 loss = loss.sum(dim=[2, 3, 4]).mean()
 
