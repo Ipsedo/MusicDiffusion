@@ -18,8 +18,8 @@ def create_dataset(
 
     if not exists(dataset_output_dir):
         mkdir(dataset_output_dir)
-    elif exists(dataset_output_dir) and not isdir(dataset_output_dir):
-        raise NotADirectoryError(f'"{dataset_output_dir}" is not a directory')
+    elif not isdir(dataset_output_dir):
+        raise NotADirectoryError(dataset_output_dir)
 
     nperseg = N_FFT
     stride = STFT_STRIDE
