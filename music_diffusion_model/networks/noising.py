@@ -20,9 +20,13 @@ class Noiser(nn.Module):
         self.sqrt_alphas_cum_prod: th.Tensor
         self.sqrt_minus_one_alphas_cum_prod: th.Tensor
 
-        self.register_buffer("sqrt_alphas_cum_prod", sqrt_alphas_cum_prod)
         self.register_buffer(
-            "sqrt_minus_one_alphas_cum_prod", sqrt_minus_one_alphas_cum_prod
+            "sqrt_alphas_cum_prod",
+            sqrt_alphas_cum_prod,
+        )
+        self.register_buffer(
+            "sqrt_minus_one_alphas_cum_prod",
+            sqrt_minus_one_alphas_cum_prod,
         )
 
     def forward(
