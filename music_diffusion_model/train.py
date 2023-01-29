@@ -137,7 +137,6 @@ def train(train_options: TrainOptions) -> None:
                 )
 
                 x_noised, eps = noiser(x, t)
-                x_noised = th.clip(x_noised, -1.0, 1.0)
                 eps_theta = denoiser(x_noised, t)
 
                 loss = th.pow(eps - eps_theta, 2.0)
