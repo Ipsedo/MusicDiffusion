@@ -4,7 +4,9 @@ from os.path import exists, isdir, join
 import matplotlib.pyplot as plt
 import torch as th
 from torch.optim.optimizer import Optimizer
+from torchvision.transforms import Compose
 
+from .data import ChangeType, ChannelMinMaxNorm, RangeChange
 from .networks import Denoiser, Noiser
 
 
@@ -34,6 +36,14 @@ class Saver:
 
         self.__curr_save = -1
         self.__curr_idx = 0
+
+        self.__sample_transform = Compose(
+            [
+                ChannelMinMaxNorm(),
+                RangeChange(0.0, 255.0),
+                ChangeType(th.uint8),
+            ]
+        )
 
     def save(self) -> None:
         if self.__curr_idx % self.__save_every == 0:
@@ -65,11 +75,12 @@ class Saver:
                 # TODO generic
                 x_t = th.randn(self.__nb_sample, 1, 32, 32, device=device)
                 x_0 = self.__denoiser.sample(x_t)
+                x_0 = self.__sample_transform(x_0)
 
                 for i in range(self.__nb_sample):
                     fig = plt.figure()
                     ax = fig.add_subplot()
-                    ax.matshow(x_0[i, 0].cpu(), cmap="Greys")
+                    ax.matshow(255 - x_0[i, 0].cpu(), cmap="Greys")
                     ax.set_title(f"Save {self.__curr_save}, sample {i}")
                     fig.savefig(
                         join(

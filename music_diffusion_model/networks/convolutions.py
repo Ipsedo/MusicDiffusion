@@ -17,7 +17,6 @@ class EndConvBlock(nn.Sequential):
                 stride=(1, 1),
                 padding=(1, 1),
             ),
-            nn.Tanh(),
         )
 
 
