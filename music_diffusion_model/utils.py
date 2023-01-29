@@ -66,9 +66,10 @@ class Saver:
 
                 for i in range(self.__nb_sample):
                     fig = plt.figure()
-                    plt.matshow(x_0[i, 0].cpu(), cmap="Greys")
-                    plt.title(f"Save {self.__curr_save}, sample {i}")
-                    plt.savefig(
+                    ax = fig.add_subplot()
+                    ax.matshow(x_0[i, 0].cpu(), cmap="Greys")
+                    ax.set_title(f"Save {self.__curr_save}, sample {i}")
+                    fig.savefig(
                         join(
                             self.__output_dir,
                             f"sample_{self.__curr_save}_{i}.png",
@@ -79,3 +80,11 @@ class Saver:
             self.__curr_save += 1
 
         self.__curr_idx += 1
+
+    @property
+    def curr_save(self) -> int:
+        return self.__curr_save
+
+    @property
+    def curr_step(self) -> int:
+        return self.__curr_idx % self.__save_every

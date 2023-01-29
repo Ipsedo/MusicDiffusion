@@ -148,10 +148,13 @@ def train(train_options: TrainOptions) -> None:
                 del losses[0]
                 losses.append(loss.item())
 
-                tqdm_bar.set_description(
-                    f"Epoch {e} / {train_options.epochs - 1}, loss = {mean(losses):.4f}"
-                )
-
                 mlflow.log_metric("loss", loss.item())
 
                 saver.save()
+
+                tqdm_bar.set_description(
+                    f"Epoch {e} / {train_options.epochs - 1} - "
+                    f"save {saver.curr_save} "
+                    f"[{saver.curr_step} / {train_options.save_every - 1}] "
+                    f"loss = {mean(losses):.4f}"
+                )
