@@ -27,8 +27,9 @@ class RangeChange(ImgTransform):
         self.__upper_bound = upper_bound
 
     def __call__(self, img_data: th.Tensor) -> th.Tensor:
-        res: th.Tensor = (img_data + self.__lower_bound) * (
-            self.__upper_bound - self.__lower_bound
+        res: th.Tensor = (
+            img_data * (self.__upper_bound - self.__lower_bound)
+            + self.__lower_bound
         )
         return res
 
