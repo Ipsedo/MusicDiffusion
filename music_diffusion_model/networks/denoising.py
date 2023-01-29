@@ -74,12 +74,12 @@ class Denoiser(nn.Module):
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             ).squeeze(1)
 
-            x_t = (1.0 / th.sqrt(self.alphas[None, t])) * (
+            x_t = (1.0 / th.sqrt(self.alphas[t])) * (
                 x_t
                 - eps
-                * (1.0 - self.alphas[None, t])
-                / th.sqrt(1.0 - self.alpha_cumprod[None, t])
-            ) + th.sqrt(self.betas[None, t]) * z
+                * (1.0 - self.alphas[t])
+                / th.sqrt(1.0 - self.alpha_cumprod[t])
+            ) + th.sqrt(self.betas[t]) * z
 
         return x_t
 
