@@ -8,7 +8,7 @@ from .train import TrainOptions, train
 
 
 def _channels(string: str) -> List[Tuple[int, int]]:
-    regex_layer = re.compile(r"(\( *\d+ *, *\d+ *\))")
+    regex_layer = re.compile(r"\( *\d+ *, *\d+ *\)")
     regex_channel = re.compile(r"\d+")
 
     def _match_channels(layer_str: str) -> Tuple[int, int]:
@@ -151,11 +151,17 @@ def main() -> None:
 
                     generate(generate_options)
 
+                case _:
+                    parser.error(f"Unrecognized run '{args.run}'")
+
         case "create_data":
             create_dataset(
                 args.music_glob_path,
                 args.output_dir,
             )
+
+        case _:
+            parser.error(f"Unrecognized mode '{args.mode}'")
 
 
 if __name__ == "__main__":
