@@ -32,11 +32,13 @@ class Saver:
         self.__denoiser = denoiser
         self.__denoiser_optim = denoiser_optim
 
-        self.__curr_save = 0
+        self.__curr_save = -1
         self.__curr_idx = 0
 
     def save(self) -> None:
         if self.__curr_idx % self.__save_every == 0:
+
+            self.__curr_save += 1
 
             th.save(
                 self.__noiser.state_dict(),
@@ -76,8 +78,6 @@ class Saver:
                         )
                     )
                     plt.close(fig)
-
-            self.__curr_save += 1
 
         self.__curr_idx += 1
 
