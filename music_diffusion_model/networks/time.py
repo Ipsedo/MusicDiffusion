@@ -1,7 +1,7 @@
-from typing import Callable, Tuple
-
 import torch as th
 import torch.nn as nn
+
+from .unet import UNet
 
 
 class TimeEmbeder(nn.Embedding):
@@ -12,7 +12,7 @@ class TimeEmbeder(nn.Embedding):
 class TimeWrapper(nn.Module):
     def __init__(
         self,
-        module: Callable[[th.Tensor], th.Tensor],
+        unet: UNet,
         steps: int,
         time_size: int,
     ) -> None:
@@ -20,18 +20,24 @@ class TimeWrapper(nn.Module):
 
         self.__emb = TimeEmbeder(steps, time_size)
 
-        self.__module = module
+        self.__unet = unet
 
-    def forward(self, x_and_time: Tuple[th.Tensor, th.Tensor]) -> th.Tensor:
-        x, t = x_and_time
+    def forward(self, x: th.Tensor, time: th.Tensor) -> th.Tensor:
         assert len(x.size()) == 5
-        assert len(t.size()) == 2
-        assert x.size(0) == t.size(0)
+        assert len(time.size()) == 2
+        assert x.size(0) == time.size(0)
 
         b, _, _, w, h = x.size()
 
-        time_vec = self.__emb(t)
+        time_vec = self.__emb(time)
         time_vec = time_vec[:, :, :, None, None].repeat(1, 1, 1, w, h)
         x_time = th.cat([x, time_vec], dim=2)
 
-        return self.__module(x_time)
+        _, t, _, _, _ = x_time.size()
+        x_time = x_time.flatten(0, 1)
+
+        res: th.Tensor = self.__unet(x_time)
+
+        res = res.view(b, t, -1, w, h)
+
+        return res

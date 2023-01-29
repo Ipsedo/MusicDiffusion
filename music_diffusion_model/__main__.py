@@ -11,6 +11,8 @@ def main() -> None:
         beta_1=1e-4,
         beta_t=2e-2,
         input_channels=1,
+        encoder_channels=[],
+        decoder_channels=[],
         time_size=8,
         cuda=True,
         learning_rate=1e-3,

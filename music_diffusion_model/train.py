@@ -1,5 +1,5 @@
 from statistics import mean
-from typing import NamedTuple
+from typing import List, NamedTuple, Tuple
 
 import mlflow
 import torch as th
@@ -23,6 +23,8 @@ TrainOptions = NamedTuple(
         ("beta_1", float),
         ("beta_t", float),
         ("input_channels", int),
+        ("encoder_channels", List[Tuple[int, int]]),
+        ("decoder_channels", List[Tuple[int, int]]),
         ("time_size", int),
         ("cuda", bool),
         ("learning_rate", float),

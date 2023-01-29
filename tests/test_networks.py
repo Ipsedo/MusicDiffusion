@@ -3,7 +3,7 @@ from typing import Tuple
 import pytest
 import torch as th
 
-from music_diffusion_model.networks import Denoiser, Noiser
+from music_diffusion_model.networks import Denoiser, Noiser, UNet
 
 
 @pytest.mark.parametrize("steps", [10, 20])
@@ -92,3 +92,25 @@ def test_denoiser(
     assert s.size(2) == 1
     assert s.size(3) == 1
     assert s.size(4) == 1
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("channels", [1, 2])
+@pytest.mark.parametrize("size", [(32, 32), (32, 64)])
+def test_unet(batch_size: int, channels: int, size: Tuple[int, int]) -> None:
+    unet = UNet(
+        channels,
+        channels,
+        [(4, 8), (8, 16), (16, 32)],
+        [(32, 16), (16, 8), (8, 4)],
+    )
+
+    x = th.randn(batch_size, channels, *size)
+
+    o = unet(x)
+
+    assert len(o.size()) == 4
+    assert o.size(0) == batch_size
+    assert o.size(1) == channels
+    assert o.size(2) == size[0]
+    assert o.size(3) == size[1]

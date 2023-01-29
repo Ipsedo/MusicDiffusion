@@ -1,8 +1,9 @@
 import torch as th
 import torch.nn as nn
 
-from .convolutions import AbstractConv, ConvBlock, ConvEndBlock, StrideConv
+from .convolutions import AbstractConv
 from .time import TimeWrapper
+from .unet import UNet
 
 
 class ConvWrapper(nn.Module):
@@ -57,51 +58,24 @@ class Denoiser(nn.Module):
         encoder_layers = [
             (16, 32),
             (32, 48),
+            (48, 64),
         ]
 
         decoder_layers = [
+            (64, 48),
             (48, 32),
             (32, 16),
         ]
 
-        self.__eps = nn.Sequential(
-            TimeWrapper(
-                ConvWrapper(
-                    ConvBlock(
-                        self.__channels + time_size,
-                        encoder_layers[0][0],
-                        scale_factor=1.0,
-                    )
-                ),
-                steps,
-                time_size,
+        self.__eps = TimeWrapper(
+            UNet(
+                channels + time_size,
+                channels,
+                encoder_layers,
+                decoder_layers,
             ),
-            *[
-                ConvWrapper(
-                    StrideConv(
-                        c_i,
-                        c_o,
-                        scale="down",
-                    )
-                )
-                for c_i, c_o in encoder_layers
-            ],
-            *[
-                ConvWrapper(
-                    StrideConv(
-                        c_i,
-                        c_o,
-                        scale="up",
-                    )
-                )
-                for c_i, c_o in decoder_layers
-            ],
-            ConvWrapper(
-                ConvEndBlock(
-                    decoder_layers[-1][1],
-                    self.__channels,
-                )
-            ),
+            self.__steps,
+            time_size,
         )
 
     def forward(self, x_0_to_t: th.Tensor, t: th.Tensor) -> th.Tensor:
@@ -109,7 +83,7 @@ class Denoiser(nn.Module):
         assert x_0_to_t.size(0) == t.size(0)
         assert x_0_to_t.size(1) == t.size(1)
 
-        eps_theta: th.Tensor = self.__eps((x_0_to_t, t))
+        eps_theta: th.Tensor = self.__eps(x_0_to_t, t)
 
         return eps_theta
 
@@ -127,10 +101,8 @@ class Denoiser(nn.Module):
             )
 
             eps = self.__eps(
-                (
-                    x_t.unsqueeze(1),
-                    th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
-                )
+                x_t.unsqueeze(1),
+                th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             ).squeeze(1)
 
             x_t = (1.0 / th.sqrt(self.alphas[None, t])) * (
