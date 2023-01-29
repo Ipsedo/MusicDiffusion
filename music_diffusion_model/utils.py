@@ -6,13 +6,14 @@ import torch as th
 from torch.optim.optimizer import Optimizer
 from torchvision.transforms import Compose
 
-from .data import ChangeType, ChannelMinMaxNorm, RangeChange
+from .data import OUTPUT_SIZES, ChangeType, ChannelMinMaxNorm, RangeChange
 from .networks import Denoiser, Noiser
 
 
 class Saver:
     def __init__(
         self,
+        channels: int,
         noiser: Noiser,
         denoiser: Denoiser,
         denoiser_optim: Optimizer,
@@ -30,6 +31,7 @@ class Saver:
         self.__save_every = save_every
         self.__nb_sample = nb_sample
 
+        self.__channels = channels
         self.__noiser = noiser
         self.__denoiser = denoiser
         self.__denoiser_optim = denoiser_optim
@@ -72,23 +74,48 @@ class Saver:
                     else "cpu"
                 )
 
-                # TODO generic
-                x_t = th.randn(self.__nb_sample, 1, 32, 32, device=device)
+                x_t = th.randn(
+                    self.__nb_sample,
+                    self.__channels,
+                    *OUTPUT_SIZES,
+                    device=device,
+                )
                 x_0 = self.__denoiser.sample(x_t)
                 x_0 = self.__sample_transform(x_0)
 
                 for i in range(self.__nb_sample):
-                    fig = plt.figure()
-                    ax = fig.add_subplot()
-                    ax.matshow(255 - x_0[i, 0].cpu(), cmap="Greys")
-                    ax.set_title(f"Save {self.__curr_save}, sample {i}")
+                    magn = x_0[i, 0, :, :].detach().cpu().numpy()
+                    phase = x_0[i, 1, :, :].detach().cpu().numpy()
+
+                    # create two subplots
+                    fig, (magn_ax, phase_ax) = plt.subplots(1, 2)
+
+                    # Plot magnitude
+                    magn_ax.matshow(
+                        magn / (magn.max() - magn.min()), cmap="plasma"
+                    )
+
+                    magn_ax.set_title(
+                        f"Magnitude, save {self.__curr_save}, sample {i}"
+                    )
+
+                    # Plot phase
+                    phase_ax.matshow(
+                        phase / (phase.max() - phase.min()), cmap="plasma"
+                    )
+
+                    phase_ax.set_title(
+                        f"Phase, save {self.__curr_save}, sample {i}"
+                    )
+
                     fig.savefig(
                         join(
                             self.__output_dir,
-                            f"sample_{self.__curr_save}_{i}.png",
+                            f"magn_phase_{self.__curr_save}_ID{i}.png",
                         )
                     )
-                    plt.close(fig)
+
+                    plt.close()
 
         self.__curr_idx += 1
 

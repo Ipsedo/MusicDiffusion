@@ -4,10 +4,10 @@ from typing import List, NamedTuple, Tuple
 import mlflow
 import torch as th
 from torch.utils.data import DataLoader
-from torchvision.transforms import Compose, Pad
+from torchvision.transforms import Compose
 from tqdm import tqdm
 
-from .data import ChangeType, ChannelMinMaxNorm, MNISTDataset, RangeChange
+from .data import AudioDataset, ChangeType, ChannelMinMaxNorm, RangeChange
 from .networks import Denoiser, Noiser
 from .utils import Saver
 
@@ -15,6 +15,7 @@ TrainOptions = NamedTuple(
     "TrainOptions",
     [
         ("run_name", str),
+        ("dataset_path", str),
         ("batch_size", int),
         ("step_batch_size", int),
         ("epochs", int),
@@ -70,6 +71,7 @@ def train(train_options: TrainOptions) -> None:
         )
 
         saver = Saver(
+            train_options.input_channels,
             noiser,
             denoiser,
             optim,
@@ -78,7 +80,7 @@ def train(train_options: TrainOptions) -> None:
             train_options.nb_samples,
         )
 
-        dataset = MNISTDataset()
+        dataset = AudioDataset(train_options.dataset_path)
 
         dataloader = DataLoader(
             dataset,
@@ -91,7 +93,6 @@ def train(train_options: TrainOptions) -> None:
 
         transform = Compose(
             [
-                Pad(2, 0, "constant"),
                 ChangeType(th.float),
                 ChannelMinMaxNorm(),
                 RangeChange(-1.0, 1.0),

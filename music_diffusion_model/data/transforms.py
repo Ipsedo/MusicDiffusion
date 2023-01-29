@@ -10,13 +10,16 @@ class ImgTransform(metaclass=ABCMeta):
 
 
 class ChannelMinMaxNorm(ImgTransform):
+    def __init__(self, epsilon: float = 1e-8) -> None:
+        self.__epsilon = epsilon
+
     def __call__(self, x: th.Tensor) -> th.Tensor:
         assert len(x.size()) == 4
 
         x_max = th.amax(x, dim=(-2, -1), keepdim=True)
         x_min = th.amin(x, dim=(-2, -1), keepdim=True)
 
-        res: th.Tensor = (x - x_min) / (x_max - x_min)
+        res: th.Tensor = (x - x_min) / (x_max - x_min + self.__epsilon)
 
         return res
 
