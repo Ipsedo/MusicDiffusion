@@ -11,20 +11,25 @@ class UNet(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        layers: List[Tuple[int, int]],
+        hidden_channels: List[Tuple[int, int]],
     ) -> None:
         super().__init__()
 
         assert all(
-            [layers[i][1] == layers[i + 1][0] for i in range(len(layers) - 1)]
+            [
+                hidden_channels[i][1] == hidden_channels[i + 1][0]
+                for i in range(len(hidden_channels) - 1)
+            ]
         )
 
-        encoding_layers = layers.copy()
-        decoding_layers = [(c_o, c_i) for c_i, c_o in reversed(layers)]
+        encoding_channels = hidden_channels.copy()
+        decoding_channels = [
+            (c_o, c_i) for c_i, c_o in reversed(hidden_channels)
+        ]
 
         self.__start_conv = ConvBlock(
             in_channels,
-            encoding_layers[0][0],
+            encoding_channels[0][0],
         )
 
         self.__encoder = nn.ModuleList(
@@ -33,12 +38,12 @@ class UNet(nn.Module):
                     ConvBlock(c_i, c_o),
                     ConvBlock(c_o, c_o),
                 )
-                for c_i, c_o in encoding_layers
+                for c_i, c_o in encoding_channels
             ]
         )
 
         self.__encoder_down = nn.ModuleList(
-            [StrideConvBlock(c_o, c_o, "down") for _, c_o in encoding_layers]
+            [StrideConvBlock(c_o, c_o, "down") for _, c_o in encoding_channels]
         )
 
         self.__decoder = nn.ModuleList(
@@ -47,16 +52,16 @@ class UNet(nn.Module):
                     ConvBlock(c_i, c_i),
                     ConvBlock(c_i, c_o),
                 )
-                for c_i, c_o in decoding_layers
+                for c_i, c_o in decoding_channels
             ]
         )
 
         self.__decoder_up = nn.ModuleList(
-            [StrideConvBlock(c_i, c_i, "up") for c_i, _ in decoding_layers]
+            [StrideConvBlock(c_i, c_i, "up") for c_i, _ in decoding_channels]
         )
 
         self.__end_conv = EndConvBlock(
-            decoding_layers[-1][1],
+            decoding_channels[-1][1],
             out_channels,
         )
 
