@@ -2,6 +2,7 @@ from typing import List, Tuple
 
 import torch as th
 import torch.nn as nn
+from tqdm import tqdm
 
 from .time import TimeWrapper
 from .unet import UNet
@@ -54,13 +55,17 @@ class Denoiser(nn.Module):
 
         return eps_theta
 
-    def sample(self, x_t: th.Tensor) -> th.Tensor:
+    def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
         assert len(x_t.size()) == 4
         assert x_t.size(1) == self.__channels
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
 
-        for t in reversed(range(self.__steps)):
+        times = reversed(range(self.__steps))
+        if verbose:
+            times = tqdm(times, leave=False)
+
+        for t in times:
             z = (
                 th.randn_like(x_t, device=device)
                 if t > 0
