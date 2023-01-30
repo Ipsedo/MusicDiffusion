@@ -45,21 +45,21 @@ class Noiser(nn.Module):
 
         t = t.flatten()
 
-        sqrt_alphas_cum_prod, sqrt_minus_one_alphas_cum_prod = (
-            th.index_select(
-                self.sqrt_alphas_cum_prod,
-                dim=0,
-                index=t,
-            ),
-            th.index_select(
-                self.sqrt_minus_one_alphas_cum_prod,
-                dim=0,
-                index=t,
-            ),
+        sqrt_alphas_cum_prod = self.sqrt_alphas_cum_prod[t, None, None, None]
+        sqrt_alphas_cum_prod = th.unflatten(
+            sqrt_alphas_cum_prod, 0, (b, nb_steps)
         )
 
-        x_t = sqrt_alphas_cum_prod.view(b, nb_steps, 1, 1, 1) * x.unsqueeze(
-            1
-        ) + eps * sqrt_minus_one_alphas_cum_prod.view(b, nb_steps, 1, 1, 1)
+        sqrt_minus_one_alphas_cum_prod = self.sqrt_minus_one_alphas_cum_prod[
+            t, None, None, None
+        ]
+        sqrt_minus_one_alphas_cum_prod = th.unflatten(
+            sqrt_minus_one_alphas_cum_prod, 0, (b, nb_steps)
+        )
+
+        x_t = (
+            sqrt_alphas_cum_prod * x.unsqueeze(1)
+            + eps * sqrt_minus_one_alphas_cum_prod
+        )
 
         return x_t, eps
