@@ -29,12 +29,20 @@ class Denoiser(nn.Module):
         alpha_cumprod = th.cumprod(alphas, dim=0)
 
         self.alphas: th.Tensor
+        self.sqrt_alpha: th.Tensor
         self.alpha_cumprod: th.Tensor
+        self.sqrt_one_minus_alpha_cumprod: th.Tensor
         self.betas: th.Tensor
+        self.sqrt_betas: th.Tensor
 
         self.register_buffer("alphas", alphas)
+        self.register_buffer("sqrt_alpha", th.sqrt(alphas))
         self.register_buffer("alpha_cumprod", alpha_cumprod)
+        self.register_buffer(
+            "sqrt_one_minus_alpha_cumprod", th.sqrt(1.0 - self.alpha_cumprod)
+        )
         self.register_buffer("betas", betas)
+        self.register_buffer("sqrt_betas", th.sqrt(self.betas))
 
         self.__eps = TimeWrapper(
             UNet(
@@ -77,11 +85,11 @@ class Denoiser(nn.Module):
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             ).squeeze(1)
 
-            x_t = (1.0 / th.sqrt(self.alphas[t])) * (
+            x_t = (1.0 / self.sqrt_alpha[t]) * (
                 x_t
                 - eps
                 * (1.0 - self.alphas[t])
-                / th.sqrt(1.0 - self.alpha_cumprod[t])
-            ) + th.sqrt(self.betas[t]) * z
+                / self.sqrt_one_minus_alpha_cumprod[t]
+            ) + self.sqrt_betas[t] * z
 
         return x_t
