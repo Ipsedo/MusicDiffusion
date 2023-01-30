@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Tuple
 
 import pytest
 import torch as th
@@ -95,11 +95,20 @@ def test_denoiser(
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [1, 2])
 @pytest.mark.parametrize("size", [(32, 32), (32, 64)])
-def test_unet(batch_size: int, channels: int, size: Tuple[int, int]) -> None:
+@pytest.mark.parametrize(
+    "hidden_channels",
+    [[(4, 8), (8, 16), (16, 32)], [(18, 5), (5, 43), (43, 3)]],
+)
+def test_unet(
+    batch_size: int,
+    channels: int,
+    size: Tuple[int, int],
+    hidden_channels: List[Tuple[int, int]],
+) -> None:
     unet = UNet(
         channels,
         channels,
-        [(4, 8), (8, 16), (16, 32)],
+        hidden_channels,
     )
 
     x = th.randn(batch_size, channels, *size)
