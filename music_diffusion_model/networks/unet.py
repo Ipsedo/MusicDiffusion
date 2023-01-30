@@ -11,12 +11,16 @@ class UNet(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        encoding_layers: List[Tuple[int, int]],
-        decoding_layers: List[Tuple[int, int]],
+        layers: List[Tuple[int, int]],
     ) -> None:
         super().__init__()
 
-        assert len(encoding_layers) == len(decoding_layers)
+        assert all(
+            [layers[i][1] == layers[i + 1][0] for i in range(len(layers) - 1)]
+        )
+
+        encoding_layers = layers.copy()
+        decoding_layers = [(c_o, c_i) for c_i, c_o in reversed(layers)]
 
         self.__start_conv = ConvBlock(
             in_channels,

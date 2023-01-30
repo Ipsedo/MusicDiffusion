@@ -15,8 +15,7 @@ class Denoiser(nn.Module):
         time_size: int,
         beta_1: float,
         beta_t: float,
-        encoder_channels: List[Tuple[int, int]],
-        decoder_channels: List[Tuple[int, int]],
+        unet_channels: List[Tuple[int, int]],
     ) -> None:
         super().__init__()
 
@@ -40,8 +39,7 @@ class Denoiser(nn.Module):
             UNet(
                 channels + time_size,
                 channels,
-                encoder_channels,
-                decoder_channels,
+                unet_channels,
             ),
             self.__steps,
             time_size,

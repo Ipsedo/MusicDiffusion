@@ -47,7 +47,7 @@ def main() -> None:
     model_parser.add_argument("--beta-t", type=float, default=2e-2)
     model_parser.add_argument("--channels", type=int, default=2)
     model_parser.add_argument(
-        "--encoder-channels",
+        "--unet-channels",
         type=_channels,
         default=[
             (16, 32),
@@ -57,19 +57,6 @@ def main() -> None:
             (80, 96),
             (96, 112),
             (112, 128),
-        ],
-    )
-    model_parser.add_argument(
-        "--decoder-channels",
-        type=_channels,
-        default=[
-            (128, 112),
-            (112, 96),
-            (96, 80),
-            (80, 64),
-            (64, 48),
-            (48, 32),
-            (32, 16),
         ],
     )
     model_parser.add_argument("--time-size", type=int, default=8)
@@ -124,8 +111,7 @@ def main() -> None:
                         beta_1=args.beta_1,
                         beta_t=args.beta_t,
                         input_channels=args.channels,
-                        encoder_channels=args.encoder_channels,
-                        decoder_channels=args.decoder_channels,
+                        unet_channels=args.unet_channels,
                         time_size=args.time_size,
                         cuda=args.cuda,
                         learning_rate=args.learning_rate,
@@ -143,8 +129,7 @@ def main() -> None:
                         beta_1=args.beta_1,
                         beta_t=args.beta_t,
                         input_channels=args.input_channels,
-                        encoder_channels=args.encoder_channels,
-                        decoder_channels=args.decoder_channels,
+                        unet_channels=args.unet_channels,
                         time_size=args.time_size,
                         cuda=args.cuda,
                         denoiser_dict_state=args.denoiser_dict_state,

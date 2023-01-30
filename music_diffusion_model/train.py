@@ -23,8 +23,7 @@ TrainOptions = NamedTuple(
         ("beta_1", float),
         ("beta_t", float),
         ("input_channels", int),
-        ("encoder_channels", List[Tuple[int, int]]),
-        ("decoder_channels", List[Tuple[int, int]]),
+        ("unet_channels", List[Tuple[int, int]]),
         ("time_size", int),
         ("cuda", bool),
         ("learning_rate", float),
@@ -57,8 +56,7 @@ def train(train_options: TrainOptions) -> None:
             train_options.time_size,
             train_options.beta_1,
             train_options.beta_t,
-            train_options.encoder_channels,
-            train_options.decoder_channels,
+            train_options.unet_channels,
         )
 
         if train_options.cuda:
@@ -110,8 +108,7 @@ def train(train_options: TrainOptions) -> None:
                 "steps": train_options.steps,
                 "time_size": train_options.time_size,
                 "input_channels": train_options.input_channels,
-                "encoder_channels": train_options.encoder_channels,
-                "decoder_channels": train_options.decoder_channels,
+                "unet_channels": train_options.unet_channels,
                 "input_dataset": train_options.dataset_path,
             }
         )

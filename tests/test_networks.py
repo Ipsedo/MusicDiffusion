@@ -61,7 +61,6 @@ def test_denoiser(
         1e-4,
         2e-1,
         [(4, 8), (8, 16), (16, 32)],
-        [(32, 16), (16, 8), (8, 4)],
     )
 
     x = th.randn(
@@ -101,7 +100,6 @@ def test_unet(batch_size: int, channels: int, size: Tuple[int, int]) -> None:
         channels,
         channels,
         [(4, 8), (8, 16), (16, 32)],
-        [(32, 16), (16, 8), (8, 4)],
     )
 
     x = th.randn(batch_size, channels, *size)
