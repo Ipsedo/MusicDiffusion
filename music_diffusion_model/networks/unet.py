@@ -68,7 +68,7 @@ class TimeUNet(nn.Module):
 
         self.__decoder = nn.ModuleList(
             [
-                TimeWrapper(
+                TimeBypass(
                     nn.Sequential(
                         ConvBlock(c_i, c_i),
                         ConvBlock(c_i, c_o),
@@ -113,16 +113,13 @@ class TimeUNet(nn.Module):
 
             out = down(res)
 
-        for to_channels, block, up, res in zip(
-            self.__to_channels_decoder,
+        for block, up, res in zip(
             self.__decoder,
             self.__decoder_up,
             reversed(residuals),
         ):
             out_up = up(out)
-
-            t_to_channels = to_channels(times)
-            out = block(out_up + res, t_to_channels)
+            out = block(out_up + res)
 
         out = self.__end_conv(out)
 
