@@ -93,9 +93,6 @@ class TimeUNet(nn.Module):
         )
 
     def forward(self, img: th.Tensor, t: th.Tensor) -> th.Tensor:
-        assert len(img.size()) == 5
-        assert len(t.size()) == 2
-
         time_vec = self.__time_embedder(t)
 
         residuals = []

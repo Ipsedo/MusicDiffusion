@@ -17,12 +17,6 @@ class TimeWrapper(nn.Module):
         self.__block = block
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
-        assert len(x.size()) == 5
-        assert len(time_emb.size()) == 3
-        assert x.size(0) == time_emb.size(0)
-        assert x.size(1) == time_emb.size(1)
-        assert x.size(2) == time_emb.size(2)
-
         b, t, _, w, h = x.size()
 
         x_time = x + time_emb[:, :, :, None, None].repeat(1, 1, 1, w, h)
@@ -41,8 +35,6 @@ class TimeBypass(nn.Module):
         self.__module = module
 
     def forward(self, x: th.Tensor) -> th.Tensor:
-        assert len(x.size()) == 5
-
         b, t, _, _, _ = x.size()
         x = x.flatten(0, 1)
         out: th.Tensor = self.__module(x)

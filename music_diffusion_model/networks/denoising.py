@@ -53,6 +53,7 @@ class Denoiser(nn.Module):
 
     def forward(self, x_0_to_t: th.Tensor, t: th.Tensor) -> th.Tensor:
         assert len(x_0_to_t.size()) == 5
+        assert len(t.size()) == 2
         assert x_0_to_t.size(0) == t.size(0)
         assert x_0_to_t.size(1) == t.size(1)
 
