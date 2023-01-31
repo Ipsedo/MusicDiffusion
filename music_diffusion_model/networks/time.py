@@ -20,6 +20,8 @@ class TimeWrapper(nn.Module):
         assert len(x.size()) == 5
         assert len(time_emb.size()) == 3
         assert x.size(0) == time_emb.size(0)
+        assert x.size(1) == time_emb.size(1)
+        assert x.size(2) == time_emb.size(2)
 
         b, t, _, w, h = x.size()
 

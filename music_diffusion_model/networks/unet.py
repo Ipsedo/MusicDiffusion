@@ -32,6 +32,8 @@ class TimeUNet(nn.Module):
 
         self.__time_embedder = TimeEmbeder(steps, time_size)
 
+        # Encoder stuff
+
         self.__start_conv = TimeBypass(
             ConvBlock(
                 in_channels,
@@ -39,7 +41,7 @@ class TimeUNet(nn.Module):
             )
         )
 
-        self.__to_channels_encoder = nn.ModuleList(
+        self.__to_channels = nn.ModuleList(
             [nn.Linear(time_size, c_i) for c_i, _ in encoding_channels]
         )
 
@@ -62,9 +64,7 @@ class TimeUNet(nn.Module):
             ]
         )
 
-        self.__to_channels_decoder = nn.ModuleList(
-            [nn.Linear(time_size, c_i) for c_i, _ in decoding_channels]
-        )
+        # Decoder stuff
 
         self.__decoder = nn.ModuleList(
             [
@@ -103,12 +103,12 @@ class TimeUNet(nn.Module):
         out: th.Tensor = self.__start_conv(img)
 
         for to_channels, block, down in zip(
-            self.__to_channels_encoder,
+            self.__to_channels,
             self.__encoder,
             self.__encoder_down,
         ):
-            t_to_channels = to_channels(times)
-            res = block(out, t_to_channels)
+            t_in_channels = to_channels(times)
+            res = block(out, t_in_channels)
             residuals.append(res)
 
             out = down(res)
