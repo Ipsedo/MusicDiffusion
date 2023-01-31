@@ -31,3 +31,19 @@ class TimeWrapper(nn.Module):
         out = th.unflatten(out, 0, (b, t))
 
         return out
+
+
+class TimeBypass(nn.Module):
+    def __init__(self, module: nn.Module) -> None:
+        super().__init__()
+        self.__module = module
+
+    def forward(self, x: th.Tensor) -> th.Tensor:
+        assert len(x.size()) == 5
+
+        b, t, _, _, _ = x.size()
+        x = x.flatten(0, 1)
+        out: th.Tensor = self.__module(x)
+        out = th.unflatten(out, 0, (b, t))
+
+        return out

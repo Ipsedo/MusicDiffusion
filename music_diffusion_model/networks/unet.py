@@ -4,7 +4,7 @@ import torch as th
 import torch.nn as nn
 
 from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock
-from .time import TimeEmbeder, TimeWrapper
+from .time import TimeBypass, TimeEmbeder, TimeWrapper
 
 
 class TimeUNet(nn.Module):
@@ -32,9 +32,11 @@ class TimeUNet(nn.Module):
 
         self.__time_embedder = TimeEmbeder(steps, time_size)
 
-        self.__start_conv = ConvBlock(
-            in_channels,
-            encoding_channels[0][0],
+        self.__start_conv = TimeBypass(
+            ConvBlock(
+                in_channels,
+                encoding_channels[0][0],
+            )
         )
 
         self.__to_channels_encoder = nn.ModuleList(
@@ -54,7 +56,10 @@ class TimeUNet(nn.Module):
         )
 
         self.__encoder_down = nn.ModuleList(
-            [StrideConvBlock(c_o, c_o, "down") for _, c_o in encoding_channels]
+            [
+                TimeBypass(StrideConvBlock(c_o, c_o, "down"))
+                for _, c_o in encoding_channels
+            ]
         )
 
         self.__to_channels_decoder = nn.ModuleList(
@@ -74,27 +79,28 @@ class TimeUNet(nn.Module):
         )
 
         self.__decoder_up = nn.ModuleList(
-            [StrideConvBlock(c_i, c_i, "up") for c_i, _ in decoding_channels]
+            [
+                TimeBypass(StrideConvBlock(c_i, c_i, "up"))
+                for c_i, _ in decoding_channels
+            ]
         )
 
-        self.__end_conv = EndConvBlock(
-            decoding_channels[-1][1],
-            out_channels,
+        self.__end_conv = TimeBypass(
+            EndConvBlock(
+                decoding_channels[-1][1],
+                out_channels,
+            )
         )
 
     def forward(self, img: th.Tensor, t: th.Tensor) -> th.Tensor:
         assert len(img.size()) == 5
         assert len(t.size()) == 2
 
-        b, s, _, _, _ = img.size()
-
         times = self.__time_embedder(t)
 
         residuals = []
 
-        out: th.Tensor = th.unflatten(
-            self.__start_conv(img.flatten(0, 1)), 0, (b, s)
-        )
+        out: th.Tensor = self.__start_conv(img)
 
         for to_channels, block, down in zip(
             self.__to_channels_encoder,
@@ -102,11 +108,10 @@ class TimeUNet(nn.Module):
             self.__encoder_down,
         ):
             t_to_channels = to_channels(times)
-
             res = block(out, t_to_channels)
             residuals.append(res)
 
-            out = th.unflatten(down(res.flatten(0, 1)), 0, (b, s))
+            out = down(res)
 
         for to_channels, block, up, res in zip(
             self.__to_channels_decoder,
@@ -114,10 +119,11 @@ class TimeUNet(nn.Module):
             self.__decoder_up,
             reversed(residuals),
         ):
-            out_up = th.unflatten(up(out.flatten(0, 1)), 0, (b, s))
+            out_up = up(out)
+
             t_to_channels = to_channels(times)
             out = block(out_up + res, t_to_channels)
 
-        out = th.unflatten(self.__end_conv(out.flatten(0, 1)), 0, (b, s))
+        out = self.__end_conv(out)
 
         return out
