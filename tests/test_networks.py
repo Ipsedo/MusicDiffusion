@@ -3,7 +3,7 @@ from typing import List, Tuple
 import pytest
 import torch as th
 
-from music_diffusion_model.networks import Denoiser, Noiser, UNet
+from music_diffusion_model.networks import Denoiser, Noiser, TimeUNet
 
 
 @pytest.mark.parametrize("steps", [10, 20])
@@ -99,24 +99,34 @@ def test_denoiser(
     "hidden_channels",
     [[(4, 8), (8, 16), (16, 32)], [(18, 5), (5, 43), (43, 3)]],
 )
+@pytest.mark.parametrize("steps", [2, 3])
+@pytest.mark.parametrize("time_size", [2, 3])
+@pytest.mark.parametrize("nb_steps", [1, 2])
 def test_unet(
     batch_size: int,
     channels: int,
     size: Tuple[int, int],
     hidden_channels: List[Tuple[int, int]],
+    steps: int,
+    time_size: int,
+    nb_steps: int,
 ) -> None:
-    unet = UNet(
+    unet = TimeUNet(
         channels,
         channels,
         hidden_channels,
+        time_size,
+        steps,
     )
 
-    x = th.randn(batch_size, channels, *size)
+    x = th.randn(batch_size, nb_steps, channels, *size)
+    t = th.randint(0, steps, (batch_size, nb_steps))
 
-    o = unet(x)
+    o = unet(x, t)
 
-    assert len(o.size()) == 4
+    assert len(o.size()) == 5
     assert o.size(0) == batch_size
-    assert o.size(1) == channels
-    assert o.size(2) == size[0]
-    assert o.size(3) == size[1]
+    assert o.size(1) == nb_steps
+    assert o.size(2) == channels
+    assert o.size(3) == size[0]
+    assert o.size(4) == size[1]

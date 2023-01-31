@@ -4,8 +4,7 @@ import torch as th
 import torch.nn as nn
 from tqdm import tqdm
 
-from .time import TimeWrapper
-from .unet import UNet
+from .unet import TimeUNet
 
 
 class Denoiser(nn.Module):
@@ -44,14 +43,12 @@ class Denoiser(nn.Module):
         self.register_buffer("betas", betas)
         self.register_buffer("sqrt_betas", th.sqrt(self.betas))
 
-        self.__eps = TimeWrapper(
-            UNet(
-                channels + time_size,
-                channels,
-                unet_channels,
-            ),
-            self.__steps,
+        self.__eps = TimeUNet(
+            channels,
+            channels,
+            unet_channels,
             time_size,
+            self.__steps,
         )
 
     def forward(self, x_0_to_t: th.Tensor, t: th.Tensor) -> th.Tensor:
