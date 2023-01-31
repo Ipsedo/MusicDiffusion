@@ -2,6 +2,7 @@ from typing import List, Tuple
 
 import torch as th
 import torch.nn as nn
+from torchvision.ops import Permute
 
 from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock
 from .time import TimeBypass, TimeEmbeder, TimeWrapper
@@ -42,7 +43,15 @@ class TimeUNet(nn.Module):
         )
 
         self.__to_channels = nn.ModuleList(
-            [nn.Linear(time_size, c_i) for c_i, _ in encoding_channels]
+            [
+                nn.Sequential(
+                    nn.Linear(time_size, c_i),
+                    Permute([0, 2, 1]),
+                    nn.BatchNorm1d(c_i),
+                    Permute([0, 2, 1]),
+                )
+                for c_i, _ in encoding_channels
+            ]
         )
 
         self.__encoder = nn.ModuleList(

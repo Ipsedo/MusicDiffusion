@@ -80,7 +80,11 @@ class Saver:
                     *OUTPUT_SIZES,
                     device=device,
                 )
+
+                self.__denoiser.eval()
                 x_0 = self.__denoiser.sample(x_t)
+                self.__denoiser.train()
+
                 x_0 = self.__sample_transform(x_0)
 
                 for i in range(self.__nb_sample):

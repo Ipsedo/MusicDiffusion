@@ -63,6 +63,8 @@ def test_denoiser(
         [(4, 8), (8, 16), (16, 32)],
     )
 
+    denoiser.eval()
+
     x = th.randn(
         batch_size,
         step_batch_size,
@@ -118,6 +120,8 @@ def test_unet(
         time_size,
         steps,
     )
+
+    unet.eval()
 
     x = th.randn(batch_size, nb_steps, channels, *size)
     t = th.randint(0, steps, (batch_size, nb_steps))
