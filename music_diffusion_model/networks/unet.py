@@ -96,7 +96,7 @@ class TimeUNet(nn.Module):
         assert len(img.size()) == 5
         assert len(t.size()) == 2
 
-        times = self.__time_embedder(t)
+        time_vec = self.__time_embedder(t)
 
         residuals = []
 
@@ -107,8 +107,7 @@ class TimeUNet(nn.Module):
             self.__encoder,
             self.__encoder_down,
         ):
-            t_in_channels = to_channels(times)
-            res = block(out, t_in_channels)
+            res = block(out, to_channels(time_vec))
             residuals.append(res)
 
             out = down(res)
