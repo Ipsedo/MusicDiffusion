@@ -35,7 +35,7 @@ class TimeBypass(nn.Module):
         self.__module = module
 
     def forward(self, x: th.Tensor) -> th.Tensor:
-        b, t, _, _, _ = x.size()
+        b, t = x.size()[:2]
         x = x.flatten(0, 1)
         out: th.Tensor = self.__module(x)
         out = th.unflatten(out, 0, (b, t))
