@@ -82,7 +82,7 @@ class Saver:
                 )
 
                 self.__denoiser.eval()
-                x_0 = self.__denoiser.sample(x_t)
+                x_0 = self.__denoiser.sample(x_t, verbose=True)
                 self.__denoiser.train()
 
                 x_0 = self.__sample_transform(x_0)
@@ -95,18 +95,14 @@ class Saver:
                     fig, (magn_ax, phase_ax) = plt.subplots(1, 2)
 
                     # Plot magnitude
-                    magn_ax.matshow(
-                        magn / (magn.max() - magn.min()), cmap="plasma"
-                    )
+                    magn_ax.matshow(magn, cmap="plasma")
 
                     magn_ax.set_title(
                         f"Magnitude, save {self.__curr_save}, sample {i}"
                     )
 
                     # Plot phase
-                    phase_ax.matshow(
-                        phase / (phase.max() - phase.min()), cmap="plasma"
-                    )
+                    phase_ax.matshow(phase, cmap="plasma")
 
                     phase_ax.set_title(
                         f"Phase, save {self.__curr_save}, sample {i}"
