@@ -84,10 +84,9 @@ class Denoiser(nn.Module):
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
 
         times = list(reversed(range(self.__steps)))
-        if verbose:
-            times = tqdm(times, leave=False)
+        tqdm_bar = tqdm(times, disable=not verbose, leave=False)
 
-        for t in times:
+        for t in tqdm_bar:
             z = (
                 th.randn_like(x_t, device=device)
                 if t > 0
@@ -105,5 +104,7 @@ class Denoiser(nn.Module):
                 * (1.0 - self.alphas[t])
                 / self.sqrt_one_minus_alpha_cumprod[t]
             ) + self.sqrt_betas[t] * z
+
+            tqdm_bar.set_description(f"Generate {x_t.size(0)} data")
 
         return x_t
