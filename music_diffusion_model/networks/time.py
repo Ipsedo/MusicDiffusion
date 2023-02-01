@@ -17,7 +17,7 @@ class TimeWrapper(nn.Module):
         self.__block = block
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
-        b, t, _, w, h = x.size()
+        b, t, _, _, _ = x.size()
 
         time_emb = time_emb[:, :, :, None, None]
         x_time = x + time_emb
