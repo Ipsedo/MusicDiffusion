@@ -34,14 +34,30 @@ class Denoiser(nn.Module):
         self.betas: th.Tensor
         self.sqrt_betas: th.Tensor
 
-        self.register_buffer("alphas", alphas)
-        self.register_buffer("sqrt_alpha", th.sqrt(alphas))
-        self.register_buffer("alpha_cumprod", alpha_cumprod)
         self.register_buffer(
-            "sqrt_one_minus_alpha_cumprod", th.sqrt(1.0 - self.alpha_cumprod)
+            "alphas",
+            alphas,
         )
-        self.register_buffer("betas", betas)
-        self.register_buffer("sqrt_betas", th.sqrt(self.betas))
+        self.register_buffer(
+            "sqrt_alpha",
+            th.sqrt(alphas),
+        )
+        self.register_buffer(
+            "alpha_cumprod",
+            alpha_cumprod,
+        )
+        self.register_buffer(
+            "sqrt_one_minus_alpha_cumprod",
+            th.sqrt(1.0 - self.alpha_cumprod),
+        )
+        self.register_buffer(
+            "betas",
+            betas,
+        )
+        self.register_buffer(
+            "sqrt_betas",
+            th.sqrt(self.betas),
+        )
 
         self.__eps = TimeUNet(
             channels,
