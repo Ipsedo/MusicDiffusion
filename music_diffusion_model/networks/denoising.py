@@ -67,13 +67,13 @@ class Denoiser(nn.Module):
             self.__steps,
         )
 
-    def forward(self, x_0_to_t: th.Tensor, t: th.Tensor) -> th.Tensor:
-        assert len(x_0_to_t.size()) == 5
+    def forward(self, x_t: th.Tensor, t: th.Tensor) -> th.Tensor:
+        assert len(x_t.size()) == 5
         assert len(t.size()) == 2
-        assert x_0_to_t.size(0) == t.size(0)
-        assert x_0_to_t.size(1) == t.size(1)
+        assert x_t.size(0) == t.size(0)
+        assert x_t.size(1) == t.size(1)
 
-        eps_theta: th.Tensor = self.__eps(x_0_to_t, t)
+        eps_theta: th.Tensor = self.__eps(x_t, t)
 
         return eps_theta
 
