@@ -83,7 +83,7 @@ class Denoiser(nn.Module):
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
 
-        times = reversed(range(self.__steps))
+        times = list(reversed(range(self.__steps)))
         if verbose:
             times = tqdm(times, leave=False)
 
