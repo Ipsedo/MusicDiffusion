@@ -25,12 +25,12 @@ class Denoiser(nn.Module):
 
         betas = th.linspace(beta_1, beta_t, steps=self.__steps)
         alphas = 1.0 - betas
-        alpha_cumprod = th.cumprod(alphas, dim=0)
+        alpha_cum_prod = th.cumprod(alphas, dim=0)
 
         self.alphas: th.Tensor
         self.sqrt_alpha: th.Tensor
-        self.alpha_cumprod: th.Tensor
-        self.sqrt_one_minus_alpha_cumprod: th.Tensor
+        self.alpha_cum_prod: th.Tensor
+        self.sqrt_one_minus_alpha_cum_prod: th.Tensor
         self.betas: th.Tensor
         self.sqrt_betas: th.Tensor
 
@@ -43,12 +43,12 @@ class Denoiser(nn.Module):
             th.sqrt(alphas),
         )
         self.register_buffer(
-            "alpha_cumprod",
-            alpha_cumprod,
+            "alpha_cum_prod",
+            alpha_cum_prod,
         )
         self.register_buffer(
-            "sqrt_one_minus_alpha_cumprod",
-            th.sqrt(1.0 - self.alpha_cumprod),
+            "sqrt_one_minus_alpha_cum_prod",
+            th.sqrt(1.0 - self.alpha_cum_prod),
         )
         self.register_buffer(
             "betas",
@@ -102,7 +102,7 @@ class Denoiser(nn.Module):
                 x_t
                 - eps
                 * (1.0 - self.alphas[t])
-                / self.sqrt_one_minus_alpha_cumprod[t]
+                / self.sqrt_one_minus_alpha_cum_prod[t]
             ) + self.sqrt_betas[t] * z
 
             tqdm_bar.set_description(f"Generate {x_t.size(0)} data")
