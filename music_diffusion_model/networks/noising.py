@@ -30,13 +30,13 @@ class Noiser(nn.Module):
         )
 
     def forward(
-        self, x: th.Tensor, t: th.Tensor
+        self, x_0: th.Tensor, t: th.Tensor
     ) -> Tuple[th.Tensor, th.Tensor]:
-        assert len(x.size()) == 4
+        assert len(x_0.size()) == 4
         assert len(t.size()) == 2
-        assert x.size(0) == t.size(0)
+        assert x_0.size(0) == t.size(0)
 
-        b, c, w, h = x.size()
+        b, c, w, h = x_0.size()
         nb_steps = t.size(1)
 
         device = "cuda" if next(self.buffers()).is_cuda else "cpu"
@@ -58,7 +58,7 @@ class Noiser(nn.Module):
         )
 
         x_t = (
-            sqrt_alphas_cum_prod * x.unsqueeze(1)
+            sqrt_alphas_cum_prod * x_0.unsqueeze(1)
             + eps * sqrt_minus_one_alphas_cum_prod
         )
 
