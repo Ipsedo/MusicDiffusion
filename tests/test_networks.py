@@ -17,11 +17,29 @@ def test_noiser(
     batch_size: int,
     channels: int,
     img_sizes: Tuple[int, int],
+    use_cuda: bool,
 ) -> None:
     noiser = Noiser(steps, 1e-4, 2e-1)
 
-    x = th.randn(batch_size, channels, img_sizes[0], img_sizes[1])
-    t = th.randint(0, steps, (batch_size, step_batch_size))
+    if use_cuda:
+        noiser.cuda()
+        device = "cuda"
+    else:
+        device = "cpu"
+
+    x = th.randn(
+        batch_size,
+        channels,
+        img_sizes[0],
+        img_sizes[1],
+        device=device,
+    )
+    t = th.randint(
+        0,
+        steps,
+        (batch_size, step_batch_size),
+        device=device,
+    )
 
     x_noised, eps = noiser(x, t)
 
@@ -53,6 +71,7 @@ def test_denoiser(
     channels: int,
     img_sizes: Tuple[int, int],
     time_size: int,
+    use_cuda: bool,
 ) -> None:
     denoiser = Denoiser(
         channels,
@@ -65,14 +84,26 @@ def test_denoiser(
 
     denoiser.eval()
 
+    if use_cuda:
+        denoiser.cuda()
+        device = "cuda"
+    else:
+        device = "cpu"
+
     x = th.randn(
         batch_size,
         step_batch_size,
         channels,
         img_sizes[0],
         img_sizes[1],
+        device=device,
     )
-    t = th.randint(0, steps, (batch_size, step_batch_size))
+    t = th.randint(
+        0,
+        steps,
+        (batch_size, step_batch_size),
+        device=device,
+    )
 
     o = denoiser(x, t)
 
@@ -83,7 +114,12 @@ def test_denoiser(
     assert o.size(3) == img_sizes[0]
     assert o.size(4) == img_sizes[1]
 
-    x = th.randn(batch_size, channels, *img_sizes)
+    x = th.randn(
+        batch_size,
+        channels,
+        *img_sizes,
+        device=device,
+    )
 
     o = denoiser.sample(x)
 
@@ -112,6 +148,7 @@ def test_unet(
     steps: int,
     time_size: int,
     nb_steps: int,
+    use_cuda: bool,
 ) -> None:
     unet = TimeUNet(
         channels,
@@ -123,8 +160,25 @@ def test_unet(
 
     unet.eval()
 
-    x = th.randn(batch_size, nb_steps, channels, *size)
-    t = th.randint(0, steps, (batch_size, nb_steps))
+    if use_cuda:
+        unet.cuda()
+        device = "cuda"
+    else:
+        device = "cpu"
+
+    x = th.randn(
+        batch_size,
+        nb_steps,
+        channels,
+        *size,
+        device=device,
+    )
+    t = th.randint(
+        0,
+        steps,
+        (batch_size, nb_steps),
+        device=device,
+    )
 
     o = unet(x, t)
 
