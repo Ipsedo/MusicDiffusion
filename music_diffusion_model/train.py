@@ -116,6 +116,7 @@ def train(train_options: TrainOptions) -> None:
         device = "cuda" if train_options.cuda else "cpu"
 
         losses = [0.0 for _ in range(train_options.metric_window)]
+        metric_step = 0
 
         for e in range(train_options.epochs):
 
@@ -151,7 +152,7 @@ def train(train_options: TrainOptions) -> None:
                 del losses[0]
                 losses.append(loss.item())
 
-                mlflow.log_metric("loss", loss.item())
+                mlflow.log_metric("loss", loss.item(), step=metric_step)
 
                 saver.save()
 
@@ -161,3 +162,5 @@ def train(train_options: TrainOptions) -> None:
                     f"[{saver.curr_step} / {train_options.save_every - 1}] "
                     f"loss = {mean(losses):.4f}"
                 )
+
+                metric_step += 1
