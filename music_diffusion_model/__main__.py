@@ -128,7 +128,7 @@ def main() -> None:
                         steps=args.steps,
                         beta_1=args.beta_1,
                         beta_t=args.beta_t,
-                        input_channels=args.input_channels,
+                        input_channels=args.channels,
                         unet_channels=args.unet_channels,
                         time_size=args.time_size,
                         cuda=args.cuda,
