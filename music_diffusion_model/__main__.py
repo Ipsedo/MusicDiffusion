@@ -119,6 +119,7 @@ def main() -> None:
             )
 
             train(train_options)
+
         elif args.run == "generate":
             generate_options = GenerateOptions(
                 steps=args.steps,
@@ -135,6 +136,7 @@ def main() -> None:
             )
 
             generate(generate_options)
+
         else:
             parser.error(f"Unrecognized run '{args.run}'")
 
