@@ -1,5 +1,5 @@
 from statistics import mean
-from typing import List, NamedTuple, Tuple
+from typing import List, NamedTuple, Optional, Tuple
 
 import mlflow
 import torch as th
@@ -31,6 +31,9 @@ TrainOptions = NamedTuple(
         ("save_every", int),
         ("output_directory", str),
         ("nb_samples", int),
+        ("noiser_state_dict", Optional[str]),
+        ("denoiser_state_dict", Optional[str]),
+        ("optim_state_dict", Optional[str]),
     ],
 )
 
@@ -67,6 +70,15 @@ def train(train_options: TrainOptions) -> None:
             denoiser.parameters(),
             lr=train_options.learning_rate,
         )
+
+        if train_options.noiser_state_dict is not None:
+            noiser.load_state_dict(th.load(train_options.noiser_state_dict))
+        if train_options.denoiser_state_dict is not None:
+            denoiser.load_state_dict(
+                th.load(train_options.denoiser_state_dict)
+            )
+        if train_options.optim_state_dict is not None:
+            optim.load_state_dict(th.load(train_options.optim_state_dict))
 
         saver = Saver(
             train_options.input_channels,

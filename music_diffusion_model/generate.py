@@ -85,18 +85,18 @@ def generate(generate_options: GenerateOptions) -> None:
             device=device,
         )
 
-        gen_sound = denoiser.sample(x_t, verbose=True)
-        gen_sound = transform(gen_sound)
+        x_0 = denoiser.sample(x_t, verbose=True)
+        x_0 = transform(x_0)
 
         print("Saving sound...")
 
-        for i in tqdm(range(gen_sound.size()[0])):
+        for i in tqdm(range(x_0.size(0))):
             out_sound_path = join(
                 generate_options.output_dir, f"sound_{i}.wav"
             )
 
             magn_phase_to_wav(
-                gen_sound[i, None, :, :, :].detach().cpu(),
+                x_0[i, None, :, :, :].detach().cpu(),
                 out_sound_path,
                 SAMPLE_RATE,
                 N_FFT,

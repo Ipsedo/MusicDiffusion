@@ -116,6 +116,9 @@ def main() -> None:
                 save_every=args.save_every,
                 output_directory=args.output_dir,
                 nb_samples=args.nb_samples,
+                noiser_state_dict=None,
+                denoiser_state_dict=None,
+                optim_state_dict=None,
             )
 
             train(train_options)
