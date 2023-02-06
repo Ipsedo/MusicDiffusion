@@ -46,6 +46,7 @@ class TimeUNet(nn.Module):
                 nn.Sequential(
                     nn.Linear(time_size, time_size),
                     nn.GELU(),
+                    TimeBypass(nn.InstanceNorm1d(time_size)),
                     nn.Linear(time_size, c_i),
                 )
                 for c_i, _ in encoding_channels
