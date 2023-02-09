@@ -10,15 +10,25 @@ class TimeEmbeder(nn.Embedding):
 class TimeWrapper(nn.Module):
     def __init__(
         self,
+        channels: int,
+        time_size: int,
         block: nn.Sequential,
     ) -> None:
         super().__init__()
+
+        self.__to_channels = nn.Sequential(
+            nn.Linear(time_size, time_size),
+            nn.GELU(),
+            TimeBypass(nn.InstanceNorm1d(time_size, affine=False)),
+            nn.Linear(time_size, channels),
+        )
 
         self.__block = block
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
         b, t, _, _, _ = x.size()
 
+        time_emb = self.__to_channels(time_emb)
         time_emb = time_emb[:, :, :, None, None]
         x_time = x + time_emb
 

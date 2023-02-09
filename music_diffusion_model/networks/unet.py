@@ -41,25 +41,15 @@ class TimeUNet(nn.Module):
             )
         )
 
-        self.__to_channels = nn.ModuleList(
-            [
-                nn.Sequential(
-                    nn.Linear(time_size, time_size),
-                    nn.GELU(),
-                    TimeBypass(nn.InstanceNorm1d(time_size, affine=False)),
-                    nn.Linear(time_size, c_i),
-                )
-                for c_i, _ in encoding_channels
-            ]
-        )
-
         self.__encoder = nn.ModuleList(
             [
                 TimeWrapper(
+                    c_i,
+                    time_size,
                     nn.Sequential(
                         ConvBlock(c_i, c_o),
                         ConvBlock(c_o, c_o),
-                    )
+                    ),
                 )
                 for c_i, c_o in encoding_channels
             ]
@@ -107,12 +97,11 @@ class TimeUNet(nn.Module):
 
         out: th.Tensor = self.__start_conv(img)
 
-        for to_channels, block, down in zip(
-            self.__to_channels,
+        for block, down in zip(
             self.__encoder,
             self.__encoder_down,
         ):
-            res = block(out, to_channels(time_vec))
+            res = block(out, time_vec)
             residuals.append(res)
 
             out = down(res)
