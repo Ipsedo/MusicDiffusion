@@ -17,10 +17,10 @@ class TimeWrapper(nn.Module):
         super().__init__()
 
         self.__to_channels = nn.Sequential(
-            nn.Linear(time_size, time_size),
-            nn.GELU(),
-            TimeBypass(nn.InstanceNorm1d(time_size)),
-            nn.Linear(time_size, channels),
+            nn.Linear(time_size, time_size * 2),
+            nn.ELU(),
+            TimeBypass(nn.InstanceNorm1d(time_size * 2)),
+            nn.Linear(time_size * 2, channels),
         )
 
         self.__block = block
