@@ -3,6 +3,7 @@ from typing import List, Tuple
 import torch as th
 import torch.nn as nn
 
+from .attention import SelfAttention2d
 from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock
 from .time import TimeBypass, TimeEmbeder, TimeWrapper
 
@@ -49,9 +50,12 @@ class TimeUNet(nn.Module):
                     nn.Sequential(
                         ConvBlock(c_i, c_o),
                         ConvBlock(c_o, c_o),
+                        SelfAttention2d(c_o, c_o // 8)
+                        if i >= 4
+                        else nn.Identity(),
                     ),
                 )
-                for c_i, c_o in encoding_channels
+                for i, (c_i, c_o) in enumerate(encoding_channels)
             ]
         )
 

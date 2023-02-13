@@ -3,7 +3,12 @@ from typing import List, Tuple
 import pytest
 import torch as th
 
-from music_diffusion_model.networks import Denoiser, Noiser, TimeUNet
+from music_diffusion_model.networks import (
+    Denoiser,
+    Noiser,
+    SelfAttention2d,
+    TimeUNet,
+)
 
 
 @pytest.mark.parametrize("steps", [10, 20])
@@ -188,3 +193,36 @@ def test_unet(
     assert o.size(2) == channels
     assert o.size(3) == size[0]
     assert o.size(4) == size[1]
+
+
+@pytest.mark.parametrize("channels", [1, 2])
+@pytest.mark.parametrize("emb_dim", [1, 2])
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("sizes", [(2, 2), (2, 4), (4, 4)])
+def test_self_attention(
+    channels: int,
+    emb_dim: int,
+    batch_size: int,
+    sizes: Tuple[int, int],
+    use_cuda: bool,
+) -> None:
+    att = SelfAttention2d(
+        channels,
+        emb_dim,
+    )
+
+    if use_cuda:
+        att.cuda()
+        device = "cuda"
+    else:
+        device = "cpu"
+
+    x = th.randn(batch_size, channels, *sizes, device=device)
+
+    o = att(x)
+
+    assert len(o.size()) == 4
+    assert o.size(0) == batch_size
+    assert o.size(1) == channels
+    assert o.size(2) == sizes[0]
+    assert o.size(3) == sizes[1]

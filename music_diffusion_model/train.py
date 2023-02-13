@@ -165,6 +165,7 @@ def train(train_options: TrainOptions) -> None:
                 losses.append(loss.item())
 
                 mlflow.log_metric("loss", loss.item(), step=metric_step)
+                metric_step += 1
 
                 saver.save()
 
@@ -174,5 +175,3 @@ def train(train_options: TrainOptions) -> None:
                     f"[{saver.curr_step} / {train_options.save_every - 1}] "
                     f"loss = {mean(losses):.4f}"
                 )
-
-                metric_step += 1

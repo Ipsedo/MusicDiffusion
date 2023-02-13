@@ -41,7 +41,7 @@ class Noiser(nn.Module):
 
         device = "cuda" if next(self.buffers()).is_cuda else "cpu"
 
-        eps = th.randn(t.size(0), t.size(1), c, w, h, device=device)
+        eps = th.randn(b, nb_steps, c, w, h, device=device)
 
         t = t.flatten()
 
