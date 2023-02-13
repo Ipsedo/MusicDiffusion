@@ -8,8 +8,13 @@ from .train import TrainOptions, train
 
 
 def _channels(string: str) -> List[Tuple[int, int]]:
+    regex_match = re.compile(
+        r"^ *\[(?: *\( *\d+ *, *\d+ *\) *,)* *\( *\d+ *, *\d+ *\) *] *$"
+    )
     regex_layer = re.compile(r"\( *\d+ *, *\d+ *\)")
     regex_channel = re.compile(r"\d+")
+
+    assert regex_match.match(string), "usage : [(10, 20), (20, 40), ...]"
 
     def _match_channels(layer_str: str) -> Tuple[int, int]:
         matched = regex_channel.findall(layer_str)
@@ -20,6 +25,11 @@ def _channels(string: str) -> List[Tuple[int, int]]:
 
 
 def _attentions(string: str) -> List[bool]:
+    regex_match = re.compile(
+        r"^ *\[(?: *(?:(?:True)|(?:False)) *,)* *(?:(?:True)|(?:False)) *] *$"
+    )
+    assert regex_match.match(string), "usage : [True, False, True, ...]"
+
     regex_true_false = re.compile(r"(True)|(False)")
     return [bool(use_att) for use_att in regex_true_false.findall(string)]
 
