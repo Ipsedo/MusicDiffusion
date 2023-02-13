@@ -16,6 +16,7 @@ class Denoiser(nn.Module):
         beta_1: float,
         beta_t: float,
         unet_channels: List[Tuple[int, int]],
+        use_attentions: List[bool],
     ) -> None:
         super().__init__()
 
@@ -63,6 +64,7 @@ class Denoiser(nn.Module):
             channels,
             channels,
             unet_channels,
+            use_attentions,
             time_size,
             self.__steps,
         )

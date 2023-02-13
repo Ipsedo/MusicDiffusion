@@ -24,6 +24,7 @@ TrainOptions = NamedTuple(
         ("beta_t", float),
         ("input_channels", int),
         ("unet_channels", List[Tuple[int, int]]),
+        ("use_attentions", List[bool]),
         ("time_size", int),
         ("cuda", bool),
         ("learning_rate", float),
@@ -60,6 +61,7 @@ def train(train_options: TrainOptions) -> None:
             train_options.beta_1,
             train_options.beta_t,
             train_options.unet_channels,
+            train_options.use_attentions,
         )
 
         if train_options.cuda:

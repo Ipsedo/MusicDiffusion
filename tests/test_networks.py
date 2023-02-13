@@ -85,6 +85,7 @@ def test_denoiser(
         1e-4,
         2e-1,
         [(4, 8), (8, 16), (16, 32)],
+        [True, False, True],
     )
 
     denoiser.eval()
@@ -140,7 +141,10 @@ def test_denoiser(
 @pytest.mark.parametrize("size", [(32, 32), (32, 64)])
 @pytest.mark.parametrize(
     "hidden_channels",
-    [[(4, 8), (8, 16), (16, 32)], [(18, 5), (5, 43), (43, 3)]],
+    [[(16, 8), (8, 16), (16, 32)], [(18, 9), (9, 43), (43, 16)]],
+)
+@pytest.mark.parametrize(
+    "use_attentions", [[True, True, True], [False, False, False]]
 )
 @pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("time_size", [2, 4])
@@ -150,6 +154,7 @@ def test_unet(
     channels: int,
     size: Tuple[int, int],
     hidden_channels: List[Tuple[int, int]],
+    use_attentions: List[bool],
     steps: int,
     time_size: int,
     nb_steps: int,
@@ -159,6 +164,7 @@ def test_unet(
         channels,
         channels,
         hidden_channels,
+        use_attentions,
         time_size,
         steps,
     )

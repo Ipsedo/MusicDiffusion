@@ -14,11 +14,13 @@ class TimeUNet(nn.Module):
         in_channels: int,
         out_channels: int,
         hidden_channels: List[Tuple[int, int]],
+        use_attentions: List[bool],
         time_size: int,
         steps: int,
     ) -> None:
         super().__init__()
 
+        assert len(hidden_channels) == len(use_attentions)
         assert all(
             [
                 hidden_channels[i][1] == hidden_channels[i + 1][0]
@@ -51,11 +53,13 @@ class TimeUNet(nn.Module):
                         ConvBlock(c_i, c_o),
                         ConvBlock(c_o, c_o),
                         SelfAttention2d(c_o, c_o // 8)
-                        if i >= 4
+                        if use_att
                         else nn.Identity(),
                     ),
                 )
-                for i, (c_i, c_o) in enumerate(encoding_channels)
+                for use_att, (c_i, c_o) in zip(
+                    use_attentions, encoding_channels
+                )
             ]
         )
 

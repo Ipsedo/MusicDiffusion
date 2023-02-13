@@ -19,6 +19,11 @@ def _channels(string: str) -> List[Tuple[int, int]]:
     return [_match_channels(layer) for layer in regex_layer.findall(string)]
 
 
+def _attentions(string: str) -> List[bool]:
+    regex_true_false = re.compile(r"(True)|(False)")
+    return [bool(use_att) for use_att in regex_true_false.findall(string)]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser("music_diffusion_model")
 
@@ -59,6 +64,19 @@ def main() -> None:
             (224, 256),
         ],
     )
+    model_parser.add_argument(
+        "--use-attentions",
+        type=_attentions,
+        default=[
+            False,
+            False,
+            False,
+            False,
+            True,
+            True,
+            True,
+        ],
+    )
     model_parser.add_argument("--time-size", type=int, default=128)
     model_parser.add_argument("--cuda", action="store_true")
 
@@ -76,7 +94,7 @@ def main() -> None:
     train_parser.add_argument("--batch-size", type=int, default=3)
     train_parser.add_argument("--step-batch-size", type=int, default=1)
     train_parser.add_argument("--epochs", type=int, default=1000)
-    train_parser.add_argument("--learning-rate", type=float, default=2e-6)
+    train_parser.add_argument("--learning-rate", type=float, default=1e-4)
     train_parser.add_argument("--metric-window", type=int, default=64)
     train_parser.add_argument("--save-every", type=int, default=4096)
     train_parser.add_argument("-o", "--output-dir", type=str, required=True)
@@ -109,6 +127,7 @@ def main() -> None:
                 beta_t=args.beta_t,
                 input_channels=args.channels,
                 unet_channels=args.unet_channels,
+                use_attentions=args.use_attentions,
                 time_size=args.time_size,
                 cuda=args.cuda,
                 learning_rate=args.learning_rate,
@@ -130,6 +149,7 @@ def main() -> None:
                 beta_t=args.beta_t,
                 input_channels=args.channels,
                 unet_channels=args.unet_channels,
+                use_attentions=args.use_attentions,
                 time_size=args.time_size,
                 cuda=args.cuda,
                 denoiser_dict_state=args.denoiser_dict_state,
