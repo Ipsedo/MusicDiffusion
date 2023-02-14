@@ -22,10 +22,8 @@ class TimeUNet(nn.Module):
 
         assert len(hidden_channels) == len(use_attentions)
         assert all(
-            [
-                hidden_channels[i][1] == hidden_channels[i + 1][0]
-                for i in range(len(hidden_channels) - 1)
-            ]
+            hidden_channels[i][1] == hidden_channels[i + 1][0]
+            for i in range(len(hidden_channels) - 1)
         )
 
         encoding_channels = hidden_channels.copy()
@@ -45,50 +43,40 @@ class TimeUNet(nn.Module):
         )
 
         self.__encoder = nn.ModuleList(
-            [
-                TimeWrapper(
-                    c_i,
-                    time_size,
-                    nn.Sequential(
-                        ConvBlock(c_i, c_o),
-                        ConvBlock(c_o, c_o),
-                        SelfAttention2d(c_o, c_o // 8)
-                        if use_att
-                        else nn.Identity(),
-                    ),
-                )
-                for use_att, (c_i, c_o) in zip(
-                    use_attentions, encoding_channels
-                )
-            ]
+            TimeWrapper(
+                c_i,
+                time_size,
+                nn.Sequential(
+                    ConvBlock(c_i, c_o),
+                    SelfAttention2d(c_o, c_o // 8)
+                    if use_att
+                    else nn.Identity(),
+                    ConvBlock(c_o, c_o),
+                ),
+            )
+            for use_att, (c_i, c_o) in zip(use_attentions, encoding_channels)
         )
 
         self.__encoder_down = nn.ModuleList(
-            [
-                TimeBypass(StrideConvBlock(c_o, c_o, "down"))
-                for _, c_o in encoding_channels
-            ]
+            TimeBypass(StrideConvBlock(c_o, c_o, "down"))
+            for _, c_o in encoding_channels
         )
 
         # Decoder stuff
 
         self.__decoder = nn.ModuleList(
-            [
-                TimeBypass(
-                    nn.Sequential(
-                        ConvBlock(c_i, c_i),
-                        ConvBlock(c_i, c_o),
-                    )
+            TimeBypass(
+                nn.Sequential(
+                    ConvBlock(c_i, c_i),
+                    ConvBlock(c_i, c_o),
                 )
-                for c_i, c_o in decoding_channels
-            ]
+            )
+            for c_i, c_o in decoding_channels
         )
 
         self.__decoder_up = nn.ModuleList(
-            [
-                TimeBypass(StrideConvBlock(c_i, c_i, "up"))
-                for c_i, _ in decoding_channels
-            ]
+            TimeBypass(StrideConvBlock(c_i, c_i, "up"))
+            for c_i, _ in decoding_channels
         )
 
         self.__end_conv = TimeBypass(
