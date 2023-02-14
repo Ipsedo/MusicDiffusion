@@ -5,7 +5,7 @@ import pytest
 
 @pytest.fixture(name="use_cuda", scope="session")
 def use_cuda() -> bool:
-    return False
+    return True
 
 
 @pytest.fixture(name="wav_path", scope="session")

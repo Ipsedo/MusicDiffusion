@@ -25,14 +25,14 @@ def _channels(string: str) -> List[Tuple[int, int]]:
 
 
 def _attentions(string: str) -> List[bool]:
-    regex_true_false = re.compile(r"(True)|(False)")
+    regex_true_false = re.compile(r"(?:True)|(?:False)")
     regex_match = re.compile(
         r"^ *\[(?: *(?:(?:True)|(?:False)) *,)* *(?:(?:True)|(?:False)) *] *$"
     )
 
     assert regex_match.match(string), "usage : [True, False, True, ...]"
 
-    return [bool(use_att) for use_att in regex_true_false.findall(string)]
+    return [use_att == "True" for use_att in regex_true_false.findall(string)]
 
 
 def main() -> None:

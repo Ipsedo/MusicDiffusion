@@ -14,6 +14,7 @@ class SelfAttention2d(nn.Module):
             padding=(0, 0),
             stride=(1, 1),
         )
+
         self.__key_conv = nn.Conv2d(
             in_channels=channels,
             out_channels=emb_dim,
@@ -21,6 +22,7 @@ class SelfAttention2d(nn.Module):
             padding=(0, 0),
             stride=(1, 1),
         )
+
         self.__value_conv = nn.Conv2d(
             in_channels=channels,
             out_channels=channels,
