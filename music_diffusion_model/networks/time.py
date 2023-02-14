@@ -8,7 +8,7 @@ class TimeEmbeder(nn.Module):
     def __init__(self, steps: int, size: int) -> None:
         super().__init__()
 
-        pe = th.zeros(steps, size)
+        pos_emb = th.zeros(steps, size)
         position = th.arange(0, steps).unsqueeze(1)
         div_term = th.exp(
             (
@@ -16,19 +16,19 @@ class TimeEmbeder(nn.Module):
                 * (-math.log(10000.0) / size)
             )
         )
-        pe[:, 0::2] = th.sin(position.float() * div_term)
-        pe[:, 1::2] = th.cos(position.float() * div_term)
+        pos_emb[:, 0::2] = th.sin(position.float() * div_term)
+        pos_emb[:, 1::2] = th.cos(position.float() * div_term)
 
-        self.emb: th.Tensor
+        self.pos_emb: th.Tensor
 
-        self.register_buffer("emb", pe)
+        self.register_buffer("pos_emb", pos_emb)
 
     def forward(self, t_index: th.Tensor) -> th.Tensor:
         b, t = t_index.size()
 
         t_index = t_index.flatten()
 
-        out = th.index_select(self.emb, dim=0, index=t_index)
+        out = th.index_select(self.pos_emb, dim=0, index=t_index)
         out = th.unflatten(out, 0, (b, t))
 
         return out
