@@ -35,6 +35,9 @@ class SelfAttention2d(nn.Module):
 
         self.__softmax = nn.Softmax(dim=-1)
 
+        self.__channels = channels
+        self.__emb_dim = emb_dim
+
     def forward(self, x: th.Tensor) -> th.Tensor:
         b, c, w, h = x.size()
 
@@ -61,3 +64,9 @@ class SelfAttention2d(nn.Module):
         out = self.__gamma * out + x
 
         return out
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.__channels}, emb={self.__emb_dim})"
+
+    def __str__(self) -> str:
+        return self.__repr__()

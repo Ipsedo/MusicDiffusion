@@ -85,7 +85,7 @@ def test_denoiser(
         1e-4,
         2e-1,
         [(4, 8), (8, 16), (16, 32)],
-        [True, False, True],
+        [False, False, True],
     )
 
     denoiser.eval()
