@@ -4,7 +4,11 @@ import torch.nn as nn
 
 
 class ChannelProjBlock(nn.Sequential):
-    def __init__(self, in_channels: int, out_channels: int) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+    ) -> None:
         super().__init__(
             nn.Conv2d(
                 in_channels,
@@ -42,10 +46,13 @@ class StrideConvBlock(nn.Sequential):
         out_channels: int,
         scale: Literal["up", "down"],
     ) -> None:
-        conv_constructor = nn.Conv2d if scale == "down" else nn.ConvTranspose2d
+        conv_constructor = {
+            "up": nn.ConvTranspose2d,
+            "down": nn.Conv2d,
+        }
 
         super().__init__(
-            conv_constructor(
+            conv_constructor[scale](
                 in_channels,
                 out_channels,
                 kernel_size=(4, 4),
