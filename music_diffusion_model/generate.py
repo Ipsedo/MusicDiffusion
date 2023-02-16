@@ -13,7 +13,7 @@ from .data import (
     STFT_STRIDE,
     ChannelMinMaxNorm,
     RangeChange,
-    magn_phase_to_wav,
+    magnitude_phase_to_wav,
 )
 from .networks import Denoiser
 
@@ -99,7 +99,7 @@ def generate(generate_options: GenerateOptions) -> None:
                 generate_options.output_dir, f"sound_{i}.wav"
             )
 
-            magn_phase_to_wav(
+            magnitude_phase_to_wav(
                 x_0[i, None, :, :, :].detach().cpu(),
                 out_sound_path,
                 SAMPLE_RATE,

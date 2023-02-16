@@ -1,6 +1,8 @@
 import torch as th
 import torch.nn as nn
 
+from .convolutions import ChannelProjBlock
+
 
 class SelfAttention2d(nn.Module):
     def __init__(
@@ -13,29 +15,9 @@ class SelfAttention2d(nn.Module):
     ) -> None:
         super(SelfAttention2d, self).__init__()
 
-        self.__query_conv = nn.Conv2d(
-            in_channels=channels,
-            out_channels=emb_dim,
-            kernel_size=(1, 1),
-            padding=(0, 0),
-            stride=(1, 1),
-        )
-
-        self.__key_conv = nn.Conv2d(
-            in_channels=channels,
-            out_channels=key_dim,
-            kernel_size=(1, 1),
-            padding=(0, 0),
-            stride=(1, 1),
-        )
-
-        self.__value_conv = nn.Conv2d(
-            in_channels=channels,
-            out_channels=value_dim,
-            kernel_size=(1, 1),
-            padding=(0, 0),
-            stride=(1, 1),
-        )
+        self.__query_conv = ChannelProjBlock(channels, emb_dim)
+        self.__key_conv = ChannelProjBlock(channels, key_dim)
+        self.__value_conv = ChannelProjBlock(channels, value_dim)
 
         self.__attention = nn.MultiheadAttention(
             embed_dim=emb_dim,

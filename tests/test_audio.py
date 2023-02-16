@@ -6,9 +6,9 @@ import torch as th
 
 from music_diffusion_model.data import (
     bark_scale,
-    magn_phase_to_wav,
+    magnitude_phase_to_wav,
     simpson,
-    stft_to_phase_magn,
+    stft_to_magnitude_phase,
     trapezoid,
     wav_to_stft,
 )
@@ -100,7 +100,7 @@ def test_bark_scale(nfft: int, nb_vec: int) -> None:
 def test_stft_to_magn_phase(nfft: int, stft_nb: int, nb_vec: int) -> None:
     size = (nfft, stft_nb)
     stft = th.complex(th.randn(*size), th.randn(*size))
-    magn, phase = stft_to_phase_magn(stft, nb_vec, epsilon=1e-8)
+    magn, phase = stft_to_magnitude_phase(stft, nb_vec, epsilon=1e-8)
 
     assert len(magn.size()) == 3
     assert magn.size()[1] == nfft
@@ -125,7 +125,9 @@ def test_magn_phase_to_wav(
     try:
         magn_phase = th.randn(batch_size, 2, nfft // 2, nb_vec)
 
-        magn_phase_to_wav(magn_phase, wav_path, sample_rate, nfft, nfft // 2)
+        magnitude_phase_to_wav(
+            magn_phase, wav_path, sample_rate, nfft, nfft // 2
+        )
 
         assert exists(wav_path)
         assert isfile(wav_path)

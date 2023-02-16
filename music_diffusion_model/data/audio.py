@@ -18,27 +18,33 @@ def diff(x: th.Tensor) -> th.Tensor:
 
 
 def unwrap(phi: th.Tensor) -> th.Tensor:
-    dphi = diff(phi)
-    dphi_m = ((dphi + np.pi) % (2 * np.pi)) - np.pi
-    dphi_m[(dphi_m == -np.pi) & (dphi > 0)] = np.pi
-    phi_adj = dphi_m - dphi
-    phi_adj[dphi.abs() < np.pi] = 0
+    d_phi = diff(phi)
+    d_phi_m = ((d_phi + np.pi) % (2 * np.pi)) - np.pi
+    d_phi_m[(d_phi_m == -np.pi) & (d_phi > 0)] = np.pi
+    phi_adj = d_phi_m - d_phi
+    phi_adj[d_phi.abs() < np.pi] = 0
     return phi + phi_adj.cumsum(1)
 
 
 def bark_scale(
-    magn: th.Tensor, mode: Literal["scale", "unscale"]
+    magnitude: th.Tensor, mode: Literal["scale", "unscale"]
 ) -> th.Tensor:
-    assert len(magn.size()) == 2, f"(STFT, TIME), actual = {magn.size()}"
+    assert (
+        len(magnitude.size()) == 2
+    ), f"(STFT, TIME), actual = {magnitude.size()}"
 
     min_hz = 20.0
     max_hz = 44100 // 2
 
-    linspace: th.Tensor = th.linspace(min_hz, max_hz, magn.size()[0]) / 600.0
-    scale = 6.0 * th.arcsinh(linspace)[:, None]
+    lin_space: th.Tensor = (
+        th.linspace(min_hz, max_hz, magnitude.size()[0]) / 600.0
+    )
+    scale = 6.0 * th.arcsinh(lin_space)[:, None]
     scale = scale / scale[-1, :]
 
-    res: th.Tensor = magn / scale if mode == "unscale" else magn * scale
+    res: th.Tensor = (
+        magnitude / scale if mode == "unscale" else magnitude * scale
+    )
     return res
 
 
@@ -131,7 +137,7 @@ def trapezoid(
 
 def wav_to_stft(
     wav_p: str,
-    nperseg: int = constants.N_FFT,
+    n_per_seg: int = constants.N_FFT,
     stride: int = constants.STFT_STRIDE,
 ) -> th.Tensor:
     raw_audio, sr = th_audio.load(wav_p)
@@ -152,15 +158,13 @@ def wav_to_stft(
     assert -1.0 <= raw_audio_mono.min() <= 1.0
     assert -1.0 <= raw_audio_mono.max() <= 1.0
 
-    hann_window = th.hann_window(nperseg)
-
     complex_values: th.Tensor = th_audio_f.spectrogram(
         raw_audio_mono,
         pad=0,
-        window=hann_window,
-        n_fft=nperseg,
+        window=th.hann_window(n_per_seg),
+        n_fft=n_per_seg,
         hop_length=stride,
-        win_length=nperseg,
+        win_length=n_per_seg,
         power=None,
         normalized=True,
     )
@@ -169,83 +173,88 @@ def wav_to_stft(
     return complex_values[:-1, :]
 
 
-def stft_to_phase_magn(
+def stft_to_magnitude_phase(
     complex_values: th.Tensor,
     nb_vec: int = constants.N_VEC,
     epsilon: float = 1e-8,
 ) -> Tuple[th.Tensor, th.Tensor]:
-    magn = th.abs(complex_values)
+    magnitude = th.abs(complex_values)
     phase = th.angle(complex_values)
 
-    magn = bark_scale(magn, "scale")
-    magn = th_f.pad(magn, (1, 0, 0, 0), "constant", 0.0)
+    magnitude = bark_scale(magnitude, "scale")
+    magnitude = th_f.pad(magnitude, (1, 0, 0, 0), "constant", 0.0)
 
     phase = unwrap(phase)
     phase = th_f.pad(phase, (1, 0, 0, 0), "constant", 0.0)
     phase = th.gradient(phase, dim=1, spacing=1.0, edge_order=1)[0]
 
-    max_magn = magn.max()
-    min_magn = magn.min()
-    magn = 2 * (magn - min_magn) / (max_magn - min_magn + epsilon) - 1
+    max_magnitude = magnitude.max()
+    min_magnitude = magnitude.min()
+    magnitude = (
+        2
+        * (magnitude - min_magnitude)
+        / (max_magnitude - min_magnitude + epsilon)
+        - 1
+    )
 
     max_phase = phase.max()
     min_phase = phase.min()
     phase = 2 * (phase - min_phase) / (max_phase - min_phase + epsilon) - 1
 
-    magn = magn[:, magn.size()[1] % nb_vec :]
+    magnitude = magnitude[:, magnitude.size()[1] % nb_vec :]
     phase = phase[:, phase.size()[1] % nb_vec :]
-    magn = th.stack(magn.split(nb_vec, dim=1), dim=0)
+    magnitude = th.stack(magnitude.split(nb_vec, dim=1), dim=0)
     phase = th.stack(phase.split(nb_vec, dim=1), dim=0)
 
-    return magn, phase
+    return magnitude, phase
 
 
-def magn_phase_to_wav(
-    magn_phase: th.Tensor,
+def magnitude_phase_to_wav(
+    magnitude_phase: th.Tensor,
     wav_path: str,
     sample_rate: int,
     n_fft: int = constants.N_FFT,
     stft_stride: int = constants.STFT_STRIDE,
 ) -> None:
     assert (
-        len(magn_phase.size()) == 4
-    ), f"(N, 2, H, W), actual = {magn_phase.size()}"
+        len(magnitude_phase.size()) == 4
+    ), f"(N, 2, H, W), actual = {magnitude_phase.size()}"
 
     assert (
-        magn_phase.size()[1] == 2
-    ), f"Channels must be equal to 2, actual = {magn_phase.size()[1]}"
+        magnitude_phase.size()[1] == 2
+    ), f"Channels must be equal to 2, actual = {magnitude_phase.size()[1]}"
 
-    assert magn_phase.size()[2] == n_fft // 2, (
+    assert magnitude_phase.size()[2] == n_fft // 2, (
         f"Frequency size must be equal to {n_fft // 2}, "
-        f"actual = {magn_phase.size()[2]}"
+        f"actual = {magnitude_phase.size()[2]}"
     )
 
-    magn_phase_flattened = magn_phase.permute(1, 2, 0, 3).flatten(2, 3)
-    magn = magn_phase_flattened[0, :, :]
-    phase = magn_phase_flattened[1, :, :]
+    magnitude_phase_flattened = magnitude_phase.permute(1, 2, 0, 3).flatten(
+        2, 3
+    )
+    magnitude = magnitude_phase_flattened[0, :, :]
+    phase = magnitude_phase_flattened[1, :, :]
 
-    magn = (magn + 1.0) / 2.0
-    magn = bark_scale(magn, "unscale")
+    magnitude = (magnitude + 1.0) / 2.0
+    magnitude = bark_scale(magnitude, "unscale")
 
     phase = (phase + 1.0) / 2.0 * 2.0 * np.pi - np.pi
     phase = simpson(th.zeros(phase.size()[0], 1), phase, 1, 1.0)
     phase = phase % (2 * np.pi)
 
-    real = magn * th.cos(phase)
-    imag = magn * th.sin(phase)
+    real = magnitude * th.cos(phase)
+    imaginary = magnitude * th.sin(phase)
 
     real_res = th_f.pad(real, (0, 0, 0, 1), "constant", 0)
-    imag_res = th_f.pad(imag, (0, 0, 0, 1), "constant", 0)
+    imaginary_res = th_f.pad(imaginary, (0, 0, 0, 1), "constant", 0)
 
-    z = real_res + imag_res * 1j
-
-    hann_window = th.hann_window(n_fft)
+    z = real_res + imaginary_res * 1j
 
     raw_audio = th_audio_f.inverse_spectrogram(
         z,
         length=None,
         pad=0,
-        window=hann_window,
+        window=th.hann_window(n_fft),
         n_fft=n_fft,
         hop_length=stft_stride,
         win_length=n_fft,
@@ -267,7 +276,7 @@ def create_dataset(
     elif not isdir(dataset_output_dir):
         raise NotADirectoryError(dataset_output_dir)
 
-    nperseg = constants.N_FFT
+    n_per_seg = constants.N_FFT
     stride = constants.STFT_STRIDE
 
     nb_vec = constants.N_VEC
@@ -275,23 +284,27 @@ def create_dataset(
     idx = 0
 
     for wav_p in tqdm(w_p):
-        complex_values = wav_to_stft(wav_p, nperseg=nperseg, stride=stride)
+        complex_values = wav_to_stft(wav_p, n_per_seg=n_per_seg, stride=stride)
 
         if complex_values.size()[1] < nb_vec:
             continue
 
-        magn, phase = stft_to_phase_magn(complex_values, nb_vec=nb_vec)
+        magnitude, phase = stft_to_magnitude_phase(
+            complex_values, nb_vec=nb_vec
+        )
 
-        nb_sample = magn.size()[0]
+        nb_sample = magnitude.size()[0]
 
         for s_idx in range(nb_sample):
-            s_magn = magn[s_idx, :, :].to(th.float64)
+            s_magnitude = magnitude[s_idx, :, :].to(th.float64)
             s_phase = phase[s_idx, :, :].to(th.float64)
 
-            magn_phase_path = join(dataset_output_dir, f"magn_phase_{idx}.pt")
+            magnitude_phase_path = join(
+                dataset_output_dir, f"magn_phase_{idx}.pt"
+            )
 
-            magn_phase = th.stack([s_magn, s_phase], dim=0)
+            magnitude_phase = th.stack([s_magnitude, s_phase], dim=0)
 
-            th.save(magn_phase, magn_phase_path)
+            th.save(magnitude_phase, magnitude_phase_path)
 
             idx += 1

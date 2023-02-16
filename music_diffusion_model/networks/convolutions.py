@@ -3,6 +3,21 @@ from typing import Literal
 import torch.nn as nn
 
 
+class ChannelProjBlock(nn.Sequential):
+    def __init__(self, in_channels: int, out_channels: int) -> None:
+        super().__init__(
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=(1, 1),
+                stride=(1, 1),
+                padding=(0, 0),
+            ),
+            nn.ELU(),
+            nn.InstanceNorm2d(out_channels),
+        )
+
+
 class EndConvBlock(nn.Sequential):
     def __init__(
         self,

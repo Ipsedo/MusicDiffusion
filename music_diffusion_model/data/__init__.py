@@ -1,9 +1,9 @@
 from .audio import (
     bark_scale,
     create_dataset,
-    magn_phase_to_wav,
+    magnitude_phase_to_wav,
     simpson,
-    stft_to_phase_magn,
+    stft_to_magnitude_phase,
     trapezoid,
     wav_to_stft,
 )
