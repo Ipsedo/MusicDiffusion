@@ -4,6 +4,7 @@ import torch as th
 import torch.nn as nn
 from tqdm import tqdm
 
+from .init import weights_init
 from .unet import TimeUNet
 
 
@@ -70,6 +71,8 @@ class Denoiser(nn.Module):
             time_size,
             self.__steps,
         )
+
+        self.apply(weights_init)
 
     def forward(self, x_t: th.Tensor, t: th.Tensor) -> th.Tensor:
         assert len(x_t.size()) == 5

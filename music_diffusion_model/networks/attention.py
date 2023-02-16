@@ -2,7 +2,6 @@ import torch as th
 import torch.nn as nn
 
 
-# https://discuss.pytorch.org/t/attention-in-image-classification/80147/3
 class SelfAttention2d(nn.Module):
     def __init__(
         self,
@@ -64,9 +63,3 @@ class SelfAttention2d(nn.Module):
     @staticmethod
     def __image_to_seq(x: th.Tensor) -> th.Tensor:
         return x.flatten(2, 3).permute(0, 2, 1)
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.__channels}, emb={self.__emb_dim})"
-
-    def __str__(self) -> str:
-        return self.__repr__()
