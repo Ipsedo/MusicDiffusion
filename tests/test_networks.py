@@ -3,12 +3,7 @@ from typing import List, Tuple
 import pytest
 import torch as th
 
-from music_diffusion_model.networks import (
-    Denoiser,
-    Noiser,
-    SelfAttention2d,
-    TimeUNet,
-)
+from music_diffusion_model.networks import Denoiser, Noiser, TimeUNet
 
 
 @pytest.mark.parametrize("steps", [10, 20])
@@ -86,6 +81,7 @@ def test_denoiser(
         2e-1,
         [(4, 8), (8, 16), (16, 32)],
         [False, False, True],
+        2,
     )
 
     denoiser.eval()
@@ -141,11 +137,12 @@ def test_denoiser(
 @pytest.mark.parametrize("size", [(16, 16), (8, 16)])
 @pytest.mark.parametrize(
     "hidden_channels",
-    [[(16, 8), (8, 16), (16, 32)], [(18, 9), (9, 43), (43, 16)]],
+    [[(16, 8), (8, 16), (16, 32)], [(18, 10), (10, 42), (42, 16)]],
 )
 @pytest.mark.parametrize(
     "use_attentions", [[True, True, True], [False, False, False]]
 )
+@pytest.mark.parametrize("attention_heads", [1, 2])
 @pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("nb_steps", [1, 2])
@@ -155,6 +152,7 @@ def test_unet(
     size: Tuple[int, int],
     hidden_channels: List[Tuple[int, int]],
     use_attentions: List[bool],
+    attention_heads: int,
     steps: int,
     time_size: int,
     nb_steps: int,
@@ -165,6 +163,7 @@ def test_unet(
         channels,
         hidden_channels,
         use_attentions,
+        attention_heads,
         time_size,
         steps,
     )
@@ -199,36 +198,3 @@ def test_unet(
     assert o.size(2) == channels
     assert o.size(3) == size[0]
     assert o.size(4) == size[1]
-
-
-@pytest.mark.parametrize("channels", [1, 2])
-@pytest.mark.parametrize("emb_dim", [1, 2])
-@pytest.mark.parametrize("batch_size", [1, 2])
-@pytest.mark.parametrize("sizes", [(2, 2), (2, 4), (4, 4)])
-def test_self_attention(
-    channels: int,
-    emb_dim: int,
-    batch_size: int,
-    sizes: Tuple[int, int],
-    use_cuda: bool,
-) -> None:
-    att = SelfAttention2d(
-        channels,
-        emb_dim,
-    )
-
-    if use_cuda:
-        att.cuda()
-        device = "cuda"
-    else:
-        device = "cpu"
-
-    x = th.randn(batch_size, channels, *sizes, device=device)
-
-    o = att(x)
-
-    assert len(o.size()) == 4
-    assert o.size(0) == batch_size
-    assert o.size(1) == channels
-    assert o.size(2) == sizes[0]
-    assert o.size(3) == sizes[1]

@@ -88,6 +88,7 @@ def main() -> None:
             True,
         ],
     )
+    model_parser.add_argument("--attention-heads", type=int, default=4)
     model_parser.add_argument("--time-size", type=int, default=128)
     model_parser.add_argument("--cuda", action="store_true")
 
@@ -139,6 +140,7 @@ def main() -> None:
                 input_channels=args.channels,
                 unet_channels=args.unet_channels,
                 use_attentions=args.use_attentions,
+                attention_heads=args.attention_heads,
                 time_size=args.time_size,
                 cuda=args.cuda,
                 learning_rate=args.learning_rate,
@@ -161,6 +163,7 @@ def main() -> None:
                 input_channels=args.channels,
                 unet_channels=args.unet_channels,
                 use_attentions=args.use_attentions,
+                attention_heads=args.attention_heads,
                 time_size=args.time_size,
                 cuda=args.cuda,
                 denoiser_dict_state=args.denoiser_dict_state,

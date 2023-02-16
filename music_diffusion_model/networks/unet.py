@@ -15,6 +15,7 @@ class TimeUNet(nn.Module):
         out_channels: int,
         hidden_channels: List[Tuple[int, int]],
         use_attentions: List[bool],
+        attention_heads: int,
         time_size: int,
         steps: int,
     ) -> None:
@@ -48,7 +49,13 @@ class TimeUNet(nn.Module):
                 time_size,
                 nn.Sequential(
                     ConvBlock(c_i, c_o),
-                    SelfAttention2d(c_o, c_o // 8)
+                    SelfAttention2d(
+                        c_o,
+                        attention_heads,
+                        c_o,
+                        c_o // 8,
+                        c_o // 8,
+                    )
                     if use_att
                     else nn.Identity(),
                     ConvBlock(c_o, c_o),

@@ -27,6 +27,7 @@ GenerateOptions = NamedTuple(
         ("input_channels", int),
         ("unet_channels", List[Tuple[int, int]]),
         ("use_attentions", List[bool]),
+        ("attention_heads", int),
         ("time_size", int),
         ("cuda", bool),
         ("output_dir", str),
@@ -53,6 +54,7 @@ def generate(generate_options: GenerateOptions) -> None:
         generate_options.beta_t,
         generate_options.unet_channels,
         generate_options.use_attentions,
+        generate_options.attention_heads,
     )
 
     device = "cuda" if generate_options.cuda else "cpu"
