@@ -49,16 +49,21 @@ class SelfAttention2d(nn.Module):
     def forward(self, x: th.Tensor) -> th.Tensor:
         b, c, w, h = x.size()
 
-        proj_query = self.__query_conv(x).flatten(2, 3).permute(0, 2, 1)
-        proj_key = self.__key_conv(x).flatten(2, 3).permute(0, 2, 1)
-        proj_value = self.__value_conv(x).flatten(2, 3).permute(0, 2, 1)
+        proj_query = SelfAttention2d.__image_to_seq(self.__query_conv(x))
+        proj_key = SelfAttention2d.__image_to_seq(self.__key_conv(x))
+        proj_value = SelfAttention2d.__image_to_seq(self.__value_conv(x))
 
         out: th.Tensor = self.__attention(proj_query, proj_key, proj_value)[0]
-        out = out.permute(0, 2, 1).view(b, c, w, h)
+        out = out.permute(0, 2, 1)
+        out = th.unflatten(out, 2, (w, h))
 
         out = out + x
 
         return out
+
+    @staticmethod
+    def __image_to_seq(x: th.Tensor) -> th.Tensor:
+        return x.flatten(2, 3).permute(0, 2, 1)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.__channels}, emb={self.__emb_dim})"
