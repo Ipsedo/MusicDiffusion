@@ -112,6 +112,8 @@ class Denoiser(nn.Module):
                 / self.sqrt_one_minus_alpha_cum_prod[t]
             ) + self.sqrt_betas[t] * z
 
-            tqdm_bar.set_description(f"Generate {x_t.size(0)} data")
+            tqdm_bar.set_description(
+                f"Generate {x_t.size(0)} data with size {x_t.size()[1:]}"
+            )
 
         return x_t

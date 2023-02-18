@@ -36,7 +36,7 @@ def _attentions(string: str) -> List[bool]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser("music_diffusion_model")
+    parser = argparse.ArgumentParser("music_diffusion")
 
     sub_command = parser.add_subparsers(
         title="mode", dest="mode", required=True

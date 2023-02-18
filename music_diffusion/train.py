@@ -42,7 +42,7 @@ TrainOptions = NamedTuple(
 
 def train(train_options: TrainOptions) -> None:
 
-    mlflow.set_experiment("music_diffusion_model")
+    mlflow.set_experiment("music_diffusion")
 
     with mlflow.start_run(run_name=train_options.run_name):
 

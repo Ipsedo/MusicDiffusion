@@ -4,7 +4,7 @@ from os.path import exists, isfile
 import pytest
 import torch as th
 
-from music_diffusion_model.data import (
+from music_diffusion.data import (
     bark_scale,
     magnitude_phase_to_wav,
     simpson,

@@ -1,16 +1,16 @@
 from setuptools import setup
 
 setup(
-    name="music_diffusion_model",
+    name="music_diffusion",
     author="Samuel Berrien",
     version="1.0",
     packages=[
-        "music_diffusion_model",
-        "music_diffusion_model.networks",
-        "music_diffusion_model.data",
+        "music_diffusion",
+        "music_diffusion.networks",
+        "music_diffusion.data",
     ],
     package_data={
-        "music_diffusion_model": [
+        "music_diffusion": [
             "resources/*",
         ]
     },

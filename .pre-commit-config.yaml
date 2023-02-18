@@ -29,7 +29,7 @@ repos:
         name: mypy
         language: system
         entry: mypy
-        args: [ music_diffusion_model, tests, --config-file=pyproject.toml ]
+        args: [ music_diffusion, tests, --config-file=pyproject.toml ]
         types: [ python ]
         pass_filenames: false
         require_serial: true
