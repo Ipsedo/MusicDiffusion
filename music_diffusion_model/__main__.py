@@ -66,13 +66,13 @@ def main() -> None:
         "--unet-channels",
         type=_channels,
         default=[
-            (32, 64),
-            (64, 96),
-            (96, 128),
-            (128, 160),
-            (160, 192),
-            (192, 224),
-            (224, 256),
+            (16, 32),
+            (32, 48),
+            (48, 64),
+            (64, 80),
+            (80, 96),
+            (96, 112),
+            (112, 128),
         ],
     )
     model_parser.add_argument(
@@ -88,8 +88,8 @@ def main() -> None:
             True,
         ],
     )
-    model_parser.add_argument("--attention-heads", type=int, default=4)
-    model_parser.add_argument("--time-size", type=int, default=128)
+    model_parser.add_argument("--attention-heads", type=int, default=8)
+    model_parser.add_argument("--time-size", type=int, default=64)
     model_parser.add_argument("--cuda", action="store_true")
 
     # Sub command run {train, generate}
@@ -103,10 +103,10 @@ def main() -> None:
     train_parser.add_argument("run_name", type=str)
 
     train_parser.add_argument("-i", "--input-dataset", type=str, required=True)
-    train_parser.add_argument("--batch-size", type=int, default=3)
+    train_parser.add_argument("--batch-size", type=int, default=4)
     train_parser.add_argument("--step-batch-size", type=int, default=1)
     train_parser.add_argument("--epochs", type=int, default=1000)
-    train_parser.add_argument("--learning-rate", type=float, default=1e-4)
+    train_parser.add_argument("--learning-rate", type=float, default=2e-4)
     train_parser.add_argument("--metric-window", type=int, default=64)
     train_parser.add_argument("--save-every", type=int, default=4096)
     train_parser.add_argument("-o", "--output-dir", type=str, required=True)
