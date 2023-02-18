@@ -53,8 +53,8 @@ class TimeUNet(nn.Module):
                         c_o,
                         attention_heads,
                         c_o,
-                        c_o // 8,
-                        c_o // 8,
+                        c_o // 2,
+                        c_o // 2,
                     )
                     if use_att
                     else nn.Identity(),
