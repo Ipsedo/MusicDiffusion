@@ -1,5 +1,6 @@
 from typing import List, Tuple
 
+import numpy as np
 import torch as th
 import torch.nn as nn
 from tqdm import tqdm
@@ -113,7 +114,18 @@ class Denoiser(nn.Module):
             ) + self.sqrt_betas[t] * z
 
             tqdm_bar.set_description(
-                f"Generate {x_t.size(0)} data with size {x_t.size()[1:]}"
+                f"Generate {x_t.size(0)} data with size {tuple(x_t.size()[1:])}"
             )
 
         return x_t
+
+    def count_parameters(self) -> int:
+        return int(
+            np.sum(
+                [
+                    np.prod(p.size())
+                    for p in self.parameters()
+                    if p.requires_grad
+                ]
+            )
+        )

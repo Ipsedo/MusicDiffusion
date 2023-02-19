@@ -66,6 +66,8 @@ def train(train_options: TrainOptions) -> None:
             train_options.attention_heads,
         )
 
+        print(f"Parameters count = {denoiser.count_parameters()}")
+
         if train_options.cuda:
             noiser.cuda()
             denoiser.cuda()
@@ -171,11 +173,11 @@ def train(train_options: TrainOptions) -> None:
                 mlflow.log_metric("loss", loss.item(), step=metric_step)
                 metric_step += 1
 
-                saver.save()
-
                 tqdm_bar.set_description(
                     f"Epoch {e} / {train_options.epochs - 1} - "
                     f"save {saver.curr_save} "
                     f"[{saver.curr_step} / {train_options.save_every - 1}] "
                     f"loss = {mean(losses):.4f}"
                 )
+
+                saver.save()

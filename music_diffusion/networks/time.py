@@ -11,10 +11,7 @@ class TimeEmbeder(nn.Module):
         pos_emb = th.zeros(steps, size)
         position = th.arange(0, steps).unsqueeze(1)
         div_term = th.exp(
-            (
-                th.arange(0, size, 2, dtype=th.float)
-                * (-math.log(10000.0) / size)
-            )
+            th.arange(0, size, 2, dtype=th.float) * (-math.log(10000.0) / size)
         )
         pos_emb[:, 0::2] = th.sin(position.float() * div_term)
         pos_emb[:, 1::2] = th.cos(position.float() * div_term)
@@ -44,10 +41,9 @@ class TimeWrapper(nn.Module):
         super().__init__()
 
         self.__to_channels = nn.Sequential(
-            nn.Linear(time_size, time_size),
-            nn.ELU(),
-            TimeBypass(nn.InstanceNorm1d(time_size)),
             nn.Linear(time_size, channels),
+            nn.ELU(),
+            TimeBypass(nn.BatchNorm1d(channels)),
         )
 
         self.__block = block
