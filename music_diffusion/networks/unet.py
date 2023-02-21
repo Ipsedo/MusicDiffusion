@@ -28,9 +28,11 @@ class TimeUNet(nn.Module):
         )
 
         encoding_channels = hidden_channels.copy()
+        encoding_attentions = use_attentions.copy()
         decoding_channels = [
             (c_o, c_i) for c_i, c_o in reversed(hidden_channels)
         ]
+        decoding_attentions = reversed(use_attentions)
 
         self.__time_embedder = TimeEmbeder(steps, time_size)
 
@@ -53,15 +55,17 @@ class TimeUNet(nn.Module):
                         c_o,
                         attention_heads,
                         c_o,
-                        c_o // 2,
-                        c_o // 2,
+                        c_o // 4,
+                        c_o // 4,
                     )
                     if use_att
                     else nn.Identity(),
                     ConvBlock(c_o, c_o),
                 ),
             )
-            for use_att, (c_i, c_o) in zip(use_attentions, encoding_channels)
+            for use_att, (c_i, c_o) in zip(
+                encoding_attentions, encoding_channels
+            )
         )
 
         self.__encoder_down = nn.ModuleList(
@@ -71,19 +75,32 @@ class TimeUNet(nn.Module):
 
         # Decoder stuff
 
-        self.__decoder = nn.ModuleList(
-            TimeBypass(
-                nn.Sequential(
-                    ConvBlock(c_i, c_i),
-                    ConvBlock(c_i, c_o),
-                )
-            )
-            for c_i, c_o in decoding_channels
-        )
-
         self.__decoder_up = nn.ModuleList(
             TimeBypass(StrideConvBlock(c_i, c_i, "up"))
             for c_i, _ in decoding_channels
+        )
+
+        self.__decoder = nn.ModuleList(
+            TimeWrapper(
+                c_i,
+                time_size,
+                nn.Sequential(
+                    ConvBlock(c_i, c_i),
+                    SelfAttention2d(
+                        c_i,
+                        attention_heads,
+                        c_i,
+                        c_i // 4,
+                        c_i // 4,
+                    )
+                    if use_att
+                    else nn.Identity(),
+                    ConvBlock(c_i, c_o),
+                ),
+            )
+            for use_att, (c_i, c_o) in zip(
+                decoding_attentions, decoding_channels
+            )
         )
 
         self.__end_conv = TimeBypass(
@@ -115,7 +132,7 @@ class TimeUNet(nn.Module):
             reversed(residuals),
         ):
             out_up = up(out)
-            out = block(out_up + res)
+            out = block(out_up + res, time_vec)
 
         out = self.__end_conv(out)
 
