@@ -1,5 +1,6 @@
 from os import mkdir
 from os.path import exists, isdir, join
+from typing import List, NamedTuple, Tuple
 
 import matplotlib.pyplot as plt
 import torch as th
@@ -8,6 +9,21 @@ from torchvision.transforms import Compose
 
 from .data import OUTPUT_SIZES, ChangeType, ChannelMinMaxNorm, RangeChange
 from .networks import Denoiser, Noiser
+
+ModelOptions = NamedTuple(
+    "ModelOptions",
+    [
+        ("steps", int),
+        ("beta_1", float),
+        ("beta_t", float),
+        ("input_channels", int),
+        ("unet_channels", List[Tuple[int, int]]),
+        ("use_attentions", List[bool]),
+        ("attention_heads", int),
+        ("time_size", int),
+        ("cuda", bool),
+    ],
+)
 
 
 class Saver:

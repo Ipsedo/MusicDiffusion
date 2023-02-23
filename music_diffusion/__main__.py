@@ -5,6 +5,7 @@ from typing import List, Tuple
 from .data import create_dataset
 from .generate import GenerateOptions, generate
 from .train import TrainOptions, train
+from .utils import ModelOptions
 
 
 def _channels(string: str) -> List[Tuple[int, int]]:
@@ -127,6 +128,18 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.mode == "model":
+        model_options = ModelOptions(
+            steps=args.steps,
+            beta_1=args.beta_1,
+            beta_t=args.beta_t,
+            input_channels=args.channels,
+            unet_channels=args.unet_channels,
+            use_attentions=args.use_attentions,
+            attention_heads=args.attention_heads,
+            time_size=args.time_size,
+            cuda=args.cuda,
+        )
+
         if args.run == "train":
             train_options = TrainOptions(
                 run_name=args.run_name,
@@ -134,15 +147,6 @@ def main() -> None:
                 batch_size=args.batch_size,
                 step_batch_size=args.step_batch_size,
                 epochs=args.epochs,
-                steps=args.steps,
-                beta_1=args.beta_1,
-                beta_t=args.beta_t,
-                input_channels=args.channels,
-                unet_channels=args.unet_channels,
-                use_attentions=args.use_attentions,
-                attention_heads=args.attention_heads,
-                time_size=args.time_size,
-                cuda=args.cuda,
                 learning_rate=args.learning_rate,
                 metric_window=args.metric_window,
                 save_every=args.save_every,
@@ -153,26 +157,17 @@ def main() -> None:
                 optim_state_dict=None,
             )
 
-            train(train_options)
+            train(model_options, train_options)
 
         elif args.run == "generate":
             generate_options = GenerateOptions(
-                steps=args.steps,
-                beta_1=args.beta_1,
-                beta_t=args.beta_t,
-                input_channels=args.channels,
-                unet_channels=args.unet_channels,
-                use_attentions=args.use_attentions,
-                attention_heads=args.attention_heads,
-                time_size=args.time_size,
-                cuda=args.cuda,
                 denoiser_dict_state=args.denoiser_dict_state,
                 output_dir=args.output_dir,
                 frames=args.frames,
                 musics=args.musics,
             )
 
-            generate(generate_options)
+            generate(model_options, generate_options)
 
         else:
             parser.error(f"Unrecognized run '{args.run}'")

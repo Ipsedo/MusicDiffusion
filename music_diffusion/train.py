@@ -1,5 +1,5 @@
 from statistics import mean
-from typing import List, NamedTuple, Optional, Tuple
+from typing import NamedTuple, Optional
 
 import mlflow
 import torch as th
@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from .data import AudioDataset, ChangeType, ChannelMinMaxNorm, RangeChange
 from .networks import Denoiser, Noiser
-from .utils import Saver
+from .utils import ModelOptions, Saver
 
 TrainOptions = NamedTuple(
     "TrainOptions",
@@ -19,15 +19,6 @@ TrainOptions = NamedTuple(
         ("batch_size", int),
         ("step_batch_size", int),
         ("epochs", int),
-        ("steps", int),
-        ("beta_1", float),
-        ("beta_t", float),
-        ("input_channels", int),
-        ("unet_channels", List[Tuple[int, int]]),
-        ("use_attentions", List[bool]),
-        ("attention_heads", int),
-        ("time_size", int),
-        ("cuda", bool),
         ("learning_rate", float),
         ("metric_window", int),
         ("save_every", int),
@@ -40,35 +31,35 @@ TrainOptions = NamedTuple(
 )
 
 
-def train(train_options: TrainOptions) -> None:
+def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
     mlflow.set_experiment("music_diffusion")
 
     with mlflow.start_run(run_name=train_options.run_name):
 
-        if train_options.cuda:
+        if model_options.cuda:
             th.backends.cudnn.benchmark = True
 
         noiser = Noiser(
-            train_options.steps,
-            train_options.beta_1,
-            train_options.beta_t,
+            model_options.steps,
+            model_options.beta_1,
+            model_options.beta_t,
         )
 
         denoiser = Denoiser(
-            train_options.input_channels,
-            train_options.steps,
-            train_options.time_size,
-            train_options.beta_1,
-            train_options.beta_t,
-            train_options.unet_channels,
-            train_options.use_attentions,
-            train_options.attention_heads,
+            model_options.input_channels,
+            model_options.steps,
+            model_options.time_size,
+            model_options.beta_1,
+            model_options.beta_t,
+            model_options.unet_channels,
+            model_options.use_attentions,
+            model_options.attention_heads,
         )
 
         print(f"Parameters count = {denoiser.count_parameters()}")
 
-        if train_options.cuda:
+        if model_options.cuda:
             noiser.cuda()
             denoiser.cuda()
 
@@ -87,7 +78,7 @@ def train(train_options: TrainOptions) -> None:
             optim.load_state_dict(th.load(train_options.optim_state_dict))
 
         saver = Saver(
-            train_options.input_channels,
+            model_options.input_channels,
             noiser,
             denoiser,
             optim,
@@ -121,17 +112,17 @@ def train(train_options: TrainOptions) -> None:
                 "step_batch_size": train_options.step_batch_size,
                 "learning_rate": train_options.learning_rate,
                 "epochs": train_options.epochs,
-                "beta_1": train_options.beta_1,
-                "beta_t": train_options.beta_t,
-                "steps": train_options.steps,
-                "time_size": train_options.time_size,
-                "input_channels": train_options.input_channels,
-                "unet_channels": train_options.unet_channels,
+                "beta_1": model_options.beta_1,
+                "beta_t": model_options.beta_t,
+                "steps": model_options.steps,
+                "time_size": model_options.time_size,
+                "input_channels": model_options.input_channels,
+                "unet_channels": model_options.unet_channels,
                 "input_dataset": train_options.dataset_path,
             }
         )
 
-        device = "cuda" if train_options.cuda else "cpu"
+        device = "cuda" if model_options.cuda else "cpu"
 
         losses = [0.0 for _ in range(train_options.metric_window)]
         metric_step = 0
@@ -142,14 +133,14 @@ def train(train_options: TrainOptions) -> None:
 
             for x in tqdm_bar:
 
-                if train_options.cuda:
+                if model_options.cuda:
                     x = x.cuda()
 
                 x = transform(x)
 
                 t = th.randint(
                     0,
-                    train_options.steps,
+                    model_options.steps,
                     (
                         train_options.batch_size,
                         train_options.step_batch_size,

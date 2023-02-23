@@ -1,6 +1,6 @@
 from os import mkdir
 from os.path import exists, isdir, join
-from typing import List, NamedTuple, Tuple
+from typing import NamedTuple
 
 import torch as th
 from torchvision.transforms import Compose
@@ -16,20 +16,12 @@ from .data import (
     magnitude_phase_to_wav,
 )
 from .networks import Denoiser
+from .utils import ModelOptions
 
 GenerateOptions = NamedTuple(
     "GenerateOptions",
     [
         ("denoiser_dict_state", str),
-        ("steps", int),
-        ("beta_1", float),
-        ("beta_t", float),
-        ("input_channels", int),
-        ("unet_channels", List[Tuple[int, int]]),
-        ("use_attentions", List[bool]),
-        ("attention_heads", int),
-        ("time_size", int),
-        ("cuda", bool),
         ("output_dir", str),
         ("frames", int),
         ("musics", int),
@@ -37,7 +29,9 @@ GenerateOptions = NamedTuple(
 )
 
 
-def generate(generate_options: GenerateOptions) -> None:
+def generate(
+    model_options: ModelOptions, generate_options: GenerateOptions
+) -> None:
 
     if not exists(generate_options.output_dir):
         mkdir(generate_options.output_dir)
@@ -47,17 +41,17 @@ def generate(generate_options: GenerateOptions) -> None:
     print("Load model...")
 
     denoiser = Denoiser(
-        generate_options.input_channels,
-        generate_options.steps,
-        generate_options.time_size,
-        generate_options.beta_1,
-        generate_options.beta_t,
-        generate_options.unet_channels,
-        generate_options.use_attentions,
-        generate_options.attention_heads,
+        model_options.input_channels,
+        model_options.steps,
+        model_options.time_size,
+        model_options.beta_1,
+        model_options.beta_t,
+        model_options.unet_channels,
+        model_options.use_attentions,
+        model_options.attention_heads,
     )
 
-    device = "cuda" if generate_options.cuda else "cpu"
+    device = "cuda" if model_options.cuda else "cpu"
 
     denoiser.load_state_dict(
         th.load(generate_options.denoiser_dict_state, map_location=device)
@@ -65,7 +59,7 @@ def generate(generate_options: GenerateOptions) -> None:
 
     denoiser.eval()
 
-    if generate_options.cuda:
+    if model_options.cuda:
         denoiser.cuda()
 
     transform = Compose(
@@ -83,7 +77,7 @@ def generate(generate_options: GenerateOptions) -> None:
 
         x_t = th.randn(
             generate_options.musics,
-            generate_options.input_channels,
+            model_options.input_channels,
             height,
             width * generate_options.frames,
             device=device,
