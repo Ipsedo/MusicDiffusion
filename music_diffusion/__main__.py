@@ -68,12 +68,12 @@ def main() -> None:
         type=_channels,
         default=[
             (32, 64),
-            (64, 64),
-            (64, 128),
-            (128, 128),
-            (128, 256),
-            (256, 256),
-            (256, 256),
+            (64, 96),
+            (96, 128),
+            (128, 160),
+            (160, 192),
+            (192, 224),
+            (224, 256),
         ],
     )
     model_parser.add_argument(
@@ -85,8 +85,8 @@ def main() -> None:
             False,
             False,
             True,
-            True,
-            True,
+            False,
+            False,
         ],
     )
     model_parser.add_argument("--attention-heads", type=int, default=8)
