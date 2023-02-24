@@ -3,6 +3,8 @@ import math
 import torch as th
 import torch.nn as nn
 
+from .convolutions import ConvBlock
+
 
 class TimeEmbeder(nn.Module):
     def __init__(self, steps: int, size: int) -> None:
@@ -31,33 +33,26 @@ class TimeEmbeder(nn.Module):
         return out
 
 
-class TimeWrapper(nn.Module):
+class TimeConvBlock(nn.Module):
     def __init__(
-        self,
-        channels: int,
-        time_size: int,
-        block: nn.Sequential,
+        self, in_channels: int, out_channels: int, time_size: int
     ) -> None:
         super().__init__()
 
+        self.__conv = TimeBypass(ConvBlock(in_channels, out_channels))
+
         self.__to_channels = nn.Sequential(
-            nn.Linear(time_size, channels),
+            nn.Linear(time_size, in_channels),
             nn.ELU(),
-            TimeBypass(nn.BatchNorm1d(channels)),
+            TimeBypass(nn.BatchNorm1d(in_channels)),
         )
 
-        self.__block = block
-
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
-        b, t, _, _, _ = x.size()
+        proj_time_emb = self.__to_channels(time_emb)
+        proj_time_emb = proj_time_emb[:, :, :, None, None]
+        x_time = x + proj_time_emb
 
-        time_emb = self.__to_channels(time_emb)
-        time_emb = time_emb[:, :, :, None, None]
-        x_time = x + time_emb
-
-        x_time = x_time.flatten(0, 1)
-        out: th.Tensor = self.__block(x_time)
-        out = th.unflatten(out, 0, (b, t))
+        out: th.Tensor = self.__conv(x_time)
 
         return out
 
