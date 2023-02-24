@@ -15,6 +15,7 @@ class UNetBlock(nn.Module):
         snd_conv_channels: Tuple[int, int],
         time_size: int,
         num_heads: int,
+        use_att: bool,
     ) -> None:
         super().__init__()
 
@@ -26,14 +27,18 @@ class UNetBlock(nn.Module):
             time_size,
         )
 
-        self.__attention = TimeBypass(
-            SelfAttention2d(
-                c_o,
-                num_heads,
-                c_o,
-                c_o // 4,
-                c_o // 4,
+        self.__attention = (
+            TimeBypass(
+                SelfAttention2d(
+                    c_o,
+                    num_heads,
+                    c_o,
+                    c_o // 4,
+                    c_o // 4,
+                )
             )
+            if use_att
+            else nn.Identity()
         )
 
         c_i, c_o = snd_conv_channels
@@ -90,7 +95,9 @@ class TimeUNet(nn.Module):
         )
 
         self.__encoder = nn.ModuleList(
-            UNetBlock((c_i, c_o), (c_o, c_o), time_size, attention_heads)
+            UNetBlock(
+                (c_i, c_o), (c_o, c_o), time_size, attention_heads, use_att
+            )
             for use_att, (c_i, c_o) in zip(
                 encoder_attentions, encoding_channels
             )
@@ -109,7 +116,9 @@ class TimeUNet(nn.Module):
         )
 
         self.__decoder = nn.ModuleList(
-            UNetBlock((c_i, c_i), (c_i, c_o), time_size, attention_heads)
+            UNetBlock(
+                (c_i, c_i), (c_i, c_o), time_size, attention_heads, use_att
+            )
             for use_att, (c_i, c_o) in zip(
                 decoder_attentions, decoding_channels
             )
