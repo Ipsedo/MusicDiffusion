@@ -11,41 +11,38 @@ from .time import TimeBypass, TimeConvBlock, TimeEmbeder
 class UNetBlock(nn.Module):
     def __init__(
         self,
-        first_conv_channels: Tuple[int, int],
-        snd_conv_channels: Tuple[int, int],
+        in_channels: int,
+        hidden_channels: int,
+        out_channels: int,
         time_size: int,
         num_heads: int,
         use_att: bool,
     ) -> None:
         super().__init__()
 
-        c_i, c_o = first_conv_channels
-
         self.__conv_1 = TimeConvBlock(
-            c_i,
-            c_o,
+            in_channels,
+            hidden_channels,
             time_size,
         )
 
         self.__attention = (
             TimeBypass(
                 SelfAttention2d(
-                    c_o,
+                    hidden_channels,
                     num_heads,
-                    c_o,
-                    c_o // 4,
-                    c_o // 4,
+                    hidden_channels,
+                    hidden_channels // 4,
+                    hidden_channels // 4,
                 )
             )
             if use_att
             else nn.Identity()
         )
 
-        c_i, c_o = snd_conv_channels
-
         self.__conv_2 = TimeConvBlock(
-            c_i,
-            c_o,
+            hidden_channels,
+            out_channels,
             time_size,
         )
 
@@ -96,7 +93,12 @@ class TimeUNet(nn.Module):
 
         self.__encoder = nn.ModuleList(
             UNetBlock(
-                (c_i, c_o), (c_o, c_o), time_size, attention_heads, use_att
+                c_i,
+                c_o,
+                c_o,
+                time_size,
+                attention_heads,
+                use_att,
             )
             for use_att, (c_i, c_o) in zip(
                 encoder_attentions, encoding_channels
@@ -117,7 +119,12 @@ class TimeUNet(nn.Module):
 
         self.__decoder = nn.ModuleList(
             UNetBlock(
-                (c_i, c_i), (c_i, c_o), time_size, attention_heads, use_att
+                c_i,
+                c_i,
+                c_o,
+                time_size,
+                attention_heads,
+                use_att,
             )
             for use_att, (c_i, c_o) in zip(
                 decoder_attentions, decoding_channels
