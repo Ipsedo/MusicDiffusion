@@ -32,8 +32,8 @@ class UNetBlock(nn.Module):
                     hidden_channels,
                     num_heads,
                     hidden_channels,
-                    hidden_channels // 4,
-                    hidden_channels // 4,
+                    hidden_channels // 2,
+                    hidden_channels // 2,
                 )
             )
             if use_att
