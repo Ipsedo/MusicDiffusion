@@ -1,10 +1,10 @@
 import torch as th
-import torch.nn as nn
+from torch import nn
 
 
 class PixelNorm(nn.Module):
     def __init__(self, epsilon: float = 1e-8) -> None:
-        super(PixelNorm, self).__init__()
+        super().__init__()
 
         self.__epsilon = epsilon
 
@@ -22,7 +22,7 @@ class PixelNorm(nn.Module):
 
 class LayerNorm2d(nn.Module):
     def __init__(self, epsilon: float = 1e-8):
-        super(LayerNorm2d, self).__init__()
+        super().__init__()
 
         self.__epsilon = epsilon
 

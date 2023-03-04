@@ -1,4 +1,4 @@
-import torch.nn as nn
+from torch import nn
 
 
 def weights_init(m: nn.Module) -> None:

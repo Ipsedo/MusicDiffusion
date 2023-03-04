@@ -1,7 +1,7 @@
 from typing import Tuple
 
 import torch as th
-import torch.nn as nn
+from torch import nn
 
 
 class Noiser(nn.Module):

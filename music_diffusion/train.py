@@ -46,6 +46,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             model_options.beta_t,
         )
 
+        # pylint: disable=duplicate-code
         denoiser = Denoiser(
             model_options.input_channels,
             model_options.steps,
@@ -56,6 +57,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             model_options.use_attentions,
             model_options.attention_heads,
         )
+        # pylint: enable=duplicate-code
 
         print(f"Parameters count = {denoiser.count_parameters()}")
 

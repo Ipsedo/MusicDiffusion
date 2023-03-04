@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 import numpy as np
 import torch as th
-import torch.nn as nn
+from torch import nn
 from tqdm import tqdm
 
 from .init import weights_init

@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
 import torch as th
-import torch.nn as nn
+from torch import nn
 
 from .attention import SelfAttention2d
 from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock

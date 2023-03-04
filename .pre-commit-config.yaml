@@ -33,10 +33,18 @@ repos:
         types: [ python ]
         pass_filenames: false
         require_serial: true
+      - id: pylint
+        name: pylint
+        language: system
+        entry: pylint
+        args: [ music_diffusion, tests, --rcfile, pyproject.toml ]
+        types: [ python ]
+        pass_filenames: false
+        require_serial: true
       - id: pytest
         name: pytest
         language: system
         entry: python
-        args: [ "-m", "pytest", "tests" ]
+        args: [ -m, pytest, tests ]
         pass_filenames: false
         require_serial: true

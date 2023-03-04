@@ -40,6 +40,7 @@ def generate(
 
     print("Load model...")
 
+    # pylint: disable=duplicate-code
     denoiser = Denoiser(
         model_options.input_channels,
         model_options.steps,
@@ -50,6 +51,7 @@ def generate(
         model_options.use_attentions,
         model_options.attention_heads,
     )
+    # pylint: enable=duplicate-code
 
     device = "cuda" if model_options.cuda else "cpu"
 

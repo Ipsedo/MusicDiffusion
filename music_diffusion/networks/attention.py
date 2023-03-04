@@ -1,5 +1,5 @@
 import torch as th
-import torch.nn as nn
+from torch import nn
 
 from .convolutions import ChannelProjBlock
 
@@ -13,7 +13,7 @@ class SelfAttention2d(nn.Module):
         key_dim: int,
         value_dim: int,
     ) -> None:
-        super(SelfAttention2d, self).__init__()
+        super().__init__()
 
         self.__query_conv = ChannelProjBlock(channels, emb_dim)
         self.__key_conv = ChannelProjBlock(channels, key_dim)
@@ -28,7 +28,7 @@ class SelfAttention2d(nn.Module):
         )
 
     def forward(self, x: th.Tensor) -> th.Tensor:
-        b, c, w, h = x.size()
+        _, _, w, h = x.size()
 
         proj_query = SelfAttention2d.__image_to_seq(self.__query_conv(x))
         proj_key = SelfAttention2d.__image_to_seq(self.__key_conv(x))

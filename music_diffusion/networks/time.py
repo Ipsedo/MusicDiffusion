@@ -1,7 +1,7 @@
 import math
 
 import torch as th
-import torch.nn as nn
+from torch import nn
 
 from .convolutions import ConvBlock
 
@@ -42,8 +42,11 @@ class TimeConvBlock(nn.Module):
         self.__conv = TimeBypass(ConvBlock(in_channels, out_channels))
 
         self.__to_channels = nn.Sequential(
-            nn.Linear(time_size, in_channels),
-            nn.ELU(),
+            nn.Linear(time_size, time_size * 2),
+            nn.ReLU(),
+            nn.LayerNorm(time_size * 2),
+            nn.Linear(time_size * 2, in_channels),
+            nn.ReLU(),
             nn.LayerNorm(in_channels),
         )
 
