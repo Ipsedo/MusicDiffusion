@@ -17,7 +17,7 @@ class ChannelProjBlock(nn.Sequential):
                 stride=(1, 1),
                 padding=(0, 0),
             ),
-            nn.ReLU(),
+            nn.ELU(),
             nn.InstanceNorm2d(out_channels),
         )
 
@@ -59,7 +59,7 @@ class StrideConvBlock(nn.Sequential):
                 stride=(2, 2),
                 padding=(1, 1),
             ),
-            nn.ReLU(),
+            nn.ELU(),
             nn.InstanceNorm2d(out_channels),
         )
 
@@ -78,6 +78,6 @@ class ConvBlock(nn.Sequential):
                 stride=(1, 1),
                 padding=(1, 1),
             ),
-            nn.ReLU(),
+            nn.ELU(),
             nn.InstanceNorm2d(out_channels),
         )

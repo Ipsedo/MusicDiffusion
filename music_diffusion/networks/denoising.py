@@ -119,6 +119,20 @@ class Denoiser(nn.Module):
 
         return x_t
 
+    def loss_factor(self, t: th.Tensor) -> th.Tensor:
+        assert len(t.size()) == 2
+        batch_size, steps = t.size()
+
+        t = t.flatten(0, 1)
+
+        scale: th.Tensor = self.betas[t] / (
+            2.0 * self.alphas[t] * (1.0 - self.alpha_cum_prod[t])
+        )
+
+        scale = th.unflatten(scale, 0, (batch_size, steps))
+
+        return scale[:, :, None, None, None]
+
     def count_parameters(self) -> int:
         return int(
             np.sum(

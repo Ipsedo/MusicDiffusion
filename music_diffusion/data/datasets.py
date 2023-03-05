@@ -46,8 +46,7 @@ class AudioDataset(Dataset):
             if isfile(join(dataset_path, f)) and re_files.match(f)
         ]
 
-        # Avoid pointer copy on each worker ?
-        # (instead of list)
+        # Avoid data copy on each worker ? => as numpy array
         self.__all_files = np.array(sorted(all_files))
 
         self.__dataset_path = dataset_path

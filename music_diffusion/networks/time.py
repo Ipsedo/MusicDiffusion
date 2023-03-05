@@ -42,11 +42,8 @@ class TimeConvBlock(nn.Module):
         self.__conv = TimeBypass(ConvBlock(in_channels, out_channels))
 
         self.__to_channels = nn.Sequential(
-            nn.Linear(time_size, time_size * 2),
-            nn.ReLU(),
-            nn.LayerNorm(time_size * 2),
-            nn.Linear(time_size * 2, in_channels),
-            nn.ReLU(),
+            nn.Linear(time_size, in_channels),
+            nn.ELU(),
             nn.LayerNorm(in_channels),
         )
 
@@ -57,6 +54,32 @@ class TimeConvBlock(nn.Module):
         x_time = x + proj_time_emb
 
         out: th.Tensor = self.__conv(x_time)
+
+        return out
+
+
+class TimeWrapper(nn.Module):
+    def __init__(
+        self, time_size: int, channels: int, block: nn.Module
+    ) -> None:
+        super().__init__()
+
+        self.__block = block
+        self.__to_channels = nn.Sequential(
+            nn.Linear(time_size, channels), nn.ELU(), nn.LayerNorm(channels)
+        )
+
+    def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
+        b, t = x.size()[:2]
+
+        proj_time_emb = self.__to_channels(time_emb)
+        proj_time_emb = proj_time_emb[:, :, :, None, None]
+
+        x_time = x + proj_time_emb
+
+        x_time = x_time.flatten(0, 1)
+        out: th.Tensor = self.__block(x_time)
+        out = th.unflatten(out, 0, (b, t))
 
         return out
 

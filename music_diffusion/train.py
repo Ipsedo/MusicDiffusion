@@ -154,7 +154,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 eps_theta = denoiser(x_noised, t)
 
                 loss = th.pow(eps - eps_theta, 2.0)
-                loss = loss.mean()
+                loss = loss * denoiser.loss_factor(t)
+                loss = loss.sum(dim=[2, 3, 4]).mean()
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()
@@ -170,7 +171,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     f"Epoch {e} / {train_options.epochs - 1} - "
                     f"save {saver.curr_save} "
                     f"[{saver.curr_step} / {train_options.save_every - 1}] "
-                    f"loss = {mean(losses):.4f}"
+                    f"loss = {mean(losses):.6f}"
                 )
 
                 saver.save()
