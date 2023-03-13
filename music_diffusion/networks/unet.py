@@ -76,10 +76,11 @@ class TimeUNet(nn.Module):
 
         # Middle stuff
 
+        c_m = encoding_channels[-1][1]
         self.__middle_block = TimeBypass(
             nn.Sequential(
-                ConvBlock(encoding_channels[-1][1], encoding_channels[-1][1]),
-                ConvBlock(encoding_channels[-1][1], encoding_channels[-1][1]),
+                ConvBlock(c_m, c_m),
+                ConvBlock(c_m, c_m),
             )
         )
 
