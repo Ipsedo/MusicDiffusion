@@ -154,8 +154,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 eps_theta = denoiser(x_noised, t)
 
                 loss = th.pow(eps - eps_theta, 2.0)
-                loss = loss * denoiser.loss_factor(t)
-                loss = loss.sum(dim=[2, 3, 4]).mean()
+                # loss = loss * denoiser.loss_factor(t)
+                loss = loss.mean()
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()

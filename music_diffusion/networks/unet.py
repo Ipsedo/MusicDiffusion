@@ -74,6 +74,15 @@ class TimeUNet(nn.Module):
             for _, c_o in encoding_channels
         )
 
+        # Middle stuff
+
+        self.__middle_block = TimeBypass(
+            nn.Sequential(
+                ConvBlock(encoding_channels[-1][1], encoding_channels[-1][1]),
+                ConvBlock(encoding_channels[-1][1], encoding_channels[-1][1]),
+            )
+        )
+
         # Decoder stuff
 
         self.__decoder_up = nn.ModuleList(
@@ -124,6 +133,8 @@ class TimeUNet(nn.Module):
             residuals.append(res)
 
             out = down(res)
+
+        out = self.__middle_block(out)
 
         for block, up, res in zip(
             self.__decoder,

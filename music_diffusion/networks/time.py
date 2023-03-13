@@ -65,8 +65,11 @@ class TimeWrapper(nn.Module):
         super().__init__()
 
         self.__block = block
+
         self.__to_channels = nn.Sequential(
-            nn.Linear(time_size, channels), nn.ELU(), nn.LayerNorm(channels)
+            nn.Linear(time_size, channels),
+            nn.ELU(),
+            nn.LayerNorm(channels),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
