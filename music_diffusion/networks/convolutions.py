@@ -8,6 +8,7 @@ class ChannelProjBlock(nn.Sequential):
         self,
         in_channels: int,
         out_channels: int,
+        groups: int,
     ) -> None:
         super().__init__(
             nn.Conv2d(
@@ -18,7 +19,7 @@ class ChannelProjBlock(nn.Sequential):
                 padding=(0, 0),
             ),
             nn.ELU(),
-            nn.InstanceNorm2d(out_channels),
+            nn.GroupNorm(groups, out_channels),
         )
 
 
@@ -45,6 +46,7 @@ class StrideConvBlock(nn.Sequential):
         in_channels: int,
         out_channels: int,
         scale: Literal["up", "down"],
+        groups: int,
     ) -> None:
         conv_constructor = {
             "up": nn.ConvTranspose2d,
@@ -60,7 +62,7 @@ class StrideConvBlock(nn.Sequential):
                 padding=(1, 1),
             ),
             nn.ELU(),
-            nn.InstanceNorm2d(out_channels),
+            nn.GroupNorm(groups, out_channels),
         )
 
 
@@ -69,6 +71,7 @@ class ConvBlock(nn.Sequential):
         self,
         in_channels: int,
         out_channels: int,
+        groups: int,
     ) -> None:
         super().__init__(
             nn.Conv2d(
@@ -79,5 +82,5 @@ class ConvBlock(nn.Sequential):
                 padding=(1, 1),
             ),
             nn.ELU(),
-            nn.InstanceNorm2d(out_channels),
+            nn.GroupNorm(groups, out_channels),
         )

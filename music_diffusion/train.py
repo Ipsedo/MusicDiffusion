@@ -56,6 +56,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             model_options.unet_channels,
             model_options.use_attentions,
             model_options.attention_heads,
+            model_options.norm_groups,
         )
         # pylint: enable=duplicate-code
 

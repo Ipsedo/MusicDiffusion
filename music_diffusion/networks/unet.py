@@ -18,6 +18,7 @@ class TimeUNet(nn.Module):
         attention_heads: int,
         time_size: int,
         steps: int,
+        norm_groups: int,
     ) -> None:
         super().__init__()
 
@@ -43,6 +44,7 @@ class TimeUNet(nn.Module):
             ConvBlock(
                 in_channels,
                 encoding_channels[0][0],
+                norm_groups,
             )
         )
 
@@ -51,7 +53,7 @@ class TimeUNet(nn.Module):
                 time_size,
                 c_i,
                 nn.Sequential(
-                    ConvBlock(c_i, c_o),
+                    ConvBlock(c_i, c_o, norm_groups),
                     SelfAttention2d(
                         c_o,
                         attention_heads,
@@ -61,7 +63,7 @@ class TimeUNet(nn.Module):
                     )
                     if use_att
                     else nn.Identity(),
-                    ConvBlock(c_o, c_o),
+                    ConvBlock(c_o, c_o, norm_groups),
                 ),
             )
             for use_att, (c_i, c_o) in zip(
@@ -70,7 +72,7 @@ class TimeUNet(nn.Module):
         )
 
         self.__encoder_down = nn.ModuleList(
-            TimeBypass(StrideConvBlock(c_o, c_o, "down"))
+            TimeBypass(StrideConvBlock(c_o, c_o, "down", norm_groups))
             for _, c_o in encoding_channels
         )
 
@@ -79,22 +81,22 @@ class TimeUNet(nn.Module):
         c_m = encoding_channels[-1][1]
         self.__middle_block = TimeBypass(
             nn.Sequential(
-                ConvBlock(c_m, c_m),
-                ConvBlock(c_m, c_m),
+                ConvBlock(c_m, c_m, norm_groups),
+                ConvBlock(c_m, c_m, norm_groups),
             )
         )
 
         # Decoder stuff
 
         self.__decoder_up = nn.ModuleList(
-            TimeBypass(StrideConvBlock(c_i, c_i, "up"))
+            TimeBypass(StrideConvBlock(c_i, c_i, "up", norm_groups))
             for c_i, _ in decoding_channels
         )
 
         self.__decoder = nn.ModuleList(
             TimeBypass(
                 nn.Sequential(
-                    ConvBlock(c_i, c_i),
+                    ConvBlock(c_i, c_i, norm_groups),
                     SelfAttention2d(
                         c_i,
                         attention_heads,
@@ -104,7 +106,7 @@ class TimeUNet(nn.Module):
                     )
                     if use_att
                     else nn.Identity(),
-                    ConvBlock(c_i, c_o),
+                    ConvBlock(c_i, c_o, norm_groups),
                 )
             )
             for use_att, (c_i, c_o) in zip(

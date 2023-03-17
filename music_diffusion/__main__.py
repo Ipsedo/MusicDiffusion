@@ -63,6 +63,7 @@ def main() -> None:
     model_parser.add_argument("--beta-1", type=float, default=1e-4)
     model_parser.add_argument("--beta-t", type=float, default=2e-2)
     model_parser.add_argument("--channels", type=int, default=2)
+    model_parser.add_argument("--norm-groups", type=int, default=8)
     model_parser.add_argument(
         "--unet-channels",
         type=_channels,
@@ -133,6 +134,7 @@ def main() -> None:
             beta_1=args.beta_1,
             beta_t=args.beta_t,
             input_channels=args.channels,
+            norm_groups=args.norm_groups,
             unet_channels=args.unet_channels,
             use_attentions=args.use_attentions,
             attention_heads=args.attention_heads,

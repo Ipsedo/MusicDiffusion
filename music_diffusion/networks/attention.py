@@ -15,9 +15,9 @@ class SelfAttention2d(nn.Module):
     ) -> None:
         super().__init__()
 
-        self.__query_conv = ChannelProjBlock(channels, emb_dim)
-        self.__key_conv = ChannelProjBlock(channels, key_dim)
-        self.__value_conv = ChannelProjBlock(channels, value_dim)
+        self.__query_conv = ChannelProjBlock(channels, emb_dim, 1)
+        self.__key_conv = ChannelProjBlock(channels, key_dim, 1)
+        self.__value_conv = ChannelProjBlock(channels, value_dim, 1)
 
         self.__attention = nn.MultiheadAttention(
             embed_dim=emb_dim,

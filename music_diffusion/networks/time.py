@@ -35,11 +35,11 @@ class TimeEmbeder(nn.Module):
 
 class TimeConvBlock(nn.Module):
     def __init__(
-        self, in_channels: int, out_channels: int, time_size: int
+        self, in_channels: int, out_channels: int, time_size: int, groups: int
     ) -> None:
         super().__init__()
 
-        self.__conv = TimeBypass(ConvBlock(in_channels, out_channels))
+        self.__conv = TimeBypass(ConvBlock(in_channels, out_channels, groups))
 
         self.__to_channels = nn.Sequential(
             nn.Linear(time_size, in_channels),

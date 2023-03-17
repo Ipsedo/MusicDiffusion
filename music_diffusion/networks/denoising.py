@@ -20,6 +20,7 @@ class Denoiser(nn.Module):
         unet_channels: List[Tuple[int, int]],
         use_attentions: List[bool],
         attention_heads: int,
+        norm_groups: int,
     ) -> None:
         super().__init__()
 
@@ -71,6 +72,7 @@ class Denoiser(nn.Module):
             attention_heads,
             time_size,
             self.__steps,
+            norm_groups,
         )
 
         self.apply(weights_init)

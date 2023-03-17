@@ -17,6 +17,7 @@ ModelOptions = NamedTuple(
         ("beta_1", float),
         ("beta_t", float),
         ("input_channels", int),
+        ("norm_groups", int),
         ("unet_channels", List[Tuple[int, int]]),
         ("use_attentions", List[bool]),
         ("attention_heads", int),
