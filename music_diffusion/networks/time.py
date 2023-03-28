@@ -60,7 +60,11 @@ class TimeConvBlock(nn.Module):
 
 class TimeWrapper(nn.Module):
     def __init__(
-        self, time_size: int, channels: int, block: nn.Module
+        self,
+        time_size: int,
+        channels: int,
+        block: nn.Module,
+        groups: int,
     ) -> None:
         super().__init__()
 
@@ -69,7 +73,7 @@ class TimeWrapper(nn.Module):
         self.__to_channels = nn.Sequential(
             nn.Linear(time_size, channels),
             nn.ELU(),
-            nn.LayerNorm(channels),
+            TimeBypass(nn.GroupNorm(groups, channels)),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:

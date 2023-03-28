@@ -61,7 +61,7 @@ def test_noiser(
 @pytest.mark.parametrize("steps", [10, 20])
 @pytest.mark.parametrize("step_batch_size", [1, 2])
 @pytest.mark.parametrize("batch_size", [1, 2])
-@pytest.mark.parametrize("channels", [1, 2])
+@pytest.mark.parametrize("channels", [2, 4])
 @pytest.mark.parametrize("norm_groups", [1, 2])
 @pytest.mark.parametrize("img_sizes", [(16, 16), (8, 16)])
 @pytest.mark.parametrize("time_size", [2, 4])
@@ -136,7 +136,7 @@ def test_denoiser(
 
 
 @pytest.mark.parametrize("batch_size", [1, 2])
-@pytest.mark.parametrize("channels", [1, 2])
+@pytest.mark.parametrize("channels", [2, 4])
 @pytest.mark.parametrize("norm_groups", [1, 2])
 @pytest.mark.parametrize("size", [(16, 16), (8, 16)])
 @pytest.mark.parametrize(

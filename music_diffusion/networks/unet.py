@@ -4,7 +4,7 @@ import torch as th
 from torch import nn
 
 from .attention import SelfAttention2d
-from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock
+from .convolutions import ConvBlock, StrideConvBlock
 from .time import TimeBypass, TimeEmbeder, TimeWrapper
 
 
@@ -58,13 +58,14 @@ class TimeUNet(nn.Module):
                         c_o,
                         attention_heads,
                         c_o,
-                        c_o // 2,
-                        c_o // 2,
+                        c_o // 8,
+                        c_o // 8,
                     )
                     if use_att
                     else nn.Identity(),
                     ConvBlock(c_o, c_o, norm_groups),
                 ),
+                norm_groups,
             )
             for use_att, (c_i, c_o) in zip(
                 encoder_attentions, encoding_channels
@@ -101,8 +102,8 @@ class TimeUNet(nn.Module):
                         c_i,
                         attention_heads,
                         c_i,
-                        c_i // 2,
-                        c_i // 2,
+                        c_i // 8,
+                        c_i // 8,
                     )
                     if use_att
                     else nn.Identity(),
@@ -115,9 +116,10 @@ class TimeUNet(nn.Module):
         )
 
         self.__end_conv = TimeBypass(
-            EndConvBlock(
+            ConvBlock(
                 decoding_channels[-1][1],
                 out_channels,
+                2,
             )
         )
 
