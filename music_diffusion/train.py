@@ -162,6 +162,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 loss.backward()
                 optim.step()
 
+                denoiser.update_ema()
+
                 del losses[0]
                 losses.append(loss.item())
 

@@ -44,7 +44,7 @@ class TimeConvBlock(nn.Module):
         self.__to_channels = nn.Sequential(
             nn.Linear(time_size, in_channels),
             nn.ELU(),
-            nn.LayerNorm(in_channels),
+            TimeBypass(nn.LayerNorm(in_channels)),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:

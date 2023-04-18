@@ -4,7 +4,7 @@ import torch as th
 from torch import nn
 
 from .attention import SelfAttention2d
-from .convolutions import ConvBlock, StrideConvBlock
+from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock
 from .time import TimeBypass, TimeEmbeder, TimeWrapper
 
 
@@ -95,9 +95,11 @@ class TimeUNet(nn.Module):
         )
 
         self.__decoder = nn.ModuleList(
-            TimeBypass(
+            TimeWrapper(
+                time_size,
+                c_i * 2,
                 nn.Sequential(
-                    ConvBlock(c_i, c_i, norm_groups),
+                    ConvBlock(c_i * 2, c_i, norm_groups),
                     SelfAttention2d(
                         c_i,
                         attention_heads,
@@ -108,7 +110,8 @@ class TimeUNet(nn.Module):
                     if use_att
                     else nn.Identity(),
                     ConvBlock(c_i, c_o, norm_groups),
-                )
+                ),
+                norm_groups,
             )
             for use_att, (c_i, c_o) in zip(
                 decoder_attentions, decoding_channels
@@ -116,10 +119,9 @@ class TimeUNet(nn.Module):
         )
 
         self.__end_conv = TimeBypass(
-            ConvBlock(
+            EndConvBlock(
                 decoding_channels[-1][1],
                 out_channels,
-                2,
             )
         )
 
@@ -134,10 +136,9 @@ class TimeUNet(nn.Module):
             self.__encoder,
             self.__encoder_down,
         ):
-            res = block(out, time_vec)
-            residuals.append(res)
-
-            out = down(res)
+            out = block(out, time_vec)
+            residuals.append(out)
+            out = down(out)
 
         out = self.__middle_block(out)
 
@@ -146,8 +147,9 @@ class TimeUNet(nn.Module):
             self.__decoder_up,
             reversed(residuals),
         ):
-            out_up = up(out)
-            out = block(out_up + res)
+            out = up(out)
+            out = th.cat([out, res], dim=2)
+            out = block(out, time_vec)
 
         out = self.__end_conv(out)
 
