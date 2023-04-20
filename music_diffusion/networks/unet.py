@@ -97,9 +97,9 @@ class TimeUNet(nn.Module):
         self.__decoder = nn.ModuleList(
             TimeWrapper(
                 time_size,
-                c_i * 2,
+                c_i,
                 nn.Sequential(
-                    ConvBlock(c_i * 2, c_i, norm_groups),
+                    ConvBlock(c_i, c_i, norm_groups),
                     SelfAttention2d(
                         c_i,
                         attention_heads,
@@ -148,7 +148,7 @@ class TimeUNet(nn.Module):
             reversed(residuals),
         ):
             out = up(out)
-            out = th.cat([out, res], dim=2)
+            out = out + res
             out = block(out, time_vec)
 
         out = self.__end_conv(out)

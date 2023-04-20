@@ -63,18 +63,18 @@ def main() -> None:
     model_parser.add_argument("--beta-1", type=float, default=1e-4)
     model_parser.add_argument("--beta-t", type=float, default=2e-2)
     model_parser.add_argument("--channels", type=int, default=2)
-    model_parser.add_argument("--norm-groups", type=int, default=8)
+    model_parser.add_argument("--norm-groups", type=int, default=2)
     model_parser.add_argument(
         "--unet-channels",
         type=_channels,
         default=[
-            (8, 16),
-            (16, 24),
-            (24, 32),
-            (32, 40),
-            (40, 48),
-            (48, 56),
-            (56, 64),
+            (64, 96),
+            (96, 128),
+            (128, 192),
+            (192, 256),
+            (256, 320),
+            (320, 382),
+            (382, 512),
         ],
     )
     model_parser.add_argument(
@@ -91,7 +91,7 @@ def main() -> None:
         ],
     )
     model_parser.add_argument("--attention-heads", type=int, default=8)
-    model_parser.add_argument("--time-size", type=int, default=32)
+    model_parser.add_argument("--time-size", type=int, default=128)
     model_parser.add_argument("--cuda", action="store_true")
 
     # Sub command run {train, generate}
@@ -105,10 +105,10 @@ def main() -> None:
     train_parser.add_argument("run_name", type=str)
 
     train_parser.add_argument("-i", "--input-dataset", type=str, required=True)
-    train_parser.add_argument("--batch-size", type=int, default=4)
+    train_parser.add_argument("--batch-size", type=int, default=2)
     train_parser.add_argument("--step-batch-size", type=int, default=1)
     train_parser.add_argument("--epochs", type=int, default=1000)
-    train_parser.add_argument("--learning-rate", type=float, default=1e-4)
+    train_parser.add_argument("--learning-rate", type=float, default=2e-4)
     train_parser.add_argument("--metric-window", type=int, default=64)
     train_parser.add_argument("--save-every", type=int, default=4096)
     train_parser.add_argument("-o", "--output-dir", type=str, required=True)
