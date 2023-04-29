@@ -57,6 +57,17 @@ def test_noiser(
     assert eps.size(3) == img_sizes[0]
     assert eps.size(4) == img_sizes[1]
 
+    t_minus_one = t - 1
+    t_minus_one[t_minus_one < 0] = 0
+
+    x_noised_minus, eps = noiser(x, t_minus_one, eps)
+
+    q = noiser.posterior(x_noised_minus, x_noised, x, t)
+
+    assert len(q.size()) == 2
+    assert q.size(0) == batch_size
+    assert q.size(1) == step_batch_size
+
 
 @pytest.mark.parametrize("steps", [10, 20])
 @pytest.mark.parametrize("step_batch_size", [1, 2])
@@ -110,14 +121,31 @@ def test_denoiser(
         device=device,
     )
 
-    o = denoiser(x, t)
+    eps, v = denoiser(x, t)
 
-    assert len(o.size()) == 5
-    assert o.size(0) == batch_size
-    assert o.size(1) == step_batch_size
-    assert o.size(2) == channels
-    assert o.size(3) == img_sizes[0]
-    assert o.size(4) == img_sizes[1]
+    assert len(eps.size()) == 5
+    assert eps.size(0) == batch_size
+    assert eps.size(1) == step_batch_size
+    assert eps.size(2) == channels
+    assert eps.size(3) == img_sizes[0]
+    assert eps.size(4) == img_sizes[1]
+
+    assert len(v.size()) == 5
+    assert v.size(0) == batch_size
+    assert v.size(1) == step_batch_size
+    assert v.size(2) == channels
+    assert v.size(3) == img_sizes[0]
+    assert v.size(4) == img_sizes[1]
+
+    x_t_minus = x.clone()
+    t_minus = t - 1
+    t_minus[t_minus < 0] = 0
+
+    prior = denoiser.prior(x, x_t_minus, t_minus, eps, v)
+
+    assert len(prior.size()) == 2
+    assert prior.size(0) == batch_size
+    assert prior.size(1) == step_batch_size
 
     x = th.randn(
         batch_size,
@@ -126,13 +154,13 @@ def test_denoiser(
         device=device,
     )
 
-    o = denoiser.sample(x)
+    pred = denoiser.sample(x)
 
-    assert len(o.size()) == 4
-    assert o.size(0) == batch_size
-    assert o.size(1) == channels
-    assert o.size(2) == img_sizes[0]
-    assert o.size(3) == img_sizes[1]
+    assert len(pred.size()) == 4
+    assert pred.size(0) == batch_size
+    assert pred.size(1) == channels
+    assert pred.size(2) == img_sizes[0]
+    assert pred.size(3) == img_sizes[1]
 
 
 @pytest.mark.parametrize("batch_size", [1, 2])
@@ -196,7 +224,7 @@ def test_unet(
         device=device,
     )
 
-    o = unet(x, t)
+    o, _ = unet(x, t)
 
     assert len(o.size()) == 5
     assert o.size(0) == batch_size

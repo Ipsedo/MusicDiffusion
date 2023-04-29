@@ -6,6 +6,7 @@ from ema_pytorch import EMA
 from torch import nn
 from tqdm import tqdm
 
+from .functions import normal_pdf, process_factor
 from .init import weights_init
 from .unet import TimeUNet
 
@@ -29,15 +30,20 @@ class Denoiser(nn.Module):
 
         self.__channels = channels
 
-        betas = th.linspace(beta_1, beta_t, steps=self.__steps)
+        betas = th.linspace(beta_1, beta_t, steps=self.__steps + 1)[1:]
         alphas = 1.0 - betas
         alpha_cum_prod = th.cumprod(alphas, dim=0)
+        alphas_cum_prod_prev = th.cat(
+            [th.tensor([1.0]), alpha_cum_prod[:-1]], dim=0
+        )
+        betas_bar = betas * (1.0 - alphas_cum_prod_prev) / (1 - alpha_cum_prod)
 
         self.alphas: th.Tensor
         self.sqrt_alpha: th.Tensor
         self.alpha_cum_prod: th.Tensor
         self.sqrt_one_minus_alpha_cum_prod: th.Tensor
         self.betas: th.Tensor
+        self.betas_bar: th.Tensor
         self.sqrt_betas: th.Tensor
 
         self.register_buffer(
@@ -59,6 +65,10 @@ class Denoiser(nn.Module):
         self.register_buffer(
             "betas",
             betas,
+        )
+        self.register_buffer(
+            "betas_bar",
+            betas_bar,
         )
         self.register_buffer(
             "sqrt_betas",
@@ -85,15 +95,17 @@ class Denoiser(nn.Module):
             update_every=10,
         )
 
-    def forward(self, x_t: th.Tensor, t: th.Tensor) -> th.Tensor:
+    def forward(
+        self, x_t: th.Tensor, t: th.Tensor
+    ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x_t.size()) == 5
         assert len(t.size()) == 2
         assert x_t.size(0) == t.size(0)
         assert x_t.size(1) == t.size(1)
 
-        eps_theta: th.Tensor = self.__eps(x_t, t)
+        eps_theta, v_theta = self.__eps(x_t, t)
 
-        return eps_theta
+        return eps_theta, v_theta
 
     def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
         assert len(x_t.size()) == 4
@@ -111,10 +123,11 @@ class Denoiser(nn.Module):
                 else th.zeros_like(x_t, device=device)
             )
 
-            eps = self.__eps(
+            eps, _ = self.__eps(
                 x_t.unsqueeze(1),
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
-            ).squeeze(1)
+            )
+            eps = eps.squeeze(1)
 
             x_t = (1.0 / self.sqrt_alpha[t]) * (
                 x_t
@@ -156,3 +169,31 @@ class Denoiser(nn.Module):
 
     def update_ema(self) -> None:
         self.__eps_ema.update()
+
+    def __mu(
+        self, x_t: th.Tensor, t: th.Tensor, eps_theta: th.Tensor
+    ) -> th.Tensor:
+        return (
+            x_t
+            - eps_theta
+            * process_factor(self.betas, t)
+            / th.sqrt(1.0 - process_factor(self.alpha_cum_prod, t))
+        ) / th.sqrt(process_factor(self.alphas, t))
+
+    def __sigma(self, v: th.Tensor, t: th.Tensor) -> th.Tensor:
+        return th.exp(
+            v * th.log(process_factor(self.betas, t))
+            + (1.0 - v) * th.log(process_factor(self.betas_bar, t))
+        )
+
+    def prior(
+        self,
+        x_t: th.Tensor,
+        x_t_minus: th.Tensor,
+        t: th.Tensor,
+        eps_theta: th.Tensor,
+        v: th.Tensor,
+    ) -> th.Tensor:
+        return normal_pdf(
+            x_t_minus, self.__mu(x_t, t, eps_theta), self.__sigma(v, t)
+        )

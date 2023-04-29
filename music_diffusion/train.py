@@ -3,6 +3,7 @@ from typing import NamedTuple, Optional
 
 import mlflow
 import torch as th
+from torch.nn import functional as th_f
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose
 from tqdm import tqdm
@@ -134,12 +135,12 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
             tqdm_bar = tqdm(dataloader)
 
-            for x in tqdm_bar:
+            for x_0 in tqdm_bar:
 
                 if model_options.cuda:
-                    x = x.cuda()
+                    x_0 = x_0.cuda()
 
-                x = transform(x)
+                x_0 = transform(x_0)
 
                 t = th.randint(
                     0,
@@ -151,12 +152,32 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     device=device,
                 )
 
-                x_noised, eps = noiser(x, t)
-                eps_theta = denoiser(x_noised, t)
+                x_t, eps = noiser(x_0, t)
+                eps_theta, v_theta = denoiser(x_t, t)
 
-                loss = th.pow(eps - eps_theta, 2.0)
+                t_minus = t - 1
+                t_minus[t_minus < 0] = 0
+                x_t_minus, eps = noiser(x_0, t_minus, eps)
+
+                loss_simple = th.pow(eps - eps_theta, 2.0)
+
+                prior = denoiser.prior(
+                    x_t,
+                    x_t_minus,
+                    t,
+                    eps_theta.detach(),
+                    v_theta,
+                )
+                posterior = noiser.posterior(x_t_minus, x_t, x_0, t)
+                loss_vlb = th_f.kl_div(
+                    prior.flatten(0, 1),
+                    posterior.flatten(0, 1),
+                    reduction="batchmean",
+                    log_target=True,
+                )
+
                 # loss = loss * denoiser.loss_factor(t)
-                loss = loss.mean()
+                loss = loss_simple.mean() + 1e-3 * loss_vlb
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()

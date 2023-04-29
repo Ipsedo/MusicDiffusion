@@ -125,7 +125,19 @@ class TimeUNet(nn.Module):
             )
         )
 
-    def forward(self, img: th.Tensor, t: th.Tensor) -> th.Tensor:
+        self.__v_env_conv = TimeBypass(
+            nn.Sequential(
+                EndConvBlock(
+                    decoding_channels[-1][1],
+                    out_channels,
+                ),
+                nn.Sigmoid(),
+            )
+        )
+
+    def forward(
+        self, img: th.Tensor, t: th.Tensor
+    ) -> Tuple[th.Tensor, th.Tensor]:
         time_vec = self.__time_embedder(t)
 
         bypasses = []
@@ -151,6 +163,7 @@ class TimeUNet(nn.Module):
             out = out + bypass
             out = block(out, time_vec)
 
-        out = self.__end_conv(out)
+        eps = self.__end_conv(out)
+        v = self.__v_env_conv(out)
 
-        return out
+        return eps, v

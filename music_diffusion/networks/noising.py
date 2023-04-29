@@ -1,7 +1,9 @@
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch as th
 from torch import nn
+
+from .functions import normal_pdf, process_factor
 
 
 class Noiser(nn.Module):
@@ -10,16 +12,42 @@ class Noiser(nn.Module):
 
         self.__steps = steps
 
-        betas = th.linspace(beta_1, beta_t, steps=self.__steps)
+        betas = th.linspace(beta_1, beta_t, steps=self.__steps + 1)[1:]
 
         alphas = 1 - betas
         alphas_cum_prod = th.cumprod(alphas, dim=0)
         sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
 
+        alphas_cum_prod_prev = th.cat(
+            [th.tensor([1.0]), alphas_cum_prod[:-1]], dim=0
+        )
+
+        betas_bar = (
+            betas * (1.0 - alphas_cum_prod_prev) / (1.0 - alphas_cum_prod)
+        )
+
+        self.alphas: th.Tensor
+        self.alphas_cum_prod: th.Tensor
+        self.alphas_cum_prod_prev: th.Tensor
         self.sqrt_alphas_cum_prod: th.Tensor
         self.sqrt_one_minus_alphas_cum_prod: th.Tensor
 
+        self.betas: th.Tensor
+        self.betas_bar: th.Tensor
+
+        self.register_buffer(
+            "alphas",
+            alphas,
+        )
+        self.register_buffer(
+            "alphas_cum_prod",
+            alphas_cum_prod,
+        )
+        self.register_buffer(
+            "alphas_cum_prod_prev",
+            alphas_cum_prod_prev,
+        )
         self.register_buffer(
             "sqrt_alphas_cum_prod",
             sqrt_alphas_cum_prod,
@@ -29,8 +57,17 @@ class Noiser(nn.Module):
             sqrt_one_minus_alphas_cum_prod,
         )
 
+        self.register_buffer(
+            "betas",
+            betas,
+        )
+        self.register_buffer(
+            "betas_bar",
+            betas_bar,
+        )
+
     def forward(
-        self, x_0: th.Tensor, t: th.Tensor
+        self, x_0: th.Tensor, t: th.Tensor, eps: Optional[th.Tensor] = None
     ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2
@@ -41,20 +78,12 @@ class Noiser(nn.Module):
 
         device = "cuda" if next(self.buffers()).is_cuda else "cpu"
 
-        eps = th.randn(b, nb_steps, c, w, h, device=device)
+        if eps is None:
+            eps = th.randn(b, nb_steps, c, w, h, device=device)
 
-        t = t.flatten()
-
-        sqrt_alphas_cum_prod = self.sqrt_alphas_cum_prod[t, None, None, None]
-        sqrt_alphas_cum_prod = th.unflatten(
-            sqrt_alphas_cum_prod, 0, (b, nb_steps)
-        )
-
-        sqrt_one_minus_alphas_cum_prod = self.sqrt_one_minus_alphas_cum_prod[
-            t, None, None, None
-        ]
-        sqrt_one_minus_alphas_cum_prod = th.unflatten(
-            sqrt_one_minus_alphas_cum_prod, 0, (b, nb_steps)
+        sqrt_alphas_cum_prod = process_factor(self.sqrt_alphas_cum_prod, t)
+        sqrt_one_minus_alphas_cum_prod = process_factor(
+            self.sqrt_one_minus_alphas_cum_prod, t
         )
 
         x_t = (
@@ -63,3 +92,33 @@ class Noiser(nn.Module):
         )
 
         return x_t, eps
+
+    def __mu(self, x_t: th.Tensor, x_0: th.Tensor, t: th.Tensor) -> th.Tensor:
+        alphas_cum_prod_prev = process_factor(self.alphas_cum_prod_prev, t)
+        alphas_cum_prod = process_factor(self.alphas_cum_prod, t)
+        alphas = process_factor(self.alphas, t)
+        betas = process_factor(self.betas, t)
+
+        mu: th.Tensor = x_0.unsqueeze(1) * th.sqrt(
+            alphas_cum_prod_prev
+        ) * betas / (1.0 - alphas_cum_prod) + x_t * th.sqrt(alphas) * (
+            1 - alphas_cum_prod_prev
+        ) / (
+            1.0 - alphas_cum_prod
+        )
+        return mu
+
+    def posterior(
+        self,
+        x_t_minus: th.Tensor,
+        x_t: th.Tensor,
+        x_0: th.Tensor,
+        t: th.Tensor,
+    ) -> th.Tensor:
+        assert len(x_0.size()) == 4
+        assert len(t.size()) == 2
+        assert x_0.size(0) == t.size(0)
+
+        betas_bar = process_factor(self.betas_bar, t)
+
+        return normal_pdf(x_t_minus, self.__mu(x_t, x_0, t), betas_bar)
