@@ -128,7 +128,7 @@ class TimeUNet(nn.Module):
     def forward(self, img: th.Tensor, t: th.Tensor) -> th.Tensor:
         time_vec = self.__time_embedder(t)
 
-        residuals = []
+        bypasses = []
 
         out: th.Tensor = self.__start_conv(img)
 
@@ -137,18 +137,18 @@ class TimeUNet(nn.Module):
             self.__encoder_down,
         ):
             out = block(out, time_vec)
-            residuals.append(out)
+            bypasses.append(out)
             out = down(out)
 
         out = self.__middle_block(out)
 
-        for block, up, res in zip(
+        for block, up, bypass in zip(
             self.__decoder,
             self.__decoder_up,
-            reversed(residuals),
+            reversed(bypasses),
         ):
             out = up(out)
-            out = out + res
+            out = out + bypass
             out = block(out, time_vec)
 
         out = self.__end_conv(out)
