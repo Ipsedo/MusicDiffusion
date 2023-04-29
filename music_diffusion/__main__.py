@@ -108,7 +108,7 @@ def main() -> None:
     train_parser.add_argument("--batch-size", type=int, default=2)
     train_parser.add_argument("--step-batch-size", type=int, default=1)
     train_parser.add_argument("--epochs", type=int, default=1000)
-    train_parser.add_argument("--learning-rate", type=float, default=1e-5)
+    train_parser.add_argument("--learning-rate", type=float, default=1e-4)
     train_parser.add_argument("--metric-window", type=int, default=64)
     train_parser.add_argument("--save-every", type=int, default=4096)
     train_parser.add_argument("-o", "--output-dir", type=str, required=True)
