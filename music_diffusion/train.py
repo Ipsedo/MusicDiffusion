@@ -170,13 +170,13 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     v_theta,
                 )
                 posterior = noiser.posterior(x_t_minus, x_t, x_0, t)
+
                 loss_vlb = th_f.kl_div(
                     prior.flatten(0, 1),
                     posterior.flatten(0, 1),
                     reduction="batchmean",
                 )
 
-                # loss = loss * denoiser.loss_factor(t)
                 loss = (
                     loss_simple.mean()
                     + train_options.vlb_loss_factor * loss_vlb
@@ -185,8 +185,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 optim.zero_grad(set_to_none=True)
                 loss.backward()
                 optim.step()
-
-                denoiser.update_ema()
 
                 del losses[0]
                 losses.append(loss.item())

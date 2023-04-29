@@ -2,7 +2,6 @@ from typing import List, Tuple
 
 import numpy as np
 import torch as th
-from ema_pytorch import EMA
 from torch import nn
 from tqdm import tqdm
 
@@ -90,13 +89,6 @@ class Denoiser(nn.Module):
 
         self.apply(weights_init)
 
-        self.__eps_ema = EMA(
-            self.__eps,
-            beta=0.9999,
-            update_after_step=100,
-            update_every=10,
-        )
-
     def forward(
         self, x_t: th.Tensor, t: th.Tensor
     ) -> Tuple[th.Tensor, th.Tensor]:
@@ -168,9 +160,6 @@ class Denoiser(nn.Module):
                 ]
             )
         )
-
-    def update_ema(self) -> None:
-        self.__eps_ema.update()
 
     def __mu(
         self,
