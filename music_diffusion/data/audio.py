@@ -139,6 +139,7 @@ def wav_to_stft(
     wav_p: str,
     n_per_seg: int = constants.N_FFT,
     stride: int = constants.STFT_STRIDE,
+    epsilon: float = 1e-8,
 ) -> th.Tensor:
     raw_audio, sr = th_audio.load(wav_p)
 
@@ -151,7 +152,7 @@ def wav_to_stft(
     raw_audio_mono = (
         2
         * (raw_audio_mono - raw_audio_mono.min())
-        / (raw_audio_mono.max() - raw_audio_mono.min())
+        / (raw_audio_mono.max() - raw_audio_mono.min() + epsilon)
         - 1.0
     )
 

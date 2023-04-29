@@ -25,7 +25,7 @@ def normal_pdf(x: th.Tensor, mu: th.Tensor, sigma: th.Tensor) -> th.Tensor:
     density: th.Tensor = dist.log_prob(x.flatten())
 
     density = density.view(b, t, c, w, h)
-    density = density.exp().flatten(2, -1).prod(-1)
+    density = density.flatten(2, -1).sum(-1).exp()
 
     return density
 

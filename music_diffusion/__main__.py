@@ -63,18 +63,18 @@ def main() -> None:
     model_parser.add_argument("--beta-1", type=float, default=1e-4)
     model_parser.add_argument("--beta-t", type=float, default=2e-2)
     model_parser.add_argument("--channels", type=int, default=2)
-    model_parser.add_argument("--norm-groups", type=int, default=2)
+    model_parser.add_argument("--norm-groups", type=int, default=4)
     model_parser.add_argument(
         "--unet-channels",
         type=_channels,
         default=[
-            (64, 96),
-            (96, 128),
-            (128, 192),
-            (192, 256),
-            (256, 320),
-            (320, 382),
-            (382, 512),
+            (8, 16),
+            (16, 32),
+            (32, 64),
+            (64, 128),
+            (128, 256),
+            (256, 512),
+            (512, 512),
         ],
     )
     model_parser.add_argument(
@@ -108,11 +108,12 @@ def main() -> None:
     train_parser.add_argument("--batch-size", type=int, default=2)
     train_parser.add_argument("--step-batch-size", type=int, default=1)
     train_parser.add_argument("--epochs", type=int, default=1000)
-    train_parser.add_argument("--learning-rate", type=float, default=2e-4)
+    train_parser.add_argument("--learning-rate", type=float, default=1e-5)
     train_parser.add_argument("--metric-window", type=int, default=64)
     train_parser.add_argument("--save-every", type=int, default=4096)
     train_parser.add_argument("-o", "--output-dir", type=str, required=True)
     train_parser.add_argument("--nb-samples", type=int, default=5)
+    train_parser.add_argument("--vlb-loss-factor", type=float, default=1e-3)
 
     # Generate parser
     generate_parser = model_sub_command.add_parser("generate")
@@ -154,6 +155,7 @@ def main() -> None:
                 save_every=args.save_every,
                 output_directory=args.output_dir,
                 nb_samples=args.nb_samples,
+                vlb_loss_factor=args.vlb_loss_factor,
                 noiser_state_dict=None,
                 denoiser_state_dict=None,
                 optim_state_dict=None,

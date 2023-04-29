@@ -113,6 +113,7 @@ class Noiser(nn.Module):
         x_t: th.Tensor,
         x_0: th.Tensor,
         t: th.Tensor,
+        epsilon: float = 1e-8,
     ) -> th.Tensor:
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2
@@ -124,7 +125,7 @@ class Noiser(nn.Module):
         )
 
         posterior: th.Tensor = normal_pdf(
-            x_t_minus, self.__mu(x_t, x_0, t), betas_bar + 1e-8
+            x_t_minus, self.__mu(x_t, x_0, t), betas_bar + epsilon
         )
 
         return posterior

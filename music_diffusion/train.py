@@ -25,6 +25,7 @@ TrainOptions = NamedTuple(
         ("save_every", int),
         ("output_directory", str),
         ("nb_samples", int),
+        ("vlb_loss_factor", float),
         ("noiser_state_dict", Optional[str]),
         ("denoiser_state_dict", Optional[str]),
         ("optim_state_dict", Optional[str]),
@@ -162,8 +163,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 loss_simple = th.pow(eps - eps_theta, 2.0)
 
                 prior = denoiser.prior(
-                    x_t,
                     x_t_minus,
+                    x_t,
                     t,
                     eps_theta.detach(),
                     v_theta,
@@ -173,11 +174,13 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     prior.flatten(0, 1),
                     posterior.flatten(0, 1),
                     reduction="batchmean",
-                    log_target=False,
                 )
 
                 # loss = loss * denoiser.loss_factor(t)
-                loss = loss_simple.mean() + 1e-3 * loss_vlb
+                loss = (
+                    loss_simple.mean()
+                    + train_options.vlb_loss_factor * loss_vlb
+                )
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()
