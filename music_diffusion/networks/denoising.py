@@ -171,14 +171,18 @@ class Denoiser(nn.Module):
         self.__eps_ema.update()
 
     def __mu(
-        self, x_t: th.Tensor, t: th.Tensor, eps_theta: th.Tensor
+        self,
+        x_t: th.Tensor,
+        t: th.Tensor,
+        eps_theta: th.Tensor,
+        epsilon: float = 1e-8,
     ) -> th.Tensor:
         return (
             x_t
             - eps_theta
             * process_factor(self.betas, t)
-            / th.sqrt(1.0 - process_factor(self.alpha_cum_prod, t))
-        ) / th.sqrt(process_factor(self.alphas, t))
+            / th.sqrt(1.0 - process_factor(self.alpha_cum_prod, t) + epsilon)
+        ) / th.sqrt(process_factor(self.alphas, t) + epsilon)
 
     def __sigma(
         self, v: th.Tensor, t: th.Tensor, epsilon: float = 1e-8
@@ -203,6 +207,6 @@ class Denoiser(nn.Module):
     ) -> th.Tensor:
         return normal_pdf(
             x_t_minus,
-            self.__mu(x_t, t, eps_theta),
+            self.__mu(x_t, t, eps_theta, epsilon),
             self.__sigma(v, t, epsilon),
         )
