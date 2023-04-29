@@ -28,7 +28,6 @@ disable = [
     "too-many-arguments",
     "too-many-locals",
     "too-few-public-methods",
+    "too-many-statements",
     "no-member",
-    "duplicate-code",
-    "too-many-statements"
 ]

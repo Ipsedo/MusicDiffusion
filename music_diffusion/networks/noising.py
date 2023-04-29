@@ -57,6 +57,7 @@ class Noiser(nn.Module):
             sqrt_one_minus_alphas_cum_prod,
         )
 
+        # pylint: disable=duplicate-code
         self.register_buffer(
             "betas",
             betas,
@@ -65,6 +66,7 @@ class Noiser(nn.Module):
             "betas_bar",
             betas_bar,
         )
+        # pylint: enable=duplicate-code
 
     def forward(
         self, x_0: th.Tensor, t: th.Tensor

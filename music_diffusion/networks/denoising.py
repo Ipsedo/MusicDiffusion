@@ -62,6 +62,7 @@ class Denoiser(nn.Module):
             "sqrt_one_minus_alpha_cum_prod",
             th.sqrt(1.0 - self.alpha_cum_prod),
         )
+        # pylint: disable=duplicate-code
         self.register_buffer(
             "betas",
             betas,
@@ -70,6 +71,7 @@ class Denoiser(nn.Module):
             "betas_bar",
             betas_bar,
         )
+        # pylint: enable=duplicate-code
         self.register_buffer(
             "sqrt_betas",
             th.sqrt(self.betas),
