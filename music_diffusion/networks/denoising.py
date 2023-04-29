@@ -30,7 +30,7 @@ class Denoiser(nn.Module):
 
         self.__channels = channels
 
-        betas = th.linspace(beta_1, beta_t, steps=self.__steps + 1)[1:]
+        betas = th.linspace(beta_1, beta_t, steps=self.__steps)
         alphas = 1.0 - betas
         alpha_cum_prod = th.cumprod(alphas, dim=0)
         alphas_cum_prod_prev = th.cat(
@@ -181,22 +181,19 @@ class Denoiser(nn.Module):
         ) / th.sqrt(process_factor(self.alphas, t))
 
     def __sigma(self, v: th.Tensor, t: th.Tensor) -> th.Tensor:
-        return (
-            th.exp(
-                v * th.log(process_factor(self.betas, t))
-                + (1.0 - v) * th.log(process_factor(self.betas_bar, t))
-            )
-            + 1e-8
+        return th.exp(
+            v * th.log(process_factor(self.betas, t))
+            + (1.0 - v) * th.log(process_factor(self.betas_bar, t))
         )
 
     def prior(
         self,
-        x_t: th.Tensor,
         x_t_minus: th.Tensor,
+        x_t: th.Tensor,
         t: th.Tensor,
         eps_theta: th.Tensor,
         v: th.Tensor,
     ) -> th.Tensor:
         return normal_pdf(
-            x_t_minus, self.__mu(x_t, t, eps_theta), self.__sigma(v, t)
+            x_t_minus, self.__mu(x_t, t, eps_theta), self.__sigma(v, t) + 1e-8
         )

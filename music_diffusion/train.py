@@ -157,7 +157,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
                 t_minus = t - 1
                 t_minus[t_minus < 0] = 0
-                x_t_minus, eps = noiser(x_0, t_minus, eps)
+                x_t_minus, _ = noiser(x_0, t_minus)
 
                 loss_simple = th.pow(eps - eps_theta, 2.0)
 

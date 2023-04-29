@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Tuple
 
 import torch as th
 from torch import nn
@@ -12,7 +12,7 @@ class Noiser(nn.Module):
 
         self.__steps = steps
 
-        betas = th.linspace(beta_1, beta_t, steps=self.__steps + 1)[1:]
+        betas = th.linspace(beta_1, beta_t, steps=self.__steps)
 
         alphas = 1 - betas
         alphas_cum_prod = th.cumprod(alphas, dim=0)
@@ -67,7 +67,7 @@ class Noiser(nn.Module):
         )
 
     def forward(
-        self, x_0: th.Tensor, t: th.Tensor, eps: Optional[th.Tensor] = None
+        self, x_0: th.Tensor, t: th.Tensor
     ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2
@@ -78,8 +78,7 @@ class Noiser(nn.Module):
 
         device = "cuda" if next(self.buffers()).is_cuda else "cpu"
 
-        if eps is None:
-            eps = th.randn(b, nb_steps, c, w, h, device=device)
+        eps = th.randn(b, nb_steps, c, w, h, device=device)
 
         sqrt_alphas_cum_prod = process_factor(self.sqrt_alphas_cum_prod, t)
         sqrt_one_minus_alphas_cum_prod = process_factor(

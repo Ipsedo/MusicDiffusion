@@ -27,7 +27,7 @@ def test_noiser(
     else:
         device = "cpu"
 
-    x = th.randn(
+    x_0 = th.randn(
         batch_size,
         channels,
         img_sizes[0],
@@ -41,14 +41,14 @@ def test_noiser(
         device=device,
     )
 
-    x_noised, eps = noiser(x, t)
+    x_t, eps = noiser(x_0, t)
 
-    assert len(x_noised.size()) == 5
-    assert x_noised.size(0) == batch_size
-    assert x_noised.size(1) == step_batch_size
-    assert x_noised.size(2) == channels
-    assert x_noised.size(3) == img_sizes[0]
-    assert x_noised.size(4) == img_sizes[1]
+    assert len(x_t.size()) == 5
+    assert x_t.size(0) == batch_size
+    assert x_t.size(1) == step_batch_size
+    assert x_t.size(2) == channels
+    assert x_t.size(3) == img_sizes[0]
+    assert x_t.size(4) == img_sizes[1]
 
     assert len(eps.size()) == 5
     assert eps.size(0) == batch_size
@@ -60,13 +60,19 @@ def test_noiser(
     t_minus_one = t - 1
     t_minus_one[t_minus_one < 0] = 0
 
-    x_noised_minus, eps = noiser(x, t_minus_one, eps)
+    x_t_minus, _ = noiser(x_0, t_minus_one)
 
-    q = noiser.posterior(x_noised_minus, x_noised, x, t)
+    posterior = noiser.posterior(x_t_minus, x_t, x_0, t)
 
-    assert len(q.size()) == 2
-    assert q.size(0) == batch_size
-    assert q.size(1) == step_batch_size
+    assert len(posterior.size()) == 2
+    assert posterior.size(0) == batch_size
+    assert posterior.size(1) == step_batch_size
+
+    assert th.all(
+        th.logical_and(
+            th.ge(th.tensor(0), posterior), th.le(posterior, th.tensor(1))
+        )
+    )
 
 
 @pytest.mark.parametrize("steps", [10, 20])
@@ -106,7 +112,7 @@ def test_denoiser(
     else:
         device = "cpu"
 
-    x = th.randn(
+    x_t = th.randn(
         batch_size,
         step_batch_size,
         channels,
@@ -121,7 +127,7 @@ def test_denoiser(
         device=device,
     )
 
-    eps, v = denoiser(x, t)
+    eps, v = denoiser(x_t, t)
 
     assert len(eps.size()) == 5
     assert eps.size(0) == batch_size
@@ -137,24 +143,25 @@ def test_denoiser(
     assert v.size(3) == img_sizes[0]
     assert v.size(4) == img_sizes[1]
 
-    x_t_minus = x.clone()
-    t_minus = t - 1
-    t_minus[t_minus < 0] = 0
+    x_t_minus = th.randn(*x_t.size())
 
-    prior = denoiser.prior(x, x_t_minus, t_minus, eps, v)
+    prior = denoiser.prior(x_t_minus, x_t, t, eps, v)
 
     assert len(prior.size()) == 2
     assert prior.size(0) == batch_size
     assert prior.size(1) == step_batch_size
+    assert th.all(
+        th.logical_and(th.ge(th.tensor(0), prior), th.le(prior, th.tensor(1)))
+    )
 
-    x = th.randn(
+    x_t = th.randn(
         batch_size,
         channels,
         *img_sizes,
         device=device,
     )
 
-    pred = denoiser.sample(x)
+    pred = denoiser.sample(x_t)
 
     assert len(pred.size()) == 4
     assert pred.size(0) == batch_size
