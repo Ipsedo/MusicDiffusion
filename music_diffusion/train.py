@@ -156,20 +156,20 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 x_t, eps = noiser(x_0, t)
                 eps_theta, v_theta = denoiser(x_t, t)
 
-                t_minus = t - 1
-                t_minus[t_minus < 0] = 0
-                x_t_minus, _ = noiser(x_0, t_minus)
+                t_prev = t - 1
+                t_prev[t_prev < 0] = 0
+                x_t_prev, _ = noiser(x_0, t_prev)
 
                 loss_simple = th.pow(eps - eps_theta, 2.0)
 
                 prior = denoiser.prior(
-                    x_t_minus,
+                    x_t_prev,
                     x_t,
                     t,
                     eps_theta.detach(),
                     v_theta,
                 )
-                posterior = noiser.posterior(x_t_minus, x_t, x_0, t)
+                posterior = noiser.posterior(x_t_prev, x_t, x_0, t)
 
                 loss_vlb = th_f.kl_div(
                     prior.flatten(0, 1),

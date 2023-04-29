@@ -189,7 +189,7 @@ class Denoiser(nn.Module):
 
     def prior(
         self,
-        x_t_minus: th.Tensor,
+        x_t_prev: th.Tensor,
         x_t: th.Tensor,
         t: th.Tensor,
         eps_theta: th.Tensor,
@@ -197,7 +197,7 @@ class Denoiser(nn.Module):
         epsilon: float = 1e-8,
     ) -> th.Tensor:
         return normal_pdf(
-            x_t_minus,
+            x_t_prev,
             self.__mu(x_t, t, eps_theta, epsilon),
             self.__sigma(v, t, epsilon),
         )

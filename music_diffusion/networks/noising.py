@@ -111,7 +111,7 @@ class Noiser(nn.Module):
 
     def posterior(
         self,
-        x_t_minus: th.Tensor,
+        x_t_prev: th.Tensor,
         x_t: th.Tensor,
         x_0: th.Tensor,
         t: th.Tensor,
@@ -127,7 +127,7 @@ class Noiser(nn.Module):
         )
 
         posterior: th.Tensor = normal_pdf(
-            x_t_minus, self.__mu(x_t, x_0, t), betas_bar + epsilon
+            x_t_prev, self.__mu(x_t, x_0, t), betas_bar + epsilon
         )
 
         return posterior
