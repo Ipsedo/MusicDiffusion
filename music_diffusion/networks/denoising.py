@@ -181,9 +181,12 @@ class Denoiser(nn.Module):
         ) / th.sqrt(process_factor(self.alphas, t))
 
     def __sigma(self, v: th.Tensor, t: th.Tensor) -> th.Tensor:
-        return th.exp(
-            v * th.log(process_factor(self.betas, t))
-            + (1.0 - v) * th.log(process_factor(self.betas_bar, t))
+        return (
+            th.exp(
+                v * th.log(process_factor(self.betas, t))
+                + (1.0 - v) * th.log(process_factor(self.betas_bar, t))
+            )
+            + 1e-8
         )
 
     def prior(

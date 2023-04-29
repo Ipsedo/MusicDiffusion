@@ -120,5 +120,12 @@ class Noiser(nn.Module):
         assert x_0.size(0) == t.size(0)
 
         betas_bar = process_factor(self.betas_bar, t)
+        betas_bar = betas_bar.repeat(
+            1, 1, x_t.size(2), x_t.size(3), x_t.size(4)
+        )
 
-        return normal_pdf(x_t_minus, self.__mu(x_t, x_0, t), betas_bar)
+        posterior: th.Tensor = normal_pdf(
+            x_t_minus, self.__mu(x_t, x_0, t), betas_bar + 1e-8
+        )
+
+        return posterior

@@ -173,7 +173,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     prior.flatten(0, 1),
                     posterior.flatten(0, 1),
                     reduction="batchmean",
-                    log_target=True,
+                    log_target=False,
                 )
 
                 # loss = loss * denoiser.loss_factor(t)
