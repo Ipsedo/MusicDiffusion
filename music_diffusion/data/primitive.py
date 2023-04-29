@@ -9,7 +9,7 @@ def simpson(
     dx: float,
 ) -> th.Tensor:
     sizes = derivative.size()
-    n = derivative.size()[dim]
+    n = sizes[dim]
 
     evens = th.arange(0, n, 2)
     odds = th.arange(1, n, 2)
@@ -39,7 +39,7 @@ def simpson(
             )
         ).cumsum(dim)
         - th.select(even_derivative, dim, 0).unsqueeze(dim)
-        - th.select(even_derivative, dim, 0).unsqueeze(dim)
+        - even_derivative
     )
 
     odd_primitive = (dx / 3) * (
