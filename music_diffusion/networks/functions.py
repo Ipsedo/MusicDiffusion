@@ -22,10 +22,11 @@ def bound_clip(x: th.Tensor, min_value: float, max_value: float) -> th.Tensor:
 def normal_pdf(x: th.Tensor, mu: th.Tensor, sigma: th.Tensor) -> th.Tensor:
     b, t, c, w, h = x.size()
     dist = torch.distributions.Normal(mu.flatten(), sigma.flatten())
-    density: th.Tensor = dist.log_prob(x.flatten())
+    # density: th.Tensor = dist.log_prob(x.flatten())
+    density: th.Tensor = dist.cdf(x.flatten())
 
     density = density.view(b, t, c, w, h)
-    density = density.flatten(2, -1).sum(-1).exp()
+    density = density.flatten(2, -1).prod(-1)
 
     return density
 

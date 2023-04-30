@@ -59,7 +59,7 @@ def main() -> None:
     # Model hyper parameters
     model_parser = sub_command.add_parser("model")
 
-    model_parser.add_argument("--steps", type=int, default=4096)
+    model_parser.add_argument("--steps", type=int, default=1024)
     model_parser.add_argument("--beta-1", type=float, default=1e-4)
     model_parser.add_argument("--beta-t", type=float, default=2e-2)
     model_parser.add_argument("--channels", type=int, default=2)

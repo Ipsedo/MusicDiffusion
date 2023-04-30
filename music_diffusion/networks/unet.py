@@ -118,7 +118,7 @@ class TimeUNet(nn.Module):
             )
         )
 
-        self.__end_conv = TimeBypass(
+        self.__eps_end_conv = TimeBypass(
             EndConvBlock(
                 decoding_channels[-1][1],
                 out_channels,
@@ -131,7 +131,6 @@ class TimeUNet(nn.Module):
                     decoding_channels[-1][1],
                     out_channels,
                 ),
-                nn.Sigmoid(),
             )
         )
 
@@ -163,7 +162,7 @@ class TimeUNet(nn.Module):
             out = out + bypass
             out = block(out, time_vec)
 
-        eps = self.__end_conv(out)
+        eps = self.__eps_end_conv(out)
         v = self.__v_env_conv(out)
 
         return eps, v

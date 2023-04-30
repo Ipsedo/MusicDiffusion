@@ -193,11 +193,11 @@ class Denoiser(nn.Module):
         x_t: th.Tensor,
         t: th.Tensor,
         eps_theta: th.Tensor,
-        v: th.Tensor,
+        v_theta: th.Tensor,
         epsilon: float = 1e-8,
     ) -> th.Tensor:
         return normal_pdf(
             x_t_prev,
             self.__mu(x_t, t, eps_theta, epsilon),
-            self.__sigma(v, t, epsilon),
+            self.__sigma(v_theta, t, epsilon),
         )

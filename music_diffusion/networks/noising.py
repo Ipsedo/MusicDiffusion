@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch as th
 from torch import nn
@@ -69,7 +69,7 @@ class Noiser(nn.Module):
         # pylint: enable=duplicate-code
 
     def forward(
-        self, x_0: th.Tensor, t: th.Tensor
+        self, x_0: th.Tensor, t: th.Tensor, eps: Optional[th.Tensor] = None
     ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2
@@ -80,7 +80,8 @@ class Noiser(nn.Module):
 
         device = "cuda" if next(self.buffers()).is_cuda else "cpu"
 
-        eps = th.randn(b, nb_steps, c, w, h, device=device)
+        if eps is None:
+            eps = th.randn(b, nb_steps, c, w, h, device=device)
 
         sqrt_alphas_cum_prod = process_factor(self.sqrt_alphas_cum_prod, t)
         sqrt_one_minus_alphas_cum_prod = process_factor(

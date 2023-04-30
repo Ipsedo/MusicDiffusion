@@ -57,10 +57,12 @@ def test_noiser(
     assert eps.size(3) == img_sizes[0]
     assert eps.size(4) == img_sizes[1]
 
-    t_minus_one = t - 1
-    t_minus_one[t_minus_one < 0] = 0
+    t_prev = t - 1
+    t_prev[t_prev < 0] = 0
 
-    x_t_minus, _ = noiser(x_0, t_minus_one)
+    x_t_minus, eps_same = noiser(x_0, t_prev, eps)
+
+    assert th.all(th.eq(eps_same, eps))
 
     posterior = noiser.posterior(x_t_minus, x_t, x_0, t)
 

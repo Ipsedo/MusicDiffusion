@@ -158,7 +158,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
                 t_prev = t - 1
                 t_prev[t_prev < 0] = 0
-                x_t_prev, _ = noiser(x_0, t_prev)
+                x_t_prev, _ = noiser(x_0, t_prev, eps)
 
                 loss_simple = th.pow(eps - eps_theta, 2.0)
 
