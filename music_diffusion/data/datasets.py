@@ -2,22 +2,20 @@ import gzip
 import pickle as pkl
 import re
 from os import listdir
-from os.path import abspath, dirname, isdir, isfile, join
+from os.path import isdir, isfile, join
 
 import numpy as np
 import torch as th
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-_RESOURCE_FOLDER = abspath(join(dirname(__file__), "..", "resources"))
-
 
 class MNISTDataset(Dataset):
-    def __init__(self) -> None:
+    def __init__(self, mnist_pkl_gz_file: str) -> None:
         super().__init__()
 
         (mnist_train, _), (mnist_valid, _) = pkl.load(
-            gzip.open(join(_RESOURCE_FOLDER, "mnist.pkl.gz"), "rb"),
+            gzip.open(mnist_pkl_gz_file, "rb"),
             encoding="bytes",
         )
 
