@@ -5,7 +5,7 @@ import torch as th
 from torch import nn
 from tqdm import tqdm
 
-from .functions import normal_pdf, process_factor
+from .functions import normal_cdf, process_factor
 from .init import weights_init
 from .unet import TimeUNet
 
@@ -196,7 +196,7 @@ class Denoiser(nn.Module):
         v_theta: th.Tensor,
         epsilon: float = 1e-8,
     ) -> th.Tensor:
-        return normal_pdf(
+        return normal_cdf(
             x_t_prev,
             self.__mu(x_t, t, eps_theta, epsilon),
             self.__sigma(v_theta, t, epsilon),

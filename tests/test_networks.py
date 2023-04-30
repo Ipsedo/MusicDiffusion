@@ -60,11 +60,11 @@ def test_noiser(
     t_prev = t - 1
     t_prev[t_prev < 0] = 0
 
-    x_t_minus, eps_same = noiser(x_0, t_prev, eps)
+    x_t_prev, eps_same = noiser(x_0, t_prev, eps)
 
     assert th.all(th.eq(eps_same, eps))
 
-    posterior = noiser.posterior(x_t_minus, x_t, x_0, t)
+    posterior = noiser.posterior(x_t_prev, x_t, x_0, t)
 
     assert len(posterior.size()) == 2
     assert posterior.size(0) == batch_size
@@ -145,9 +145,9 @@ def test_denoiser(
     assert v.size(3) == img_sizes[0]
     assert v.size(4) == img_sizes[1]
 
-    x_t_minus = th.randn(*x_t.size())
+    x_t_prev = th.randn(*x_t.size())
 
-    prior = denoiser.prior(x_t_minus, x_t, t, eps, v)
+    prior = denoiser.prior(x_t_prev, x_t, t, eps, v)
 
     assert len(prior.size()) == 2
     assert prior.size(0) == batch_size
@@ -163,13 +163,13 @@ def test_denoiser(
         device=device,
     )
 
-    pred = denoiser.sample(x_t)
+    x_0 = denoiser.sample(x_t)
 
-    assert len(pred.size()) == 4
-    assert pred.size(0) == batch_size
-    assert pred.size(1) == channels
-    assert pred.size(2) == img_sizes[0]
-    assert pred.size(3) == img_sizes[1]
+    assert len(x_0.size()) == 4
+    assert x_0.size(0) == batch_size
+    assert x_0.size(1) == channels
+    assert x_0.size(2) == img_sizes[0]
+    assert x_0.size(3) == img_sizes[1]
 
 
 @pytest.mark.parametrize("batch_size", [1, 2])

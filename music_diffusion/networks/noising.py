@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 import torch as th
 from torch import nn
 
-from .functions import normal_pdf, process_factor
+from .functions import normal_cdf, process_factor
 
 
 class Noiser(nn.Module):
@@ -127,7 +127,7 @@ class Noiser(nn.Module):
             1, 1, x_t.size(2), x_t.size(3), x_t.size(4)
         )
 
-        posterior: th.Tensor = normal_pdf(
+        posterior: th.Tensor = normal_cdf(
             x_t_prev, self.__mu(x_t, x_0, t), betas_bar + epsilon
         )
 

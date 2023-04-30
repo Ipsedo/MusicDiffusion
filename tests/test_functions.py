@@ -3,7 +3,7 @@ from typing import Tuple
 import pytest
 import torch as th
 
-from music_diffusion.networks.functions import normal_pdf
+from music_diffusion.networks.functions import normal_cdf
 
 
 @pytest.mark.parametrize("step_batch_size", [1, 2])
@@ -26,7 +26,7 @@ def test_normal_pdf(
     mu = th.randn(*x.size(), device=device)
     sigma = th.rand(*x.size(), device=device)
 
-    proba = normal_pdf(x, mu, sigma)
+    proba = normal_cdf(x, mu, sigma)
 
     assert len(proba.size()) == 2
     assert proba.size(0) == batch_size
