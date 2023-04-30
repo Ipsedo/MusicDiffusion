@@ -1,7 +1,7 @@
 from math import sqrt
 
 import torch as th
-import torch.distributions
+from torch.distributions import Normal
 
 
 def smart_clip(x: th.Tensor, min_value: float, max_value: float) -> th.Tensor:
@@ -22,7 +22,7 @@ def bound_clip(x: th.Tensor, min_value: float, max_value: float) -> th.Tensor:
 def normal_cdf(x: th.Tensor, mu: th.Tensor, sigma: th.Tensor) -> th.Tensor:
     b, t = x.size()[:2]
 
-    dist = torch.distributions.Normal(mu.flatten(), sigma.flatten())
+    dist = Normal(mu.flatten(), sigma.flatten())
     density: th.Tensor = dist.cdf(x.flatten()).view(b, t, -1).prod(-1)
 
     return density
@@ -36,7 +36,7 @@ def log_normal_pdf(x: th.Tensor, mu: th.Tensor, sigma: th.Tensor) -> th.Tensor:
     return th.sum(log_density, dim=[2, 3, 4])
 
 
-def process_factor(factor: th.Tensor, t: th.Tensor) -> th.Tensor:
+def process_time_factor(factor: th.Tensor, t: th.Tensor) -> th.Tensor:
     b, s = t.size()
     factor = factor[t.flatten(), None, None, None]
     return th.unflatten(factor, 0, (b, s))

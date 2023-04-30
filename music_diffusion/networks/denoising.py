@@ -5,7 +5,7 @@ import torch as th
 from torch import nn
 from tqdm import tqdm
 
-from .functions import normal_cdf, process_factor
+from .functions import normal_cdf, process_time_factor
 from .init import weights_init
 from .unet import TimeUNet
 
@@ -171,18 +171,20 @@ class Denoiser(nn.Module):
         return (
             x_t
             - eps_theta
-            * process_factor(self.betas, t)
-            / th.sqrt(1.0 - process_factor(self.alpha_cum_prod, t) + epsilon)
-        ) / th.sqrt(process_factor(self.alphas, t) + epsilon)
+            * process_time_factor(self.betas, t)
+            / th.sqrt(
+                1.0 - process_time_factor(self.alpha_cum_prod, t) + epsilon
+            )
+        ) / th.sqrt(process_time_factor(self.alphas, t) + epsilon)
 
     def __sigma(
         self, v: th.Tensor, t: th.Tensor, epsilon: float = 1e-8
     ) -> th.Tensor:
         return (
             th.exp(
-                v * th.log(process_factor(self.betas, t) + epsilon)
+                v * th.log(process_time_factor(self.betas, t) + epsilon)
                 + (1.0 - v)
-                * th.log(process_factor(self.betas_bar, t) + epsilon)
+                * th.log(process_time_factor(self.betas_bar, t) + epsilon)
             )
             + epsilon
         )
