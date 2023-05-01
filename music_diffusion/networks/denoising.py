@@ -118,18 +118,20 @@ class Denoiser(nn.Module):
                 else th.zeros_like(x_t, device=device)
             )
 
-            eps, _ = self.__eps(
+            eps, v = self.__eps(
                 x_t.unsqueeze(1),
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             )
             eps = eps.squeeze(1)
+
+            sigma = self.__sigma(v, th.tensor([[t]])).squeeze(1)
 
             x_t = (1.0 / self.sqrt_alpha[t]) * (
                 x_t
                 - eps
                 * (1.0 - self.alphas[t])
                 / self.sqrt_one_minus_alpha_cum_prod[t]
-            ) + self.sqrt_betas[t] * z
+            ) + sigma * z
 
             tqdm_bar.set_description(
                 f"Generate {x_t.size(0)} data with size {tuple(x_t.size()[1:])}"
