@@ -127,10 +127,13 @@ class TimeUNet(nn.Module):
         )
 
         self.__v_env_conv = TimeBypass(
-            EndConvBlock(
-                decoding_channels[-1][1],
-                out_channels,
-            ),
+            nn.Sequential(
+                EndConvBlock(
+                    decoding_channels[-1][1],
+                    out_channels,
+                ),
+                nn.Sigmoid(),
+            )
         )
 
     def forward(
