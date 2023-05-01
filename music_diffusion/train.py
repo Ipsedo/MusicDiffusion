@@ -161,7 +161,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 t_prev[t_prev < 0] = 0
                 x_t_prev, _ = noiser(x_0, t_prev, eps)
 
-                loss_simple = th.pow(eps - eps_theta, 2.0)
+                loss_simple = th.pow(eps - eps_theta, 2.0).mean()
 
                 prior = denoiser.prior(
                     x_t_prev,
@@ -178,10 +178,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     reduction="batchmean",
                 )
 
-                loss = (
-                    loss_simple.mean()
-                    + train_options.vlb_loss_factor * loss_vlb
-                )
+                loss = loss_simple + train_options.vlb_loss_factor * loss_vlb
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()

@@ -5,7 +5,7 @@ Create the dataset from audio files :
 ```bash
 $ cd /path/to/MusicDiffusionModel
 $ # here /path/to/music_folder contains flac music files
-$ # /path/to/music_dataset will be the folder where the tensor pickle files will be saved
+$ # /path/to/music_dataset is the folder where the tensor pickle files will be saved
 $ python -m music_diffusion create_data "/path/to/music_folder/*.flac" "/path/to/music_dataset"
 ```
 
