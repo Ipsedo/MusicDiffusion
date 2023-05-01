@@ -181,7 +181,7 @@ def test_denoiser(
     [[(16, 8), (8, 16), (16, 32)], [(16, 8), (8, 40), (40, 16)]],
 )
 @pytest.mark.parametrize(
-    "use_attentions", [[True, True, True], [False, False, False]]
+    "use_attentions", [[True, False, True], [False, True, False]]
 )
 @pytest.mark.parametrize("attention_heads", [1, 2])
 @pytest.mark.parametrize("steps", [2, 3])
@@ -219,7 +219,7 @@ def test_unet(
     else:
         device = "cpu"
 
-    x = th.randn(
+    x_t = th.randn(
         batch_size,
         nb_steps,
         channels,
@@ -233,11 +233,18 @@ def test_unet(
         device=device,
     )
 
-    o, _ = unet(x, t)
+    eps, v = unet(x_t, t)
 
-    assert len(o.size()) == 5
-    assert o.size(0) == batch_size
-    assert o.size(1) == nb_steps
-    assert o.size(2) == channels
-    assert o.size(3) == size[0]
-    assert o.size(4) == size[1]
+    assert len(eps.size()) == 5
+    assert eps.size(0) == batch_size
+    assert eps.size(1) == nb_steps
+    assert eps.size(2) == channels
+    assert eps.size(3) == size[0]
+    assert eps.size(4) == size[1]
+
+    assert len(v.size()) == 5
+    assert v.size(0) == batch_size
+    assert v.size(1) == nb_steps
+    assert v.size(2) == channels
+    assert v.size(3) == size[0]
+    assert v.size(4) == size[1]
