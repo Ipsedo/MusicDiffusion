@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 import torch as th
 from torch import nn
 
-from .functions import normal_cdf, process_time_factor
+from .functions import normal_cdf, select_time_scheduler
 
 
 class Noiser(nn.Module):
@@ -83,10 +83,10 @@ class Noiser(nn.Module):
         if eps is None:
             eps = th.randn(b, nb_steps, c, w, h, device=device)
 
-        sqrt_alphas_cum_prod = process_time_factor(
+        sqrt_alphas_cum_prod = select_time_scheduler(
             self.sqrt_alphas_cum_prod, t
         )
-        sqrt_one_minus_alphas_cum_prod = process_time_factor(
+        sqrt_one_minus_alphas_cum_prod = select_time_scheduler(
             self.sqrt_one_minus_alphas_cum_prod, t
         )
 
@@ -98,12 +98,12 @@ class Noiser(nn.Module):
         return x_t, eps
 
     def __mu(self, x_t: th.Tensor, x_0: th.Tensor, t: th.Tensor) -> th.Tensor:
-        alphas_cum_prod_prev = process_time_factor(
+        alphas_cum_prod_prev = select_time_scheduler(
             self.alphas_cum_prod_prev, t
         )
-        alphas_cum_prod = process_time_factor(self.alphas_cum_prod, t)
-        alphas = process_time_factor(self.alphas, t)
-        betas = process_time_factor(self.betas, t)
+        alphas_cum_prod = select_time_scheduler(self.alphas_cum_prod, t)
+        alphas = select_time_scheduler(self.alphas, t)
+        betas = select_time_scheduler(self.betas, t)
 
         mu: th.Tensor = x_0.unsqueeze(1) * th.sqrt(
             alphas_cum_prod_prev
@@ -126,7 +126,7 @@ class Noiser(nn.Module):
         assert len(t.size()) == 2
         assert x_0.size(0) == t.size(0)
 
-        betas_bar = process_time_factor(self.betas_bar, t)
+        betas_bar = select_time_scheduler(self.betas_bar, t)
         betas_bar = betas_bar.repeat(
             1, 1, x_t.size(2), x_t.size(3), x_t.size(4)
         )

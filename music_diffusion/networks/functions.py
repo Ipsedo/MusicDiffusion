@@ -36,7 +36,7 @@ def log_normal_pdf(x: th.Tensor, mu: th.Tensor, sigma: th.Tensor) -> th.Tensor:
     return th.sum(log_density, dim=[2, 3, 4])
 
 
-def process_time_factor(factor: th.Tensor, t: th.Tensor) -> th.Tensor:
+def select_time_scheduler(factor: th.Tensor, t: th.Tensor) -> th.Tensor:
     b, s = t.size()
     factor = factor[t.flatten(), None, None, None]
     return th.unflatten(factor, 0, (b, s))

@@ -10,7 +10,7 @@ from music_diffusion.networks.functions import normal_cdf
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [1, 2])
 @pytest.mark.parametrize("img_sizes", [(32, 32), (32, 64)])
-def test_normal_pdf(
+def test_normal_cdf(
     step_batch_size: int,
     batch_size: int,
     channels: int,
