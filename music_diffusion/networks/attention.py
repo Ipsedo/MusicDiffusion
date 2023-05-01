@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import torch as th
 from torch import nn
 

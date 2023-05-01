@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import glob
 from os import mkdir
 from os.path import exists, isdir, join

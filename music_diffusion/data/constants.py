@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from typing import Final, Tuple
 
 N_FFT: Final[int] = 1024

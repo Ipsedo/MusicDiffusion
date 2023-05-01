@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import gzip
 import pickle as pkl
 import re

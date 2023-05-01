@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from statistics import mean
 from typing import NamedTuple, Optional
 

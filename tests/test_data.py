@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from os import remove
 from os.path import exists, isfile
 
