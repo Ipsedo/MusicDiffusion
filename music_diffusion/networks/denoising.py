@@ -36,7 +36,9 @@ class Denoiser(nn.Module):
         alphas_cum_prod_prev = th.cat(
             [th.tensor([1.0]), alpha_cum_prod[:-1]], dim=0
         )
-        betas_bar = betas * (1.0 - alphas_cum_prod_prev) / (1 - alpha_cum_prod)
+        betas_bar = (
+            betas * (1.0 - alphas_cum_prod_prev + 1e-8) / (1 - alpha_cum_prod)
+        )
 
         self.alphas: th.Tensor
         self.sqrt_alpha: th.Tensor
@@ -124,14 +126,14 @@ class Denoiser(nn.Module):
             )
             eps = eps.squeeze(1)
 
-            sigma = self.__sigma(v, th.tensor([[t]])).squeeze(1)
-
-            x_t = (1.0 / self.sqrt_alpha[t]) * (
+            mean = (
                 x_t
-                - eps
-                * (1.0 - self.alphas[t])
-                / self.sqrt_one_minus_alpha_cum_prod[t]
-            ) + sigma * z
+                - eps * self.betas[t] / self.sqrt_one_minus_alpha_cum_prod[t]
+            ) / self.sqrt_alpha[t]
+
+            var = self.__sigma(v, th.tensor([[t]], device=device)).squeeze(1)
+
+            x_t = mean + var.sqrt() * z
 
             tqdm_bar.set_description(
                 f"Generate {x_t.size(0)} data with size {tuple(x_t.size()[1:])}"
@@ -169,27 +171,18 @@ class Denoiser(nn.Module):
         x_t: th.Tensor,
         t: th.Tensor,
         eps_theta: th.Tensor,
-        epsilon: float = 1e-8,
     ) -> th.Tensor:
         return (
             x_t
             - eps_theta
             * select_time_scheduler(self.betas, t)
-            / th.sqrt(
-                1.0 - select_time_scheduler(self.alpha_cum_prod, t) + epsilon
-            )
-        ) / th.sqrt(select_time_scheduler(self.alphas, t) + epsilon)
+            / th.sqrt(1.0 - select_time_scheduler(self.alpha_cum_prod, t))
+        ) / th.sqrt(select_time_scheduler(self.alphas, t))
 
-    def __sigma(
-        self, v: th.Tensor, t: th.Tensor, epsilon: float = 1e-8
-    ) -> th.Tensor:
-        return (
-            th.exp(
-                v * th.log(select_time_scheduler(self.betas, t) + epsilon)
-                + (1.0 - v)
-                * th.log(select_time_scheduler(self.betas_bar, t) + epsilon)
-            )
-            + epsilon
+    def __sigma(self, v: th.Tensor, t: th.Tensor) -> th.Tensor:
+        return th.exp(
+            v * th.log(select_time_scheduler(self.betas, t))
+            + (1.0 - v) * th.log(select_time_scheduler(self.betas_bar, t))
         )
 
     def prior(
@@ -199,10 +192,9 @@ class Denoiser(nn.Module):
         t: th.Tensor,
         eps_theta: th.Tensor,
         v_theta: th.Tensor,
-        epsilon: float = 1e-8,
     ) -> th.Tensor:
         return normal_cdf(
             x_t_prev,
-            self.__mu(x_t, t, eps_theta, epsilon),
-            self.__sigma(v_theta, t, epsilon),
+            self.__mu(x_t, t, eps_theta),
+            self.__sigma(v_theta, t),
         )

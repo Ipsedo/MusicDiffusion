@@ -25,7 +25,9 @@ class Noiser(nn.Module):
         )
 
         betas_bar = (
-            betas * (1.0 - alphas_cum_prod_prev) / (1.0 - alphas_cum_prod)
+            betas
+            * (1.0 - alphas_cum_prod_prev + 1e-8)
+            / (1.0 - alphas_cum_prod)
         )
 
         self.alphas: th.Tensor
@@ -109,7 +111,7 @@ class Noiser(nn.Module):
         mu: th.Tensor = x_0.unsqueeze(1) * th.sqrt(
             alphas_cum_prod_prev
         ) * betas / (1.0 - alphas_cum_prod) + x_t * th.sqrt(alphas) * (
-            1 - alphas_cum_prod_prev
+            1.0 - alphas_cum_prod_prev
         ) / (
             1.0 - alphas_cum_prod
         )
@@ -121,7 +123,6 @@ class Noiser(nn.Module):
         x_t: th.Tensor,
         x_0: th.Tensor,
         t: th.Tensor,
-        epsilon: float = 1e-8,
     ) -> th.Tensor:
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2
@@ -133,7 +134,7 @@ class Noiser(nn.Module):
         )
 
         posterior: th.Tensor = normal_cdf(
-            x_t_prev, self.__mu(x_t, x_0, t), betas_bar + epsilon
+            x_t_prev, self.__mu(x_t, x_0, t), betas_bar
         )
 
         return posterior
