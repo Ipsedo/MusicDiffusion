@@ -251,6 +251,60 @@ class Denoiser(Diffuser):
 
         return x_t
 
+    def fast_sample(
+        self, x_t: th.Tensor, n_steps: int, verbose: bool = False
+    ) -> th.Tensor:
+
+        steps = th.arange(0, self._steps, step=n_steps)
+
+        alphas_cum_prod_s = self._alphas_cum_prod[steps]
+        alphas_cum_prod_prev_s = self._alphas_cum_prod_prev[steps]
+
+        betas_s = 1 - alphas_cum_prod_s / alphas_cum_prod_prev_s
+        betas_tiddle_s = (
+            betas_s * (1 - alphas_cum_prod_prev_s) / (1 - alphas_cum_prod_s)
+        )
+
+        alphas_s = 1 - betas_s
+
+        device = "cuda" if next(self.parameters()).is_cuda else "cpu"
+
+        times = steps.numpy().tolist()
+        tqdm_bar = tqdm(times, disable=not verbose, leave=False)
+
+        for s_t, t in enumerate(tqdm_bar):
+            # pylint: disable=duplicate-code
+            z = (
+                th.randn_like(x_t, device=device)
+                if t > 0
+                else th.zeros_like(x_t, device=device)
+            )
+
+            eps, v = self.__unet(
+                x_t.unsqueeze(1),
+                th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
+            )
+            eps = eps.squeeze(1)
+            # pylint: enable=duplicate-code
+            v = v.squeeze(1)
+
+            mean = (
+                x_t - eps * betas_s[s_t] / th.sqrt(1 - alphas_cum_prod_s)[s_t]
+            ) / alphas_s[s_t]
+
+            var = th.exp(
+                v * th.log(betas_s[s_t])
+                + (1.0 - v) * th.log(betas_tiddle_s[s_t])
+            )
+
+            x_t = mean + var.sqrt() * z
+
+            tqdm_bar.set_description(
+                f"Generate {x_t.size(0)} data with size {tuple(x_t.size()[1:])}"
+            )
+
+        return x_t
+
     def loss_factor(self, t: th.Tensor) -> th.Tensor:
         assert len(t.size()) == 2
         batch_size, steps = t.size()
