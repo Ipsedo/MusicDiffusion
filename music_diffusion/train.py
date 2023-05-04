@@ -130,7 +130,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
         device = "cuda" if model_options.cuda else "cpu"
 
-        losses = [0.0 for _ in range(train_options.metric_window)]
+        losses = [1.0 for _ in range(train_options.metric_window)]
         metric_step = 0
 
         for e in range(train_options.epochs):

@@ -18,7 +18,14 @@ class Diffuser(ABC, nn.Module):
 
         self._steps = steps
 
-        betas = th.linspace(beta_1, beta_t, steps=self._steps)
+        linspace = th.cat(
+            [
+                th.tensor([1 - 0.999]),
+                th.linspace(beta_1, beta_t, steps=self._steps),
+            ],
+            dim=0,
+        )
+        betas = linspace
 
         alphas = 1 - betas
         alphas_cum_prod = th.cumprod(alphas, dim=0)
@@ -26,13 +33,20 @@ class Diffuser(ABC, nn.Module):
         sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
 
-        alphas_cum_prod_prev = th.cat(
-            [th.tensor([1.0]), alphas_cum_prod[:-1]], dim=0
+        alphas_cum_prod_prev = alphas_cum_prod[:-1]
+        alphas_cum_prod = alphas_cum_prod[1:]
+
+        betas = betas[1:]
+
+        betas_tiddle = (
+            betas * (1.0 - alphas_cum_prod_prev) / (1 - alphas_cum_prod)
         )
 
-        betas_bar = (
-            betas * (1.0 - alphas_cum_prod_prev + 1e-8) / (1 - alphas_cum_prod)
-        )
+        alphas = alphas[1:]
+        sqrt_alphas_cum_prod = sqrt_alphas_cum_prod[1:]
+        sqrt_one_minus_alphas_cum_prod = sqrt_one_minus_alphas_cum_prod[1:]
+
+        # attributes definition
 
         self._betas: th.Tensor
 
@@ -44,7 +58,9 @@ class Diffuser(ABC, nn.Module):
 
         self._alphas_cum_prod_prev: th.Tensor
 
-        self._betas_bar: th.Tensor
+        self._betas_tiddle: th.Tensor
+
+        # register buffers / time schedule
 
         self.register_buffer("_betas", betas)
 
@@ -58,7 +74,7 @@ class Diffuser(ABC, nn.Module):
 
         self.register_buffer("_alphas_cum_prod_prev", alphas_cum_prod_prev)
 
-        self.register_buffer("_betas_bar", betas_bar)
+        self.register_buffer("_betas_tiddle", betas_tiddle)
 
 
 ##########
@@ -124,7 +140,7 @@ class Noiser(Diffuser):
         assert len(t.size()) == 2
         assert x_0.size(0) == t.size(0)
 
-        betas_bar = select_time_scheduler(self._betas_bar, t)
+        betas_bar = select_time_scheduler(self._betas_tiddle, t)
         betas_bar = betas_bar.repeat(
             1, 1, x_t.size(2), x_t.size(3), x_t.size(4)
         )
@@ -276,7 +292,7 @@ class Denoiser(Diffuser):
     def __sigma(self, v: th.Tensor, t: th.Tensor) -> th.Tensor:
         return th.exp(
             v * th.log(select_time_scheduler(self._betas, t))
-            + (1.0 - v) * th.log(select_time_scheduler(self._betas_bar, t))
+            + (1.0 - v) * th.log(select_time_scheduler(self._betas_tiddle, t))
         )
 
     def prior(
