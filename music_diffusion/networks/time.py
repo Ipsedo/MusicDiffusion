@@ -7,7 +7,7 @@ from torch import nn
 from .convolutions import ConvBlock
 
 
-class TimeEmbeder(nn.Module):
+class SinusoidTimeEmbedding(nn.Module):
     def __init__(self, steps: int, size: int) -> None:
         super().__init__()
 
@@ -19,16 +19,33 @@ class TimeEmbeder(nn.Module):
         pos_emb[:, 0::2] = th.sin(position.float() * div_term)
         pos_emb[:, 1::2] = th.cos(position.float() * div_term)
 
-        self.pos_emb: th.Tensor
+        self._pos_emb: th.Tensor
 
-        self.register_buffer("pos_emb", pos_emb)
+        self.register_buffer("_pos_emb", pos_emb)
 
     def forward(self, t_index: th.Tensor) -> th.Tensor:
         b, t = t_index.size()
 
         t_index = t_index.flatten()
 
-        out = th.index_select(self.pos_emb, dim=0, index=t_index)
+        out = th.index_select(self._pos_emb, dim=0, index=t_index)
+        out = th.unflatten(out, 0, (b, t))
+
+        return out
+
+
+class TimeEmbedding(nn.Module):
+    def __init__(self, steps: int, size: int):
+        super().__init__()
+
+        self.__emb = nn.Embedding(steps, size)
+
+    def forward(self, t_index: th.Tensor) -> th.Tensor:
+        b, t = t_index.size()
+
+        t_index = t_index.flatten()
+
+        out: th.Tensor = self.__emb(t_index)
         out = th.unflatten(out, 0, (b, t))
 
         return out

@@ -6,7 +6,7 @@ from torch import nn
 
 from .attention import SelfAttention2d
 from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock
-from .time import TimeBypass, TimeEmbeder, TimeWrapper
+from .time import TimeBypass, TimeEmbedding, TimeWrapper
 
 
 class TimeUNet(nn.Module):
@@ -37,7 +37,7 @@ class TimeUNet(nn.Module):
         encoder_attentions = use_attentions.copy()
         decoder_attentions = reversed(use_attentions)
 
-        self.__time_embedder = TimeEmbeder(steps, time_size)
+        self.__time_embedder = TimeEmbedding(steps, time_size)
 
         # Encoder stuff
 

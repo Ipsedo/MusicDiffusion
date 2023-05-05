@@ -100,7 +100,7 @@ class Saver:
                 )
 
                 self.__denoiser.eval()
-                x_0 = self.__denoiser.fast_sample(x_t, 256, verbose=True)
+                x_0 = self.__denoiser.sample(x_t, verbose=True)
                 self.__denoiser.train()
 
                 x_0 = self.__sample_transform(x_0)
