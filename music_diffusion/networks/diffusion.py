@@ -18,14 +18,12 @@ class Diffuser(ABC, nn.Module):
 
         self._steps = steps
 
-        linspace = th.cat(
-            [
-                th.tensor([1 - 0.999]),
-                th.linspace(beta_1, beta_t, steps=self._steps),
-            ],
-            dim=0,
+        epsilon = 1e-8
+
+        betas = (
+            th.pow(th.linspace(0.0, 1.0, steps=self._steps + 1), 2.0) * beta_t
+            + beta_1
         )
-        betas = linspace
 
         alphas = 1 - betas
         alphas_cum_prod = th.cumprod(alphas, dim=0)
@@ -39,7 +37,9 @@ class Diffuser(ABC, nn.Module):
         betas = betas[1:]
 
         betas_tiddle = (
-            betas * (1.0 - alphas_cum_prod_prev) / (1 - alphas_cum_prod)
+            betas
+            * (1.0 - alphas_cum_prod_prev + epsilon)
+            / (1 - alphas_cum_prod + epsilon)
         )
 
         alphas = alphas[1:]

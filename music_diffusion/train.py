@@ -131,6 +131,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
         device = "cuda" if model_options.cuda else "cpu"
 
         losses = [1.0 for _ in range(train_options.metric_window)]
+        grad_norms = [1.0 for _ in range(train_options.metric_window)]
         metric_step = 0
 
         for e in range(train_options.epochs):
@@ -184,17 +185,27 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 loss.backward()
                 optim.step()
 
+                grad_norm = th.mean(
+                    th.tensor([p.norm() for p in denoiser.parameters()])
+                )
+
                 del losses[0]
                 losses.append(loss.item())
+                del grad_norms[0]
+                grad_norms.append(grad_norm.item())
 
                 mlflow.log_metric("loss", loss.item(), step=metric_step)
+                mlflow.log_metric(
+                    "grad_norm", grad_norm.item(), step=metric_step
+                )
                 metric_step += 1
 
                 tqdm_bar.set_description(
                     f"Epoch {e} / {train_options.epochs - 1} - "
                     f"save {saver.curr_save} "
                     f"[{saver.curr_step} / {train_options.save_every - 1}] "
-                    f"loss = {mean(losses):.6f}"
+                    f"loss = {mean(losses):.6f}, "
+                    f"grad_norm = {mean(grad_norms):.6f}"
                 )
 
                 saver.save()
