@@ -16,35 +16,33 @@ class Diffuser(ABC, nn.Module):
     def __init__(self, steps: int, beta_1: float, beta_t: float):
         super().__init__()
 
+        print(beta_1, beta_t)
+
         self._steps = steps
 
         epsilon = 1e-8
 
-        betas = (
-            th.pow(th.linspace(0.0, 1.0, steps=self._steps + 1), 2.0) * beta_t
-            + beta_1
-        )
+        linear_space: th.Tensor = th.linspace(0.0, 1.0, steps=self._steps + 1)
+        # exponent: th.Tensor = linear_space * 3. * th.pi - 1.5 * th.pi
+        # exponent = -exponent
+        # f_values = 1 - 1. / (1. + th.exp(exponent))
+        f_values = th.pow(th.cos(0.5 * th.pi * linear_space), 2.0)
 
+        alphas_cum_prod = f_values[1:] / f_values[0]
+        alphas_cum_prod_prev = f_values[:-1] / f_values[0]
+
+        betas = 1.0 - alphas_cum_prod / alphas_cum_prod_prev
+        betas[betas > 0.999] = 0.999
         alphas = 1 - betas
-        alphas_cum_prod = th.cumprod(alphas, dim=0)
 
         sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
-
-        alphas_cum_prod_prev = alphas_cum_prod[:-1]
-        alphas_cum_prod = alphas_cum_prod[1:]
-
-        betas = betas[1:]
 
         betas_tiddle = (
             betas
             * (1.0 - alphas_cum_prod_prev + epsilon)
             / (1 - alphas_cum_prod + epsilon)
         )
-
-        alphas = alphas[1:]
-        sqrt_alphas_cum_prod = sqrt_alphas_cum_prod[1:]
-        sqrt_one_minus_alphas_cum_prod = sqrt_one_minus_alphas_cum_prod[1:]
 
         # attributes definition
 

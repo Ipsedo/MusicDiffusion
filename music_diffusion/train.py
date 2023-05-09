@@ -186,7 +186,13 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 optim.step()
 
                 grad_norm = th.mean(
-                    th.tensor([p.norm() for p in denoiser.parameters()])
+                    th.tensor(
+                        [
+                            p.grad.norm()
+                            for p in denoiser.parameters()
+                            if p.grad is not None
+                        ]
+                    )
                 )
 
                 del losses[0]
