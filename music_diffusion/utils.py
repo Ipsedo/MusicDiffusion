@@ -66,7 +66,7 @@ class Saver:
         )
 
     def save(self) -> None:
-        if self.__curr_idx % self.__save_every == 0:
+        if self.__curr_idx % self.__save_every == self.__save_every - 1:
 
             self.__curr_save += 1
 

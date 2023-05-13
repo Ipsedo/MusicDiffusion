@@ -7,7 +7,7 @@ import torch as th
 from torch import nn
 from tqdm import tqdm
 
-from .functions import normal_cdf, select_time_scheduler
+from .functions import normal_log_prob, select_time_scheduler
 from .init import weights_init
 from .unet import TimeUNet
 
@@ -21,19 +21,34 @@ class Diffuser(ABC, nn.Module):
         self._steps = steps
 
         epsilon = 1e-8
+        s = 8e-4
 
         linear_space: th.Tensor = th.linspace(0.0, 1.0, steps=self._steps + 1)
         # exponent: th.Tensor = linear_space * 3. * th.pi - 1.5 * th.pi
         # exponent = -exponent
         # f_values = 1 - 1. / (1. + th.exp(exponent))
-        f_values = th.pow(th.cos(0.5 * th.pi * linear_space), 2.0)
+        f_values = th.pow(
+            th.cos(0.5 * th.pi * (linear_space + s) / (1 + s)), 2.0
+        )
 
         alphas_cum_prod = f_values[1:] / f_values[0]
         alphas_cum_prod_prev = f_values[:-1] / f_values[0]
 
-        betas = 1.0 - alphas_cum_prod / alphas_cum_prod_prev
+        betas = 1 - alphas_cum_prod / alphas_cum_prod_prev
         betas[betas > 0.999] = 0.999
         alphas = 1 - betas
+
+        """betas = th.linspace(beta_1, beta_t, steps=self._steps)
+        betas = th.cat([th.tensor([0]), betas])
+
+        alphas = 1 - betas
+
+        alphas_cum_prod = th.cumprod(alphas, dim=0)
+        alphas_cum_prod_prev = alphas_cum_prod[:-1]
+
+        alphas_cum_prod = alphas_cum_prod[1:]
+        alphas = alphas[1:]
+        betas = betas[1:]"""
 
         sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
@@ -143,7 +158,7 @@ class Noiser(Diffuser):
             1, 1, x_t.size(2), x_t.size(3), x_t.size(4)
         )
 
-        posterior: th.Tensor = normal_cdf(
+        posterior: th.Tensor = normal_log_prob(
             x_t_prev, self.__mu(x_t, x_0, t), betas_bar
         )
 
@@ -355,7 +370,7 @@ class Denoiser(Diffuser):
         eps_theta: th.Tensor,
         v_theta: th.Tensor,
     ) -> th.Tensor:
-        return normal_cdf(
+        return normal_log_prob(
             x_t_prev,
             self.__mu(x_t, t, eps_theta),
             self.__sigma(v_theta, t),

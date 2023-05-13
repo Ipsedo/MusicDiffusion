@@ -131,6 +131,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
         device = "cuda" if model_options.cuda else "cpu"
 
         losses = [1.0 for _ in range(train_options.metric_window)]
+        eps_losses = [1.0 for _ in range(train_options.metric_window)]
+        vlb_losses = [1.0 for _ in range(train_options.metric_window)]
         grad_norms = [1.0 for _ in range(train_options.metric_window)]
         metric_step = 0
 
@@ -174,10 +176,12 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 posterior = noiser.posterior(x_t_prev, x_t, x_0, t)
 
                 loss_vlb = th_f.kl_div(
-                    prior.flatten(0, 1),
-                    posterior.flatten(0, 1),
-                    reduction="batchmean",
+                    prior,
+                    posterior,
+                    reduction="none",
+                    log_target=True,
                 )
+                loss_vlb = loss_vlb.mean()
 
                 loss = loss_simple + train_options.vlb_loss_factor * loss_vlb
 
@@ -197,6 +201,13 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
                 del losses[0]
                 losses.append(loss.item())
+
+                del eps_losses[0]
+                eps_losses.append(loss_simple.item())
+
+                del vlb_losses[0]
+                vlb_losses.append(loss_vlb.item())
+
                 del grad_norms[0]
                 grad_norms.append(grad_norm.item())
 
@@ -211,6 +222,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     f"save {saver.curr_save} "
                     f"[{saver.curr_step} / {train_options.save_every - 1}] "
                     f"loss = {mean(losses):.6f}, "
+                    f"loss_eps = {mean(eps_losses):.6f}, "
+                    f"loss_vlb = {mean(vlb_losses):.6f}, "
                     f"grad_norm = {mean(grad_norms):.6f}"
                 )
 

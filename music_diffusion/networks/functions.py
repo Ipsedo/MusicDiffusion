@@ -20,13 +20,12 @@ def bound_clip(x: th.Tensor, min_value: float, max_value: float) -> th.Tensor:
     return th.clip(x, min_value, max_value)
 
 
-def normal_cdf(x: th.Tensor, mu: th.Tensor, sigma: th.Tensor) -> th.Tensor:
-    b, t = x.size()[:2]
-
-    dist = Normal(mu.flatten(), sigma.flatten())
-    density: th.Tensor = dist.cdf(x.flatten()).view(b, t, -1).prod(-1)
-
-    return density
+def normal_log_prob(
+    x: th.Tensor, mu: th.Tensor, sigma: th.Tensor
+) -> th.Tensor:
+    dist = Normal(mu, sigma)
+    log_prob: th.Tensor = dist.log_prob(x)
+    return log_prob
 
 
 def log_normal_pdf(x: th.Tensor, mu: th.Tensor, sigma: th.Tensor) -> th.Tensor:
