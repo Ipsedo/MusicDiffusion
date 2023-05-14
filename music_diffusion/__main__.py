@@ -114,7 +114,6 @@ def main() -> None:
     train_parser.add_argument("--save-every", type=int, default=4096)
     train_parser.add_argument("-o", "--output-dir", type=str, required=True)
     train_parser.add_argument("--nb-samples", type=int, default=5)
-    train_parser.add_argument("--vlb-loss-factor", type=float, default=1e-3)
 
     # Generate parser
     generate_parser = model_sub_command.add_parser("generate")
@@ -156,7 +155,6 @@ def main() -> None:
                 save_every=args.save_every,
                 output_directory=args.output_dir,
                 nb_samples=args.nb_samples,
-                vlb_loss_factor=args.vlb_loss_factor,
                 noiser_state_dict=None,
                 denoiser_state_dict=None,
                 optim_state_dict=None,

@@ -25,7 +25,6 @@ TrainOptions = NamedTuple(
         ("save_every", int),
         ("output_directory", str),
         ("nb_samples", int),
-        ("vlb_loss_factor", float),
         ("noiser_state_dict", Optional[str]),
         ("denoiser_state_dict", Optional[str]),
         ("optim_state_dict", Optional[str]),
@@ -185,7 +184,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 loss_vlb = th.pow(posterior - prior, 2)
                 loss_vlb = loss_vlb.mean()
 
-                loss = loss_simple + train_options.vlb_loss_factor * loss_vlb
+                loss = loss_simple + loss_vlb
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()
