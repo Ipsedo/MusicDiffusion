@@ -29,8 +29,8 @@ def normal_log_prob(
 
 
 def normal_pdf(x: th.Tensor, mu: th.Tensor, sigma: th.Tensor) -> th.Tensor:
-    return th.exp(-0.5 * th.pow((x - mu) / (sigma + 1e-8), 2.0)) / th.sqrt(
-        2 * th.pi * sigma**2 + 1e-8
+    return th.exp(-0.5 * th.pow((x - mu) / sigma, 2.0)) / th.sqrt(
+        2 * th.pi * sigma**2
     )
 
 

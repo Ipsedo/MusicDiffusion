@@ -25,7 +25,7 @@ def test_normal_log_prob(
         batch_size, step_batch_size, channels, *img_sizes, device=device
     )
     mu = th.randn(*x.size(), device=device)
-    sigma = th.rand(*x.size(), device=device)
+    sigma = th.rand(*x.size(), device=device) + 1e-8
 
     proba = normal_log_prob(x, mu, sigma)
 
