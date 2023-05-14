@@ -182,7 +182,11 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 # )
                 # loss_vlb = prior * th.log(prior / posterior)
                 # loss_vlb = loss_vlb.sum(dim=[2, 3, 4]).mean()
-                loss_vlb = th.pow(posterior - prior, 2)
+
+                # Hellinger
+                loss_vlb = 2 * th.pow(
+                    th.sqrt(posterior + 1e-8) - th.sqrt(prior + 1e-8), 2
+                )
                 loss_vlb = loss_vlb.mean()
 
                 loss = loss_simple + train_options.vlb_loss_factor * loss_vlb
