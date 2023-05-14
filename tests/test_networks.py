@@ -74,11 +74,11 @@ def test_noiser(
     assert posterior.size(3) == img_sizes[0]
     assert posterior.size(4) == img_sizes[1]
 
-    # assert th.all(
-    #    th.logical_and(
-    #        th.ge(posterior, th.tensor(0)), th.le(posterior, th.tensor(1))
-    #    )
-    # )
+    assert th.all(
+        th.logical_and(
+            th.ge(posterior, th.tensor(0)), th.le(posterior, th.tensor(1))
+        )
+    )
 
 
 @pytest.mark.parametrize("steps", [10, 20])
@@ -159,9 +159,9 @@ def test_denoiser(
     assert prior.size(2) == channels
     assert prior.size(3) == img_sizes[0]
     assert prior.size(4) == img_sizes[1]
-    # assert th.all(
-    #    th.logical_and(th.ge(prior, th.tensor(0)), th.le(prior, th.tensor(1)))
-    # )
+    assert th.all(
+        th.logical_and(th.ge(prior, th.tensor(0)), th.le(prior, th.tensor(1)))
+    )
 
     x_t = th.randn(
         batch_size,

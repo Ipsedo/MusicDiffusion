@@ -7,7 +7,7 @@ import torch as th
 from torch import nn
 from tqdm import tqdm
 
-from .functions import normal_log_prob, select_time_scheduler
+from .functions import normal_cdf, select_time_scheduler
 from .init import weights_init
 from .unet import TimeUNet
 
@@ -21,7 +21,7 @@ class Diffuser(ABC, nn.Module):
         self._steps = steps
 
         epsilon = 1e-8
-        s = 8e-4
+        """s = 8e-4
 
         linear_space: th.Tensor = th.linspace(0.0, 1.0, steps=self._steps + 1)
         # exponent: th.Tensor = linear_space * 3. * th.pi - 1.5 * th.pi
@@ -36,9 +36,9 @@ class Diffuser(ABC, nn.Module):
 
         betas = 1 - alphas_cum_prod / alphas_cum_prod_prev
         betas[betas > 0.999] = 0.999
-        alphas = 1 - betas
+        alphas = 1 - betas"""
 
-        """betas = th.linspace(beta_1, beta_t, steps=self._steps)
+        betas = th.linspace(beta_1, beta_t, steps=self._steps)
         betas = th.cat([th.tensor([0]), betas])
 
         alphas = 1 - betas
@@ -48,7 +48,7 @@ class Diffuser(ABC, nn.Module):
 
         alphas_cum_prod = alphas_cum_prod[1:]
         alphas = alphas[1:]
-        betas = betas[1:]"""
+        betas = betas[1:]
 
         sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
@@ -158,7 +158,7 @@ class Noiser(Diffuser):
             1, 1, x_t.size(2), x_t.size(3), x_t.size(4)
         )
 
-        posterior: th.Tensor = normal_log_prob(
+        posterior: th.Tensor = normal_cdf(
             x_t_prev, self.__mu(x_t, x_0, t), betas_bar
         )
 
@@ -370,7 +370,7 @@ class Denoiser(Diffuser):
         eps_theta: th.Tensor,
         v_theta: th.Tensor,
     ) -> th.Tensor:
-        return normal_log_prob(
+        return normal_cdf(
             x_t_prev,
             self.__mu(x_t, t, eps_theta),
             self.__sigma(v_theta, t),

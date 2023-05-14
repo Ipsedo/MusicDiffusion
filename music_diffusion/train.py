@@ -4,7 +4,6 @@ from typing import NamedTuple, Optional
 
 import mlflow
 import torch as th
-from torch.nn import functional as th_f
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose
 from tqdm import tqdm
@@ -175,12 +174,15 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 )
                 posterior = noiser.posterior(x_t_prev, x_t, x_0, t)
 
-                loss_vlb = th_f.kl_div(
-                    prior,
-                    posterior,
-                    reduction="none",
-                    log_target=True,
-                )
+                # loss_vlb = th_f.kl_div(
+                #     prior.flatten(0, 1),
+                #     posterior.flatten(0, 1),
+                #     reduction="batchmean",
+                #     log_target=True,
+                # )
+                # loss_vlb = prior * th.log(prior / posterior)
+                # loss_vlb = loss_vlb.sum(dim=[2, 3, 4]).mean()
+                loss_vlb = th.pow(posterior - prior, 2)
                 loss_vlb = loss_vlb.mean()
 
                 loss = loss_simple + train_options.vlb_loss_factor * loss_vlb

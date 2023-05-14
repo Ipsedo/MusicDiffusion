@@ -28,12 +28,24 @@ def normal_log_prob(
     return log_prob
 
 
+def normal_pdf(x: th.Tensor, mu: th.Tensor, sigma: th.Tensor) -> th.Tensor:
+    return th.exp(-0.5 * th.pow((x - mu) / (sigma + 1e-8), 2.0)) / th.sqrt(
+        2 * th.pi * sigma**2 + 1e-8
+    )
+
+
+def normal_cdf(x: th.Tensor, mu: th.Tensor, sigma: th.Tensor) -> th.Tensor:
+    dist = Normal(mu, sigma)
+    cdf: th.Tensor = dist.cdf(x)
+    return cdf
+
+
 def log_normal_pdf(x: th.Tensor, mu: th.Tensor, sigma: th.Tensor) -> th.Tensor:
     log_density = th.exp(
         -th.pow(th.log(x) - mu, 2.0) / (2.0 * th.pow(sigma, 2.0))
     ) / (x * sigma * sqrt(2 * th.pi))
 
-    return th.sum(log_density, dim=[2, 3, 4])
+    return log_density.flatten(2, -1)
 
 
 def select_time_scheduler(factor: th.Tensor, t: th.Tensor) -> th.Tensor:
