@@ -9,7 +9,7 @@ from torchvision.transforms import Compose
 from tqdm import tqdm
 
 from .data import AudioDataset, ChangeType, ChannelMinMaxNorm, RangeChange
-from .networks import Denoiser, Noiser
+from .networks import Denoiser, Noiser, hellinger
 from .utils import ModelOptions, Saver
 
 TrainOptions = NamedTuple(
@@ -182,10 +182,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 # loss_vlb = prior * th.log(prior / posterior)
                 # loss_vlb = loss_vlb.sum(dim=[2, 3, 4]).mean()
 
-                # Hellinger
-                loss_vlb = 2 * th.pow(
-                    th.sqrt(posterior + 1e-8) - th.sqrt(prior + 1e-8), 2
-                )
+                loss_vlb = hellinger(posterior, prior)
                 loss_vlb = loss_vlb.mean()
 
                 loss = loss_simple + loss_vlb
@@ -216,9 +213,14 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 del grad_norms[0]
                 grad_norms.append(grad_norm.item())
 
-                mlflow.log_metric("loss", loss.item(), step=metric_step)
-                mlflow.log_metric(
-                    "grad_norm", grad_norm.item(), step=metric_step
+                mlflow.log_metrics(
+                    {
+                        "loss": loss.item(),
+                        "simple_loss": loss_simple.item(),
+                        "vlb_loss": loss_vlb.item(),
+                        "grad_norm": grad_norm.item(),
+                    },
+                    step=metric_step,
                 )
                 metric_step += 1
 

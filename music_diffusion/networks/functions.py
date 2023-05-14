@@ -52,3 +52,7 @@ def select_time_scheduler(factor: th.Tensor, t: th.Tensor) -> th.Tensor:
     b, s = t.size()
     factor = factor[t.flatten(), None, None, None]
     return th.unflatten(factor, 0, (b, s))
+
+
+def hellinger(p: th.Tensor, q: th.Tensor, epsilon: float = 1e-8) -> th.Tensor:
+    return 2 * th.pow(th.sqrt(p + epsilon) - th.sqrt(q + epsilon), 2)
