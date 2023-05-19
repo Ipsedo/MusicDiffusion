@@ -9,7 +9,7 @@ from torchvision.transforms import Compose
 from tqdm import tqdm
 
 from .data import AudioDataset, ChangeType, ChannelMinMaxNorm, RangeChange
-from .networks import Denoiser, Noiser, hellinger
+from .networks import Denoiser, Noiser, kl_div
 from .utils import ModelOptions, Saver
 
 TrainOptions = NamedTuple(
@@ -173,17 +173,12 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 )
                 posterior = noiser.posterior(x_t_prev, x_t, x_0, t)
 
-                # loss_vlb = th_f.kl_div(
-                #     prior.flatten(0, 1),
-                #     posterior.flatten(0, 1),
-                #     reduction="batchmean",
-                #     log_target=True,
-                # )
-                # loss_vlb = prior * th.log(prior / posterior)
-                # loss_vlb = loss_vlb.sum(dim=[2, 3, 4]).mean()
-
-                loss_vlb = hellinger(posterior, prior)
+                # kl_div(prior, posterior) ? see paper, part 2.1
+                loss_vlb = kl_div(posterior, prior)
                 loss_vlb = loss_vlb.mean()
+
+                # loss_vlb = hellinger(posterior, prior)
+                # loss_vlb = loss_vlb.mean()
 
                 loss = loss_simple + loss_vlb
 

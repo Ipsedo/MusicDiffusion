@@ -16,11 +16,8 @@ class Diffuser(ABC, nn.Module):
     def __init__(self, steps: int, beta_1: float, beta_t: float):
         super().__init__()
 
-        print(beta_1, beta_t)
-
         self._steps = steps
 
-        epsilon = 1e-8
         """s = 8e-4
 
         linear_space: th.Tensor = th.linspace(0.0, 1.0, steps=self._steps + 1)
@@ -38,8 +35,8 @@ class Diffuser(ABC, nn.Module):
         betas[betas > 0.999] = 0.999
         alphas = 1 - betas"""
 
-        betas = th.linspace(beta_1, beta_t, steps=self._steps)
-        betas = th.cat([th.tensor([0]), betas])
+        betas = th.linspace(beta_1, beta_t, steps=self._steps + 1)
+        # betas = th.cat([th.tensor([epsilon]), betas])
 
         alphas = 1 - betas
 
@@ -54,9 +51,7 @@ class Diffuser(ABC, nn.Module):
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
 
         betas_tiddle = (
-            betas
-            * (1.0 - alphas_cum_prod_prev + epsilon)
-            / (1 - alphas_cum_prod + epsilon)
+            betas * (1.0 - alphas_cum_prod_prev) / (1.0 - alphas_cum_prod)
         )
 
         # attributes definition
