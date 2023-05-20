@@ -9,7 +9,7 @@ from torchvision.transforms import Compose
 from tqdm import tqdm
 
 from .data import AudioDataset, ChangeType, ChannelMinMaxNorm, RangeChange
-from .networks import Denoiser, Noiser, kl_div
+from .networks import Denoiser, Noiser, mse
 from .utils import ModelOptions, Saver
 
 TrainOptions = NamedTuple(
@@ -162,7 +162,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 t_prev[t_prev < 0] = 0
                 x_t_prev, _ = noiser(x_0, t_prev, eps)
 
-                loss_simple = th.pow(eps - eps_theta, 2.0).mean()
+                loss_simple = mse(eps, eps_theta)
+                loss_simple = loss_simple.mean()
 
                 prior = denoiser.prior(
                     x_t_prev,
@@ -174,11 +175,14 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 posterior = noiser.posterior(x_t_prev, x_t, x_0, t)
 
                 # kl_div(prior, posterior) ? see paper, part 2.1
-                loss_vlb = kl_div(posterior, prior)
-                loss_vlb = loss_vlb.mean()
+                # loss_vlb = kl_div(posterior, prior)
+                # loss_vlb = loss_vlb.mean()
 
                 # loss_vlb = hellinger(posterior, prior)
                 # loss_vlb = loss_vlb.mean()
+
+                loss_vlb = mse(posterior, prior)
+                loss_vlb = loss_vlb.mean()
 
                 loss = loss_simple + loss_vlb
 
@@ -186,15 +190,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 loss.backward()
                 optim.step()
 
-                grad_norm = th.mean(
-                    th.tensor(
-                        [
-                            p.grad.norm()
-                            for p in denoiser.parameters()
-                            if p.grad is not None
-                        ]
-                    )
-                )
+                grad_norm = denoiser.grad_norm()
 
                 del losses[0]
                 losses.append(loss.item())
@@ -206,14 +202,14 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 vlb_losses.append(loss_vlb.item())
 
                 del grad_norms[0]
-                grad_norms.append(grad_norm.item())
+                grad_norms.append(grad_norm)
 
                 mlflow.log_metrics(
                     {
                         "loss": loss.item(),
                         "simple_loss": loss_simple.item(),
                         "vlb_loss": loss_vlb.item(),
-                        "grad_norm": grad_norm.item(),
+                        "grad_norm": grad_norm,
                     },
                     step=metric_step,
                 )

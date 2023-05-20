@@ -36,7 +36,7 @@ def bark_scale(
     ), f"(STFT, TIME), actual = {magnitude.size()}"
 
     min_hz = 20.0
-    max_hz = 44100 // 2
+    max_hz = constants.SAMPLE_RATE // 2
 
     lin_space: th.Tensor = (
         th.linspace(min_hz, max_hz, magnitude.size()[0]) / 600.0

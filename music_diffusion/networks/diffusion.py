@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from abc import ABC
+from statistics import mean
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -242,7 +243,7 @@ class Denoiser(Diffuser):
             )
             eps = eps.squeeze(1)
 
-            mean = (
+            mu = (
                 x_t
                 - eps
                 * self._betas[t]
@@ -251,7 +252,7 @@ class Denoiser(Diffuser):
 
             var = self.__sigma(v, th.tensor([[t]], device=device)).squeeze(1)
 
-            x_t = mean + var.sqrt() * z
+            x_t = mu + var.sqrt() * z
 
             tqdm_bar.set_description(
                 f"Generate {x_t.size(0)} data with size {tuple(x_t.size()[1:])}"
@@ -296,7 +297,7 @@ class Denoiser(Diffuser):
             # pylint: enable=duplicate-code
             v = v.squeeze(1)
 
-            mean = (
+            mu = (
                 x_t - eps * betas_s[s_t] / th.sqrt(1 - alphas_cum_prod_s)[s_t]
             ) / alphas_s[s_t]
 
@@ -305,7 +306,7 @@ class Denoiser(Diffuser):
                 + (1.0 - v) * th.log(betas_tiddle_s[s_t])
             )
 
-            x_t = mean + var.sqrt() * z
+            x_t = mu + var.sqrt() * z
 
             tqdm_bar.set_description(
                 f"Generate {x_t.size(0)} data with size {tuple(x_t.size()[1:])}"
@@ -335,6 +336,15 @@ class Denoiser(Diffuser):
                     for p in self.parameters()
                     if p.requires_grad
                 ]
+            )
+        )
+
+    def grad_norm(self) -> float:
+        return float(
+            mean(
+                p.grad.norm().item()
+                for p in self.parameters()
+                if p.grad is not None
             )
         )
 

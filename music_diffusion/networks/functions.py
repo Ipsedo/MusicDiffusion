@@ -45,3 +45,7 @@ def hellinger(p: th.Tensor, q: th.Tensor, epsilon: float = 1e-8) -> th.Tensor:
 
 def kl_div(p: th.Tensor, q: th.Tensor, epsilon: float = 1e-8) -> th.Tensor:
     return p * (th.log(p + epsilon) - th.log(q + epsilon))
+
+
+def mse(p: th.Tensor, q: th.Tensor) -> th.Tensor:
+    return th.pow(p - q, 2.0)
