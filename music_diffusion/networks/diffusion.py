@@ -330,12 +330,8 @@ class Denoiser(Diffuser):
 
     def count_parameters(self) -> int:
         return int(
-            np.sum(
-                [
-                    np.prod(p.size())
-                    for p in self.parameters()
-                    if p.requires_grad
-                ]
+            sum(
+                np.prod(p.size()) for p in self.parameters() if p.requires_grad
             )
         )
 
