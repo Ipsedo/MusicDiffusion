@@ -4,8 +4,6 @@ import math
 import torch as th
 from torch import nn
 
-from .convolutions import ConvBlock
-
 
 class SinusoidTimeEmbedding(nn.Module):
     def __init__(self, steps: int, size: int) -> None:
@@ -47,31 +45,6 @@ class TimeEmbedding(nn.Module):
 
         out: th.Tensor = self.__emb(t_index)
         out = th.unflatten(out, 0, (b, t))
-
-        return out
-
-
-class TimeConvBlock(nn.Module):
-    def __init__(
-        self, in_channels: int, out_channels: int, time_size: int, groups: int
-    ) -> None:
-        super().__init__()
-
-        self.__conv = TimeBypass(ConvBlock(in_channels, out_channels, groups))
-
-        self.__to_channels = nn.Sequential(
-            nn.Linear(time_size, in_channels),
-            nn.ELU(),
-            TimeBypass(nn.LayerNorm(in_channels)),
-        )
-
-    def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
-        proj_time_emb = self.__to_channels(time_emb)
-        proj_time_emb = proj_time_emb[:, :, :, None, None]
-
-        x_time = x + proj_time_emb
-
-        out: th.Tensor = self.__conv(x_time)
 
         return out
 
