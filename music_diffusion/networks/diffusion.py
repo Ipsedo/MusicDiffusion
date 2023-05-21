@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 from abc import ABC
 from statistics import mean
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import numpy as np
 import torch as th
 from torch import nn
 from tqdm import tqdm
 
-from .functions import normal_cdf, select_time_scheduler
+from .functions import select_time_scheduler
 from .init import weights_init
 from .unet import TimeUNet
 
@@ -93,7 +93,7 @@ class Diffuser(ABC, nn.Module):
 
 class Noiser(Diffuser):
     def forward(
-        self, x_0: th.Tensor, t: th.Tensor, eps: Optional[th.Tensor] = None
+        self, x_0: th.Tensor, t: th.Tensor
     ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2
@@ -104,8 +104,7 @@ class Noiser(Diffuser):
 
         device = "cuda" if next(self.buffers()).is_cuda else "cpu"
 
-        if eps is None:
-            eps = th.randn(b, nb_steps, c, w, h, device=device)
+        eps = th.randn(b, nb_steps, c, w, h, device=device)
 
         sqrt_alphas_cum_prod = select_time_scheduler(
             self._sqrt_alphas_cum_prod, t
@@ -120,45 +119,6 @@ class Noiser(Diffuser):
         )
 
         return x_t, eps
-
-    def __mu(self, x_t: th.Tensor, x_0: th.Tensor, t: th.Tensor) -> th.Tensor:
-        alphas_cum_prod_prev = select_time_scheduler(
-            self._alphas_cum_prod_prev, t
-        )
-        alphas_cum_prod = select_time_scheduler(self._alphas_cum_prod, t)
-        alphas = select_time_scheduler(self._alphas, t)
-        betas = select_time_scheduler(self._betas, t)
-
-        mu: th.Tensor = x_0.unsqueeze(1) * th.sqrt(
-            alphas_cum_prod_prev
-        ) * betas / (1.0 - alphas_cum_prod) + x_t * th.sqrt(alphas) * (
-            1.0 - alphas_cum_prod_prev
-        ) / (
-            1.0 - alphas_cum_prod
-        )
-        return mu
-
-    def posterior(
-        self,
-        x_t_prev: th.Tensor,
-        x_t: th.Tensor,
-        x_0: th.Tensor,
-        t: th.Tensor,
-    ) -> th.Tensor:
-        assert len(x_0.size()) == 4
-        assert len(t.size()) == 2
-        assert x_0.size(0) == t.size(0)
-
-        betas_bar = select_time_scheduler(self._betas_tiddle, t)
-        betas_bar = betas_bar.repeat(
-            1, 1, x_t.size(2), x_t.size(3), x_t.size(4)
-        )
-
-        posterior: th.Tensor = normal_cdf(
-            x_t_prev, self.__mu(x_t, x_0, t), betas_bar
-        )
-
-        return posterior
 
 
 ############
@@ -209,17 +169,15 @@ class Denoiser(Diffuser):
 
         self.apply(weights_init)
 
-    def forward(
-        self, x_t: th.Tensor, t: th.Tensor
-    ) -> Tuple[th.Tensor, th.Tensor]:
+    def forward(self, x_t: th.Tensor, t: th.Tensor) -> th.Tensor:
         assert len(x_t.size()) == 5
         assert len(t.size()) == 2
         assert x_t.size(0) == t.size(0)
         assert x_t.size(1) == t.size(1)
 
-        eps_theta, v_theta = self.__unet(x_t, t)
+        eps_theta: th.Tensor = self.__unet(x_t, t)
 
-        return eps_theta, v_theta
+        return eps_theta
 
     def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
         assert len(x_t.size()) == 4
@@ -237,7 +195,7 @@ class Denoiser(Diffuser):
                 else th.zeros_like(x_t, device=device)
             )
 
-            eps, v = self.__unet(
+            eps = self.__unet(
                 x_t.unsqueeze(1),
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             )
@@ -250,7 +208,7 @@ class Denoiser(Diffuser):
                 / self._sqrt_one_minus_alphas_cum_prod[t]
             ) / self._sqrt_alpha[t]
 
-            var = self.__sigma(v, th.tensor([[t]], device=device)).squeeze(1)
+            var = self._betas[t]
 
             x_t = mu + var.sqrt() * z
 
@@ -270,9 +228,6 @@ class Denoiser(Diffuser):
         alphas_cum_prod_prev_s = self._alphas_cum_prod_prev[steps]
 
         betas_s = 1 - alphas_cum_prod_s / alphas_cum_prod_prev_s
-        betas_tiddle_s = (
-            betas_s * (1 - alphas_cum_prod_prev_s) / (1 - alphas_cum_prod_s)
-        )
 
         alphas_s = 1 - betas_s
 
@@ -289,22 +244,18 @@ class Denoiser(Diffuser):
                 else th.zeros_like(x_t, device=device)
             )
 
-            eps, v = self.__unet(
+            eps = self.__unet(
                 x_t.unsqueeze(1),
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             )
             eps = eps.squeeze(1)
             # pylint: enable=duplicate-code
-            v = v.squeeze(1)
 
             mu = (
                 x_t - eps * betas_s[s_t] / th.sqrt(1 - alphas_cum_prod_s)[s_t]
             ) / alphas_s[s_t]
 
-            var = th.exp(
-                v * th.log(betas_s[s_t])
-                + (1.0 - v) * th.log(betas_tiddle_s[s_t])
-            )
+            var = betas_s[s_t]
 
             x_t = mu + var.sqrt() * z
 
@@ -342,37 +293,4 @@ class Denoiser(Diffuser):
                 for p in self.parameters()
                 if p.grad is not None
             )
-        )
-
-    def __mu(
-        self,
-        x_t: th.Tensor,
-        t: th.Tensor,
-        eps_theta: th.Tensor,
-    ) -> th.Tensor:
-        return (
-            x_t
-            - eps_theta
-            * select_time_scheduler(self._betas, t)
-            / th.sqrt(1.0 - select_time_scheduler(self._alphas_cum_prod, t))
-        ) / th.sqrt(select_time_scheduler(self._alphas, t))
-
-    def __sigma(self, v: th.Tensor, t: th.Tensor) -> th.Tensor:
-        return th.exp(
-            v * th.log(select_time_scheduler(self._betas, t))
-            + (1.0 - v) * th.log(select_time_scheduler(self._betas_tiddle, t))
-        )
-
-    def prior(
-        self,
-        x_t_prev: th.Tensor,
-        x_t: th.Tensor,
-        t: th.Tensor,
-        eps_theta: th.Tensor,
-        v_theta: th.Tensor,
-    ) -> th.Tensor:
-        return normal_cdf(
-            x_t_prev,
-            self.__mu(x_t, t, eps_theta),
-            self.__sigma(v_theta, t),
         )

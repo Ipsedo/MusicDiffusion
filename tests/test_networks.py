@@ -58,28 +58,6 @@ def test_noiser(
     assert eps.size(3) == img_sizes[0]
     assert eps.size(4) == img_sizes[1]
 
-    t_prev = t - 1
-    t_prev[t_prev < 0] = 0
-
-    x_t_prev, eps_same = noiser(x_0, t_prev, eps)
-
-    assert th.all(th.eq(eps_same, eps))
-
-    posterior = noiser.posterior(x_t_prev, x_t, x_0, t)
-
-    assert len(posterior.size()) == 5
-    assert posterior.size(0) == batch_size
-    assert posterior.size(1) == step_batch_size
-    assert posterior.size(2) == channels
-    assert posterior.size(3) == img_sizes[0]
-    assert posterior.size(4) == img_sizes[1]
-
-    assert th.all(
-        th.logical_and(
-            th.ge(posterior, th.tensor(0)), th.le(posterior, th.tensor(1))
-        )
-    )
-
 
 @pytest.mark.parametrize("steps", [10, 20])
 @pytest.mark.parametrize("step_batch_size", [1, 2])
@@ -133,7 +111,7 @@ def test_denoiser(
         device=device,
     )
 
-    eps, v = denoiser(x_t, t)
+    eps = denoiser(x_t, t)
 
     assert len(eps.size()) == 5
     assert eps.size(0) == batch_size
@@ -141,27 +119,6 @@ def test_denoiser(
     assert eps.size(2) == channels
     assert eps.size(3) == img_sizes[0]
     assert eps.size(4) == img_sizes[1]
-
-    assert len(v.size()) == 5
-    assert v.size(0) == batch_size
-    assert v.size(1) == step_batch_size
-    assert v.size(2) == channels
-    assert v.size(3) == img_sizes[0]
-    assert v.size(4) == img_sizes[1]
-
-    x_t_prev = th.randn(*x_t.size(), device=device)
-
-    prior = denoiser.prior(x_t_prev, x_t, t, eps, v)
-
-    assert len(prior.size()) == 5
-    assert prior.size(0) == batch_size
-    assert prior.size(1) == step_batch_size
-    assert prior.size(2) == channels
-    assert prior.size(3) == img_sizes[0]
-    assert prior.size(4) == img_sizes[1]
-    assert th.all(
-        th.logical_and(th.ge(prior, th.tensor(0)), th.le(prior, th.tensor(1)))
-    )
 
     x_t = th.randn(
         batch_size,
@@ -248,7 +205,7 @@ def test_unet(
         device=device,
     )
 
-    eps, v = unet(x_t, t)
+    eps = unet(x_t, t)
 
     assert len(eps.size()) == 5
     assert eps.size(0) == batch_size
@@ -256,10 +213,3 @@ def test_unet(
     assert eps.size(2) == channels
     assert eps.size(3) == size[0]
     assert eps.size(4) == size[1]
-
-    assert len(v.size()) == 5
-    assert v.size(0) == batch_size
-    assert v.size(1) == nb_steps
-    assert v.size(2) == channels
-    assert v.size(3) == size[0]
-    assert v.size(4) == size[1]

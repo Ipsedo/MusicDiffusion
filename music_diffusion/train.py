@@ -129,8 +129,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
         device = "cuda" if model_options.cuda else "cpu"
 
         losses = [1.0 for _ in range(train_options.metric_window)]
-        eps_losses = [1.0 for _ in range(train_options.metric_window)]
-        vlb_losses = [1.0 for _ in range(train_options.metric_window)]
         grad_norms = [1.0 for _ in range(train_options.metric_window)]
         metric_step = 0
 
@@ -156,35 +154,10 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 )
 
                 x_t, eps = noiser(x_0, t)
-                eps_theta, v_theta = denoiser(x_t, t)
+                eps_theta = denoiser(x_t, t)
 
-                t_prev = t - 1
-                t_prev[t_prev < 0] = 0
-                x_t_prev, _ = noiser(x_0, t_prev, eps)
-
-                loss_simple = mse(eps, eps_theta)
-                loss_simple = loss_simple.mean()
-
-                prior = denoiser.prior(
-                    x_t_prev,
-                    x_t,
-                    t,
-                    eps_theta.detach(),
-                    v_theta,
-                )
-                posterior = noiser.posterior(x_t_prev, x_t, x_0, t)
-
-                # kl_div(prior, posterior) ? see paper, part 2.1
-                # loss_vlb = kl_div(posterior, prior)
-                # loss_vlb = loss_vlb.mean()
-
-                # loss_vlb = hellinger(posterior, prior)
-                # loss_vlb = loss_vlb.mean()
-
-                loss_vlb = mse(posterior, prior)
-                loss_vlb = loss_vlb.mean()
-
-                loss = loss_simple + loss_vlb
+                loss = mse(eps, eps_theta)
+                loss = loss.mean()
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()
@@ -195,20 +168,12 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 del losses[0]
                 losses.append(loss.item())
 
-                del eps_losses[0]
-                eps_losses.append(loss_simple.item())
-
-                del vlb_losses[0]
-                vlb_losses.append(loss_vlb.item())
-
                 del grad_norms[0]
                 grad_norms.append(grad_norm)
 
                 mlflow.log_metrics(
                     {
                         "loss": loss.item(),
-                        "simple_loss": loss_simple.item(),
-                        "vlb_loss": loss_vlb.item(),
                         "grad_norm": grad_norm,
                     },
                     step=metric_step,
@@ -220,8 +185,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     f"save {saver.curr_save} "
                     f"[{saver.curr_step} / {train_options.save_every - 1}] "
                     f"loss = {mean(losses):.6f}, "
-                    f"loss_eps = {mean(eps_losses):.6f}, "
-                    f"loss_vlb = {mean(vlb_losses):.6f}, "
                     f"grad_norm = {mean(grad_norms):.6f}"
                 )
 
