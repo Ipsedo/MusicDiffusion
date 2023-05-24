@@ -12,7 +12,8 @@ class SinusoidTimeEmbedding(nn.Module):
         pos_emb = th.zeros(steps, size)
         position = th.arange(0, steps).unsqueeze(1)
         div_term = th.exp(
-            th.arange(0, size, 2, dtype=th.float) * (-math.log(10000.0) / size)
+            th.arange(0, size, 2, dtype=th.float)
+            * th.tensor(-math.log(10000.0) / size)
         )
         pos_emb[:, 0::2] = th.sin(position.float() * div_term)
         pos_emb[:, 1::2] = th.cos(position.float() * div_term)
@@ -55,7 +56,6 @@ class TimeWrapper(nn.Module):
         time_size: int,
         channels: int,
         block: nn.Module,
-        groups: int,
     ) -> None:
         super().__init__()
 
@@ -64,7 +64,7 @@ class TimeWrapper(nn.Module):
         self.__to_channels = nn.Sequential(
             nn.Linear(time_size, channels),
             nn.ELU(),
-            TimeBypass(nn.GroupNorm(groups, channels)),
+            TimeBypass(nn.InstanceNorm1d(channels)),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:

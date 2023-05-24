@@ -49,9 +49,6 @@ def generate(
         model_options.beta_1,
         model_options.beta_t,
         model_options.unet_channels,
-        model_options.use_attentions,
-        model_options.attention_heads,
-        model_options.norm_groups,
     )
     # pylint: enable=duplicate-code
 

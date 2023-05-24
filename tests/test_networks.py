@@ -63,15 +63,13 @@ def test_noiser(
 @pytest.mark.parametrize("step_batch_size", [1, 2])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [2, 4])
-@pytest.mark.parametrize("norm_groups", [1, 2])
-@pytest.mark.parametrize("img_sizes", [(16, 16), (8, 16)])
+@pytest.mark.parametrize("img_sizes", [(32, 32), (16, 32)])
 @pytest.mark.parametrize("time_size", [2, 4])
 def test_denoiser(
     steps: int,
     step_batch_size: int,
     batch_size: int,
     channels: int,
-    norm_groups: int,
     img_sizes: Tuple[int, int],
     time_size: int,
     use_cuda: bool,
@@ -83,9 +81,6 @@ def test_denoiser(
         1e-4,
         2e-1,
         [(8, 8), (8, 16), (16, 32)],
-        [False, False, True],
-        2,
-        norm_groups,
     )
 
     denoiser.eval()
@@ -146,27 +141,19 @@ def test_denoiser(
 
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [2, 4])
-@pytest.mark.parametrize("norm_groups", [1, 2])
-@pytest.mark.parametrize("size", [(16, 16), (8, 16)])
+@pytest.mark.parametrize("size", [(32, 32), (16, 32)])
 @pytest.mark.parametrize(
     "hidden_channels",
     [[(16, 8), (8, 16), (16, 32)], [(16, 8), (8, 40), (40, 16)]],
 )
-@pytest.mark.parametrize(
-    "use_attentions", [[True, False, True], [False, True, False]]
-)
-@pytest.mark.parametrize("attention_heads", [1, 2])
 @pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("nb_steps", [1, 2])
 def test_unet(
     batch_size: int,
     channels: int,
-    norm_groups: int,
     size: Tuple[int, int],
     hidden_channels: List[Tuple[int, int]],
-    use_attentions: List[bool],
-    attention_heads: int,
     steps: int,
     time_size: int,
     nb_steps: int,
@@ -176,11 +163,8 @@ def test_unet(
         channels,
         channels,
         hidden_channels,
-        use_attentions,
-        attention_heads,
         time_size,
         steps,
-        norm_groups,
     )
 
     unet.eval()

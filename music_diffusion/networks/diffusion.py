@@ -36,8 +36,8 @@ class Diffuser(ABC, nn.Module):
         betas[betas > 0.999] = 0.999
         alphas = 1 - betas"""
 
-        betas = th.linspace(beta_1, beta_t, steps=self._steps + 1)
-        # betas = th.cat([th.tensor([epsilon]), betas])
+        betas = th.linspace(beta_1, beta_t, steps=self._steps)
+        betas = th.cat([th.tensor([0]), betas])
 
         alphas = 1 - betas
 
@@ -135,9 +135,6 @@ class Denoiser(Diffuser):
         beta_1: float,
         beta_t: float,
         unet_channels: List[Tuple[int, int]],
-        use_attentions: List[bool],
-        attention_heads: int,
-        norm_groups: int,
     ) -> None:
         super().__init__(steps, beta_1, beta_t)
 
@@ -160,11 +157,8 @@ class Denoiser(Diffuser):
             channels,
             channels,
             unet_channels,
-            use_attentions,
-            attention_heads,
             time_size,
             self._steps,
-            norm_groups,
         )
 
         self.apply(weights_init)
