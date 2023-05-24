@@ -36,7 +36,6 @@ class EndConvBlock(nn.Sequential):
                 kernel_size=(3, 3),
                 stride=(1, 1),
                 padding=(1, 1),
-                padding_mode="reflect",
             ),
         )
 
@@ -79,7 +78,6 @@ class ConvBlock(nn.Sequential):
                 kernel_size=(3, 3),
                 stride=(1, 1),
                 padding=(1, 1),
-                padding_mode="reflect",
             ),
             nn.ELU(),
             nn.InstanceNorm2d(out_channels),
