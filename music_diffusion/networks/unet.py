@@ -75,13 +75,11 @@ class TimeUNet(nn.Module):
         )
 
         self.__decoder = nn.ModuleList(
-            TimeWrapper(
-                time_size,
-                c_i,
+            TimeBypass(
                 nn.Sequential(
                     ConvBlock(c_i, c_o),
                     ConvBlock(c_o, c_o),
-                ),
+                )
             )
             for c_i, c_o in decoding_channels
         )
@@ -117,7 +115,7 @@ class TimeUNet(nn.Module):
         ):
             out = up(out)
             out = out + bypass
-            out = block(out, time_vec)
+            out = block(out)
 
         eps: th.Tensor = self.__eps_end_conv(out)
 
