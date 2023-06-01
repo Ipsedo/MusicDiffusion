@@ -84,7 +84,7 @@ def generate(
             device=device,
         )
 
-        x_0 = denoiser.sample(x_t, verbose=True)
+        x_0 = denoiser.original_sample(x_t, verbose=True)
         x_0 = transform(x_0)
 
         print("Saving sound...")

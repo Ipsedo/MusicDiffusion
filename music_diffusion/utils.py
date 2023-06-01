@@ -97,7 +97,7 @@ class Saver:
                 )
 
                 self.__denoiser.eval()
-                x_0 = self.__denoiser.sample(x_t, verbose=True)
+                x_0 = self.__denoiser.original_sample(x_t, verbose=True)
                 self.__denoiser.train()
 
                 x_0 = self.__sample_transform(x_0)

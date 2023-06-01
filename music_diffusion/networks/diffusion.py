@@ -173,6 +173,7 @@ class Denoiser(Diffuser):
 
         return eps_theta
 
+    # pylint: disable=duplicate-code
     def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
         assert len(x_t.size()) == 4
         assert x_t.size(1) == self.__channels
@@ -198,7 +199,7 @@ class Denoiser(Diffuser):
             mu = (
                 x_t
                 - eps
-                * self._betas[t]
+                * (1.0 - self._alphas[t])
                 / self._sqrt_one_minus_alphas_cum_prod[t]
             ) / self._sqrt_alpha[t]
 
@@ -212,6 +213,66 @@ class Denoiser(Diffuser):
 
         return x_t
 
+    # pylint: disable=duplicate-code
+    def original_sample(
+        self, x_t: th.Tensor, verbose: bool = False
+    ) -> th.Tensor:
+        assert len(x_t.size()) == 4
+        assert x_t.size(1) == self.__channels
+
+        device = "cuda" if next(self.parameters()).is_cuda else "cpu"
+
+        times = list(reversed(range(self._steps)))
+        tqdm_bar = tqdm(times, disable=not verbose, leave=False)
+
+        for t in tqdm_bar:
+            z = (
+                th.randn_like(x_t, device=device)
+                if t > 0
+                else th.zeros_like(x_t, device=device)
+            )
+
+            eps = self.__unet(
+                x_t.unsqueeze(1),
+                th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
+            )
+            eps = eps.squeeze(1)
+
+            x_t_next_clipped = th.clip(
+                x_t / self._sqrt_alphas_cum_prod[t]
+                - eps
+                * th.sqrt(
+                    (1 - self._alphas_cum_prod[t]) / self._alphas_cum_prod[t]
+                ),
+                -1,
+                1,
+            )
+            x_t_next_arg = (
+                x_t
+                * (1 - self._alphas_cum_prod_prev[t])
+                * self._sqrt_alpha[t]
+                / (1 - self._alphas_cum_prod[t])
+            )
+
+            # original sampling method
+            # see : https://github.com/hojonathanho/diffusion/issues/5
+            x_t = (
+                th.sqrt(self._alphas_cum_prod_prev[t])
+                * self._betas[t]
+                * x_t_next_clipped
+                / (1 - self._alphas_cum_prod[t])
+                + x_t_next_arg
+                # add noise same as simplified method
+                + self._betas[t].sqrt() * z
+            )
+
+            tqdm_bar.set_description(
+                f"Generate {x_t.size(0)} data with size {tuple(x_t.size()[1:])}"
+            )
+
+        return x_t
+
+    # pylint: disable=duplicate-code
     def fast_sample(
         self, x_t: th.Tensor, n_steps: int, verbose: bool = False
     ) -> th.Tensor:
@@ -231,7 +292,6 @@ class Denoiser(Diffuser):
         tqdm_bar = tqdm(times, disable=not verbose, leave=False)
 
         for s_t, t in enumerate(tqdm_bar):
-            # pylint: disable=duplicate-code
             z = (
                 th.randn_like(x_t, device=device)
                 if t > 0
@@ -243,7 +303,6 @@ class Denoiser(Diffuser):
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             )
             eps = eps.squeeze(1)
-            # pylint: enable=duplicate-code
 
             mu = (
                 x_t - eps * betas_s[s_t] / th.sqrt(1 - alphas_cum_prod_s)[s_t]
