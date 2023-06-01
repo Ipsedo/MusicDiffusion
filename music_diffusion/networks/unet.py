@@ -45,8 +45,8 @@ class TimeUNet(nn.Module):
                 time_size,
                 c_i,
                 nn.Sequential(
-                    ConvBlock(c_i, c_i),
                     ConvBlock(c_i, c_o),
+                    ConvBlock(c_o, c_o),
                 ),
             )
             for c_i, c_o in encoding_channels
@@ -77,8 +77,8 @@ class TimeUNet(nn.Module):
         self.__decoder = nn.ModuleList(
             TimeBypass(
                 nn.Sequential(
+                    ConvBlock(c_i, c_i),
                     ConvBlock(c_i, c_o),
-                    ConvBlock(c_o, c_o),
                 )
             )
             for c_i, c_o in decoding_channels
