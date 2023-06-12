@@ -8,7 +8,7 @@ import torch as th
 from torch import nn
 from tqdm import tqdm
 
-from .functions import normal_cdf, select_time_scheduler
+from .functions import normal_pdf, select_time_scheduler
 from .init import weights_init
 from .unet import TimeUNet
 
@@ -56,7 +56,6 @@ class Diffuser(ABC, nn.Module):
 
         betas_tiddle = (
             betas * (1.0 - alphas_cum_prod_prev) / (1.0 - alphas_cum_prod)
-            + 1e-8
         )
 
         # attributes definition
@@ -160,9 +159,9 @@ class Noiser(Diffuser):
     def _sigma(self, *args: th.Tensor) -> th.Tensor:
         (t,) = args
 
-        betas_tiddle: th.Tensor = select_time_scheduler(self._betas_tiddle, t)
+        betas: th.Tensor = select_time_scheduler(self._betas, t)
 
-        return betas_tiddle
+        return betas
 
     def posterior(
         self,
@@ -176,7 +175,7 @@ class Noiser(Diffuser):
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2
 
-        return normal_cdf(x_t_prev, self._mu(x_t, x_0, t), self._sigma(t))
+        return normal_pdf(x_t_prev, self._mu(x_t, x_0, t), self._sigma(t))
 
 
 ############
@@ -240,15 +239,42 @@ class Denoiser(Diffuser):
         assert len(eps_theta.size()) == 5
         assert len(t.size()) == 2
 
-        alphas = select_time_scheduler(self._alphas, t)
+        sqrt_alpha = select_time_scheduler(self._sqrt_alpha, t)
         betas = select_time_scheduler(self._betas, t)
-        sqrt_one_minus_alphas_cum_prod = select_time_scheduler(
-            self._sqrt_one_minus_alphas_cum_prod, t
+        sqrt_alphas_cum_prod = select_time_scheduler(
+            self._sqrt_alphas_cum_prod, t
+        )
+        alphas_cum_prod = select_time_scheduler(self._alphas_cum_prod, t)
+        alphas_cum_prod_prev = select_time_scheduler(
+            self._alphas_cum_prod_prev, t
+        )
+
+        # mu: th.Tensor = (
+        #     x_t - eps_theta * betas / sqrt_one_minus_alphas_cum_prod
+        # ) / th.sqrt(alphas)
+
+        # return mu
+
+        x_t_next_clipped = th.clip(
+            x_t / sqrt_alphas_cum_prod
+            - eps_theta * th.sqrt((1 - alphas_cum_prod) / alphas_cum_prod),
+            -1,
+            1,
+        )
+        x_t_next_arg = (
+            x_t
+            * (1 - alphas_cum_prod_prev)
+            * sqrt_alpha
+            / (1 - alphas_cum_prod)
         )
 
         mu: th.Tensor = (
-            x_t - eps_theta * betas / sqrt_one_minus_alphas_cum_prod
-        ) / th.sqrt(alphas)
+            th.sqrt(alphas_cum_prod_prev)
+            * betas
+            * x_t_next_clipped
+            / (1 - alphas_cum_prod)
+            + x_t_next_arg
+        )
 
         return mu
 
@@ -259,9 +285,9 @@ class Denoiser(Diffuser):
 
         assert len(t.size()) == 2
 
-        betas_tiddle: th.Tensor = select_time_scheduler(self._betas_tiddle, t)
+        betas: th.Tensor = select_time_scheduler(self._betas, t)
 
-        return betas_tiddle
+        return betas
 
     def prior(
         self,
@@ -275,7 +301,7 @@ class Denoiser(Diffuser):
         assert len(t.size()) == 2
         assert len(eps_theta.size()) == 5
 
-        return normal_cdf(
+        return normal_pdf(
             x_t_prev,
             self._mu(x_t, eps_theta, t),
             self._sigma(t),
@@ -344,34 +370,18 @@ class Denoiser(Diffuser):
                 x_t.unsqueeze(1),
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             )
-            eps = eps.squeeze(1)
-
-            x_t_next_clipped = th.clip(
-                x_t / self._sqrt_alphas_cum_prod[t]
-                - eps
-                * th.sqrt(
-                    (1 - self._alphas_cum_prod[t]) / self._alphas_cum_prod[t]
-                ),
-                -1,
-                1,
-            )
-            x_t_next_arg = (
-                x_t
-                * (1 - self._alphas_cum_prod_prev[t])
-                * self._sqrt_alpha[t]
-                / (1 - self._alphas_cum_prod[t])
-            )
 
             # original sampling method
             # see : https://github.com/hojonathanho/diffusion/issues/5
             x_t = (
-                th.sqrt(self._alphas_cum_prod_prev[t])
-                * self._betas[t]
-                * x_t_next_clipped
-                / (1 - self._alphas_cum_prod[t])
-                + x_t_next_arg
+                self._mu(
+                    x_t.unsqueeze(1), eps, th.tensor([[t]], device=device)
+                ).squeeze(1)
                 # add noise same as simplified method
-                + self._betas_tiddle[t].sqrt() * z
+                + self._sigma(th.tensor([[t]], device=device))
+                .sqrt()
+                .squeeze(1)
+                * z
             )
 
             tqdm_bar.set_description(
