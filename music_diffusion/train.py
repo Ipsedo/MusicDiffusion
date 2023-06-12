@@ -5,10 +5,9 @@ from typing import NamedTuple, Optional
 import mlflow
 import torch as th
 from torch.utils.data import DataLoader
-from torchvision.transforms import Compose
 from tqdm import tqdm
 
-from .data import AudioDataset, ChangeType, ChannelMinMaxNorm, RangeChange
+from .data import AudioDataset
 from .networks import Denoiser, Noiser, mse
 from .utils import ModelOptions, Saver
 
@@ -99,14 +98,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             pin_memory=True,
         )
 
-        transform = Compose(
-            [
-                ChangeType(th.float),
-                ChannelMinMaxNorm(),
-                RangeChange(-1.0, 1.0),
-            ]
-        )
-
         mlflow.log_params(
             {
                 "batch_size": train_options.batch_size,
@@ -134,11 +125,10 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             tqdm_bar = tqdm(dataloader)
 
             for x_0 in tqdm_bar:
+                x_0 = x_0.to(th.float)
 
                 if model_options.cuda:
                     x_0 = x_0.cuda()
-
-                x_0 = transform(x_0)
 
                 t = th.randint(
                     0,

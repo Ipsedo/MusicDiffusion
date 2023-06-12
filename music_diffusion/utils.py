@@ -8,7 +8,7 @@ import torch as th
 from torch.optim.optimizer import Optimizer
 from torchvision.transforms import Compose
 
-from .data import OUTPUT_SIZES, ChangeType, ChannelMinMaxNorm, RangeChange
+from .data import OUTPUT_SIZES, ChangeType, InverseRangeChange, RangeChange
 from .networks import Denoiser, Noiser
 
 ModelOptions = NamedTuple(
@@ -56,7 +56,7 @@ class Saver:
 
         self.__sample_transform = Compose(
             [
-                ChannelMinMaxNorm(),
+                InverseRangeChange(-1, 1),
                 RangeChange(0.0, 255.0),
                 ChangeType(th.uint8),
             ]

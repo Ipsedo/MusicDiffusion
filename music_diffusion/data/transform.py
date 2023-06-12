@@ -25,6 +25,17 @@ class ChannelMinMaxNorm(ImgTransform):
         return out
 
 
+class InverseRangeChange(ImgTransform):
+    def __init__(self, lower_bound: float, upper_bound: float) -> None:
+        self.__lower_bound = lower_bound
+        self.__upper_bound = upper_bound
+
+    def __call__(self, img_data: th.Tensor) -> th.Tensor:
+        return (img_data - self.__lower_bound) / (
+            self.__upper_bound - self.__lower_bound
+        )
+
+
 class RangeChange(ImgTransform):
     def __init__(self, lower_bound: float, upper_bound: float) -> None:
         self.__lower_bound = lower_bound

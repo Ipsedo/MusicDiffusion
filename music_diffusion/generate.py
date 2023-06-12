@@ -4,7 +4,6 @@ from os.path import exists, isdir, join
 from typing import NamedTuple
 
 import torch as th
-from torchvision.transforms import Compose
 from tqdm import tqdm
 
 from .data import (
@@ -12,8 +11,6 @@ from .data import (
     OUTPUT_SIZES,
     SAMPLE_RATE,
     STFT_STRIDE,
-    ChannelMinMaxNorm,
-    RangeChange,
     magnitude_phase_to_wav,
 )
 from .networks import Denoiser
@@ -63,13 +60,6 @@ def generate(
     if model_options.cuda:
         denoiser.cuda()
 
-    transform = Compose(
-        [
-            ChannelMinMaxNorm(),
-            RangeChange(-1.0, 1.0),
-        ]
-    )
-
     height, width = OUTPUT_SIZES
 
     with th.no_grad():
@@ -85,7 +75,6 @@ def generate(
         )
 
         x_0 = denoiser.original_sample(x_t, verbose=True)
-        x_0 = transform(x_0)
 
         print("Saving sound...")
 
