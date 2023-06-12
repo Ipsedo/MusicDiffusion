@@ -150,10 +150,10 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 # loss = mse(eps, eps_theta)
                 # loss = loss.mean()
 
-                posterior = noiser.posterior(x_t_prev, x_t, x_0, t)
-                prior = denoiser.prior(x_t_prev, x_t, t, eps_theta)
+                q = noiser.posterior(x_t_prev, x_t, x_0, t)
+                p = denoiser.prior(x_t_prev, x_t, t, eps_theta)
 
-                loss = kl_div(posterior, prior)
+                loss = kl_div(q, p)
                 loss = loss.mean()
 
                 optim.zero_grad(set_to_none=True)
