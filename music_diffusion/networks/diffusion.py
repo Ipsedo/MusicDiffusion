@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-from abc import ABC
+from abc import ABC, abstractmethod
 from statistics import mean
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 import torch as th
 from torch import nn
 from tqdm import tqdm
 
-from .functions import select_time_scheduler
+from .functions import normal_pdf, select_time_scheduler
 from .init import weights_init
 from .unet import TimeUNet
 
@@ -17,9 +17,11 @@ class Diffuser(ABC, nn.Module):
     def __init__(self, steps: int, beta_1: float, beta_t: float):
         super().__init__()
 
+        print(beta_1, beta_t)
+
         self._steps = steps
 
-        """s = 8e-4
+        s = 8e-4
 
         linear_space: th.Tensor = th.linspace(0.0, 1.0, steps=self._steps + 1)
         # exponent: th.Tensor = linear_space * 3. * th.pi - 1.5 * th.pi
@@ -34,9 +36,10 @@ class Diffuser(ABC, nn.Module):
 
         betas = 1 - alphas_cum_prod / alphas_cum_prod_prev
         betas[betas > 0.999] = 0.999
-        alphas = 1 - betas"""
+        betas[betas < 1e-4] = 1e-4
+        alphas = 1 - betas
 
-        betas = th.linspace(beta_1, beta_t, steps=self._steps)
+        """betas = th.linspace(beta_1, beta_t, steps=self._steps)
         betas = th.cat([th.tensor([0]), betas])
 
         alphas = 1 - betas
@@ -46,7 +49,7 @@ class Diffuser(ABC, nn.Module):
 
         alphas_cum_prod = alphas_cum_prod[1:]
         alphas = alphas[1:]
-        betas = betas[1:]
+        betas = betas[1:]"""
 
         sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
@@ -85,6 +88,14 @@ class Diffuser(ABC, nn.Module):
 
         self.register_buffer("_betas_tiddle", betas_tiddle)
 
+    @abstractmethod
+    def _mu(self, *args: th.Tensor) -> th.Tensor:
+        pass
+
+    @abstractmethod
+    def _sigma(self, *args: th.Tensor) -> th.Tensor:
+        pass
+
 
 ##########
 # Noising
@@ -93,7 +104,7 @@ class Diffuser(ABC, nn.Module):
 
 class Noiser(Diffuser):
     def forward(
-        self, x_0: th.Tensor, t: th.Tensor
+        self, x_0: th.Tensor, t: th.Tensor, eps: Optional[th.Tensor] = None
     ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2
@@ -104,7 +115,8 @@ class Noiser(Diffuser):
 
         device = "cuda" if next(self.buffers()).is_cuda else "cpu"
 
-        eps = th.randn(b, nb_steps, c, w, h, device=device)
+        if eps is None:
+            eps = th.randn(b, nb_steps, c, w, h, device=device)
 
         sqrt_alphas_cum_prod = select_time_scheduler(
             self._sqrt_alphas_cum_prod, t
@@ -119,6 +131,51 @@ class Noiser(Diffuser):
         )
 
         return x_t, eps
+
+    def _mu(self, *args: th.Tensor) -> th.Tensor:
+        x_t, x_0, t = args
+
+        alphas_cum_prod_prev = select_time_scheduler(
+            self._alphas_cum_prod_prev, t
+        )
+
+        betas = select_time_scheduler(self._betas, t)
+
+        alphas_cum_prod = select_time_scheduler(self._alphas_cum_prod, t)
+
+        alphas = select_time_scheduler(self._alphas, t)
+
+        mu: th.Tensor = x_0.unsqueeze(1) * th.sqrt(
+            alphas_cum_prod_prev
+        ) * betas / (1 - alphas_cum_prod) + x_t * th.sqrt(alphas) * (
+            1 - alphas_cum_prod_prev
+        ) / (
+            1 - alphas_cum_prod
+        )
+
+        return mu
+
+    # pylint: disable=duplicate-code
+    def _sigma(self, *args: th.Tensor) -> th.Tensor:
+        (t,) = args
+
+        betas: th.Tensor = select_time_scheduler(self._betas, t)
+
+        return betas
+
+    def posterior(
+        self,
+        x_t_prev: th.Tensor,
+        x_t: th.Tensor,
+        x_0: th.Tensor,
+        t: th.Tensor,
+    ) -> th.Tensor:
+        assert len(x_t.size()) == 5
+        assert len(x_t_prev.size()) == 5
+        assert len(x_0.size()) == 4
+        assert len(t.size()) == 2
+
+        return normal_pdf(x_t_prev, self._mu(x_t, x_0, t), self._sigma(t))
 
 
 ############
@@ -172,6 +229,83 @@ class Denoiser(Diffuser):
         eps_theta: th.Tensor = self.__unet(x_t, t)
 
         return eps_theta
+
+    def _mu(self, *args: th.Tensor) -> th.Tensor:
+        assert len(args) == 3
+
+        x_t, eps_theta, t = args
+
+        assert len(x_t.size()) == 5
+        assert len(eps_theta.size()) == 5
+        assert len(t.size()) == 2
+
+        sqrt_alpha = select_time_scheduler(self._sqrt_alpha, t)
+        betas = select_time_scheduler(self._betas, t)
+        sqrt_alphas_cum_prod = select_time_scheduler(
+            self._sqrt_alphas_cum_prod, t
+        )
+        alphas_cum_prod = select_time_scheduler(self._alphas_cum_prod, t)
+        alphas_cum_prod_prev = select_time_scheduler(
+            self._alphas_cum_prod_prev, t
+        )
+
+        # mu: th.Tensor = (
+        #     x_t - eps_theta * betas / sqrt_one_minus_alphas_cum_prod
+        # ) / th.sqrt(alphas)
+
+        # return mu
+
+        x_t_next_clipped = th.clip(
+            x_t / sqrt_alphas_cum_prod
+            - eps_theta * th.sqrt((1 - alphas_cum_prod) / alphas_cum_prod),
+            -1,
+            1,
+        )
+        x_t_next_arg = (
+            x_t
+            * (1 - alphas_cum_prod_prev)
+            * sqrt_alpha
+            / (1 - alphas_cum_prod)
+        )
+
+        mu: th.Tensor = (
+            th.sqrt(alphas_cum_prod_prev)
+            * betas
+            * x_t_next_clipped
+            / (1 - alphas_cum_prod)
+            + x_t_next_arg
+        )
+
+        return mu
+
+    # pylint: disable=duplicate-code
+    def _sigma(self, *args: th.Tensor) -> th.Tensor:
+        assert len(args) == 1
+        (t,) = args
+
+        assert len(t.size()) == 2
+
+        betas: th.Tensor = select_time_scheduler(self._betas, t)
+
+        return betas
+
+    def prior(
+        self,
+        x_t_prev: th.Tensor,
+        x_t: th.Tensor,
+        t: th.Tensor,
+        eps_theta: th.Tensor,
+    ) -> th.Tensor:
+        assert len(x_t_prev.size()) == 5
+        assert len(x_t.size()) == 5
+        assert len(t.size()) == 2
+        assert len(eps_theta.size()) == 5
+
+        return normal_pdf(
+            x_t_prev,
+            self._mu(x_t, eps_theta, t),
+            self._sigma(t),
+        )
 
     # pylint: disable=duplicate-code
     def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
@@ -236,34 +370,18 @@ class Denoiser(Diffuser):
                 x_t.unsqueeze(1),
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             )
-            eps = eps.squeeze(1)
-
-            x_t_next_clipped = th.clip(
-                x_t / self._sqrt_alphas_cum_prod[t]
-                - eps
-                * th.sqrt(
-                    (1 - self._alphas_cum_prod[t]) / self._alphas_cum_prod[t]
-                ),
-                -1,
-                1,
-            )
-            x_t_next_arg = (
-                x_t
-                * (1 - self._alphas_cum_prod_prev[t])
-                * self._sqrt_alpha[t]
-                / (1 - self._alphas_cum_prod[t])
-            )
 
             # original sampling method
             # see : https://github.com/hojonathanho/diffusion/issues/5
             x_t = (
-                th.sqrt(self._alphas_cum_prod_prev[t])
-                * self._betas[t]
-                * x_t_next_clipped
-                / (1 - self._alphas_cum_prod[t])
-                + x_t_next_arg
+                self._mu(
+                    x_t.unsqueeze(1), eps, th.tensor([[t]], device=device)
+                ).squeeze(1)
                 # add noise same as simplified method
-                + self._betas[t].sqrt() * z
+                + self._sigma(th.tensor([[t]], device=device))
+                .sqrt()
+                .squeeze(1)
+                * z
             )
 
             tqdm_bar.set_description(

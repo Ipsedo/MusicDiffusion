@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from .data import AudioDataset
-from .networks import Denoiser, Noiser, mse
+from .networks import Denoiser, Noiser, kl_div
 from .utils import ModelOptions, Saver
 
 TrainOptions = NamedTuple(
@@ -140,10 +140,20 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     device=device,
                 )
 
+                t_prev = t - 1
+                t_prev[t_prev < 0] = 0
+
                 x_t, eps = noiser(x_0, t)
+                x_t_prev, _ = noiser(x_0, t_prev, eps)
                 eps_theta = denoiser(x_t, t)
 
-                loss = mse(eps, eps_theta)
+                # loss = mse(eps, eps_theta)
+                # loss = loss.mean()
+
+                posterior = noiser.posterior(x_t_prev, x_t, x_0, t)
+                prior = denoiser.prior(x_t_prev, x_t, t, eps_theta)
+
+                loss = kl_div(posterior, prior)
                 loss = loss.mean()
 
                 optim.zero_grad(set_to_none=True)
