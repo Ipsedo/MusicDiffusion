@@ -143,8 +143,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 t_prev = t - 1
                 t_prev[t_prev < 0] = 0
 
-                x_t, eps = noiser(x_0, t)
-                x_t_prev, _ = noiser(x_0, t_prev, eps)
+                x_t, _ = noiser(x_0, t)
+                x_t_prev, _ = noiser(x_0, t_prev)
                 eps_theta = denoiser(x_t, t)
 
                 # loss = mse(eps, eps_theta)

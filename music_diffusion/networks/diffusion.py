@@ -8,7 +8,7 @@ import torch as th
 from torch import nn
 from tqdm import tqdm
 
-from .functions import normal_pdf, select_time_scheduler
+from .functions import normal_cdf, select_time_scheduler
 from .init import weights_init
 from .unet import TimeUNet
 
@@ -173,7 +173,7 @@ class Noiser(Diffuser):
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2
 
-        return normal_pdf(x_t_prev, self._mu(x_t, x_0, t), self._sigma(t))
+        return normal_cdf(x_t_prev, self._mu(x_t, x_0, t), self._sigma(t))
 
 
 ############
@@ -294,7 +294,7 @@ class Denoiser(Diffuser):
         assert len(t.size()) == 2
         assert len(eps_theta.size()) == 5
 
-        return normal_pdf(
+        return normal_cdf(
             x_t_prev,
             self._mu(x_t, eps_theta, t),
             self._sigma(t),
