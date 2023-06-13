@@ -47,5 +47,9 @@ def kl_div(p: th.Tensor, q: th.Tensor, epsilon: float = 1e-8) -> th.Tensor:
     return p * (th.log(p + epsilon) - th.log(q + epsilon))
 
 
+def kl_div_log(log_p: th.Tensor, log_q: th.Tensor) -> th.Tensor:
+    return log_p.exp() * (log_p - log_q)
+
+
 def mse(p: th.Tensor, q: th.Tensor) -> th.Tensor:
     return th.pow(p - q, 2.0)

@@ -17,11 +17,9 @@ class Diffuser(ABC, nn.Module):
     def __init__(self, steps: int, beta_1: float, beta_t: float):
         super().__init__()
 
-        print(beta_1, beta_t)
-
         self._steps = steps
 
-        s = 8e-4
+        """s = 8e-4
 
         linear_space: th.Tensor = th.linspace(0.0, 1.0, steps=self._steps + 1)
         # exponent: th.Tensor = linear_space * 3. * th.pi - 1.5 * th.pi
@@ -37,9 +35,9 @@ class Diffuser(ABC, nn.Module):
         betas = 1 - alphas_cum_prod / alphas_cum_prod_prev
         betas[betas > 0.999] = 0.999
         betas[betas < 1e-4] = 1e-4
-        alphas = 1 - betas
+        alphas = 1 - betas"""
 
-        """betas = th.linspace(beta_1, beta_t, steps=self._steps)
+        betas = th.linspace(beta_1, beta_t, steps=self._steps)
         betas = th.cat([th.tensor([0]), betas])
 
         alphas = 1 - betas
@@ -49,7 +47,7 @@ class Diffuser(ABC, nn.Module):
 
         alphas_cum_prod = alphas_cum_prod[1:]
         alphas = alphas[1:]
-        betas = betas[1:]"""
+        betas = betas[1:]
 
         sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
@@ -231,16 +229,11 @@ class Denoiser(Diffuser):
         return eps_theta
 
     def _mu(self, *args: th.Tensor) -> th.Tensor:
-        assert len(args) == 3
-
         x_t, eps_theta, t = args
-
-        assert len(x_t.size()) == 5
-        assert len(eps_theta.size()) == 5
-        assert len(t.size()) == 2
 
         sqrt_alpha = select_time_scheduler(self._sqrt_alpha, t)
         betas = select_time_scheduler(self._betas, t)
+        # alphas = select_time_scheduler(self._alphas, t)
         sqrt_alphas_cum_prod = select_time_scheduler(
             self._sqrt_alphas_cum_prod, t
         )
@@ -248,10 +241,13 @@ class Denoiser(Diffuser):
         alphas_cum_prod_prev = select_time_scheduler(
             self._alphas_cum_prod_prev, t
         )
+        # sqrt_one_minus_alphas_cum_prod = select_time_scheduler(
+        #   self._sqrt_one_minus_alphas_cum_prod, t
+        # )
 
         # mu: th.Tensor = (
-        #     x_t - eps_theta * betas / sqrt_one_minus_alphas_cum_prod
-        # ) / th.sqrt(alphas)
+        #      x_t - eps_theta * betas / sqrt_one_minus_alphas_cum_prod
+        # ) / sqrt_alpha
 
         # return mu
 
@@ -280,10 +276,7 @@ class Denoiser(Diffuser):
 
     # pylint: disable=duplicate-code
     def _sigma(self, *args: th.Tensor) -> th.Tensor:
-        assert len(args) == 1
         (t,) = args
-
-        assert len(t.size()) == 2
 
         betas: th.Tensor = select_time_scheduler(self._betas, t)
 
@@ -370,6 +363,7 @@ class Denoiser(Diffuser):
                 x_t.unsqueeze(1),
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             )
+            # eps = eps.squeeze(1)
 
             # original sampling method
             # see : https://github.com/hojonathanho/diffusion/issues/5

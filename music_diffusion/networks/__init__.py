@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
 from .diffusion import Denoiser, Noiser
-from .functions import hellinger, kl_div, mse
+from .functions import hellinger, kl_div, kl_div_log, mse
 from .unet import TimeUNet
