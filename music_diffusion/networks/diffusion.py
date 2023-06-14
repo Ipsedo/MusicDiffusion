@@ -351,21 +351,17 @@ class Denoiser(Diffuser):
                 else th.zeros_like(x_t, device=device)
             )
 
+            t_tensor = th.tensor([[t]], device=device)
+
             eps = self.__unet(
                 x_t.unsqueeze(1),
-                th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
+                t_tensor.repeat(x_t.size(0), 1),
             )
-            # eps = eps.squeeze(1)
 
             # original sampling method
             # see : https://github.com/hojonathanho/diffusion/issues/5
-            mu = self._mu(
-                x_t.unsqueeze(1), eps, th.tensor([[t]], device=device)
-            ).squeeze(1)
-
-            sigma = (
-                self._sigma(th.tensor([[t]], device=device)).sqrt().squeeze(1)
-            )
+            mu = self._mu(x_t.unsqueeze(1), eps, t_tensor).squeeze(1)
+            sigma = self._sigma(t_tensor).sqrt().squeeze(1)
 
             x_t = mu + sigma * z
 
