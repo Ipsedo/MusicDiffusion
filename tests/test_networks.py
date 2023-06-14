@@ -58,27 +58,22 @@ def test_noiser(
     assert eps.size(3) == img_sizes[0]
     assert eps.size(4) == img_sizes[1]
 
-    t_prev = t - 1
-    t_prev[t_prev < 0] = 0
+    post_mu, post_var = noiser.posterior(x_t, x_0, t)
 
-    x_t_prev, _ = noiser(x_0, t, eps)
+    assert len(post_mu.size()) == 5
+    assert post_mu.size(0) == batch_size
+    assert post_mu.size(1) == step_batch_size
+    assert post_mu.size(2) == channels
+    assert post_mu.size(3) == img_sizes[0]
+    assert post_mu.size(4) == img_sizes[1]
 
-    assert len(x_t_prev.size()) == 5
-    assert x_t_prev.size(0) == batch_size
-    assert x_t_prev.size(1) == step_batch_size
-    assert x_t_prev.size(2) == channels
-    assert x_t_prev.size(3) == img_sizes[0]
-    assert x_t_prev.size(4) == img_sizes[1]
-
-    post = noiser.posterior(x_t_prev, x_t, x_0, t)
-
-    assert len(post.size()) == 5
-    assert post.size(0) == batch_size
-    assert post.size(1) == step_batch_size
-    assert post.size(2) == channels
-    assert post.size(3) == img_sizes[0]
-    assert post.size(4) == img_sizes[1]
-    assert th.all(th.ge(post, 0))
+    assert len(post_var.size()) == 5
+    assert post_var.size(0) == batch_size
+    assert post_var.size(1) == step_batch_size
+    assert post_var.size(2) == 1
+    assert post_var.size(3) == 1
+    assert post_var.size(4) == 1
+    assert th.all(th.gt(post_var, 0))
 
 
 @pytest.mark.parametrize("steps", [10, 20])
@@ -137,16 +132,22 @@ def test_denoiser(
     assert eps.size(3) == img_sizes[0]
     assert eps.size(4) == img_sizes[1]
 
-    x_t_prev = th.randn_like(x_t, device=device)
-    prior = denoiser.prior(x_t_prev, x_t, t, eps)
+    prior_mu, prior_var = denoiser.prior(x_t, t, eps)
 
-    assert len(prior.size()) == 5
-    assert prior.size(0) == batch_size
-    assert prior.size(1) == step_batch_size
-    assert prior.size(2) == channels
-    assert prior.size(3) == img_sizes[0]
-    assert prior.size(4) == img_sizes[1]
-    assert th.all(th.ge(prior, 0))
+    assert len(prior_mu.size()) == 5
+    assert prior_mu.size(0) == batch_size
+    assert prior_mu.size(1) == step_batch_size
+    assert prior_mu.size(2) == channels
+    assert prior_mu.size(3) == img_sizes[0]
+    assert prior_mu.size(4) == img_sizes[1]
+
+    assert len(prior_var.size()) == 5
+    assert prior_var.size(0) == batch_size
+    assert prior_var.size(1) == step_batch_size
+    assert prior_var.size(2) == 1
+    assert prior_var.size(3) == 1
+    assert prior_var.size(4) == 1
+    assert th.all(th.gt(prior_var, 0.0))
 
     x_t = th.randn(
         batch_size,

@@ -51,5 +51,20 @@ def kl_div_log(log_p: th.Tensor, log_q: th.Tensor) -> th.Tensor:
     return log_p.exp() * (log_p - log_q)
 
 
+def normal_kl(
+    mu_1: th.Tensor,
+    log_var_1: th.Tensor,
+    mu_2: th.Tensor,
+    log_var_2: th.Tensor,
+) -> th.Tensor:
+    return 0.5 * (
+        -1.0
+        + log_var_2
+        - log_var_1
+        + th.exp(log_var_1 - log_var_2)
+        + th.pow(mu_1 - mu_2, 2.0) * th.exp(-log_var_2)
+    )
+
+
 def mse(p: th.Tensor, q: th.Tensor) -> th.Tensor:
     return th.pow(p - q, 2.0)

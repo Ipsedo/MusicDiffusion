@@ -8,7 +8,7 @@ import torch as th
 from torch import nn
 from tqdm import tqdm
 
-from .functions import normal_cdf, select_time_scheduler
+from .functions import select_time_scheduler
 from .init import weights_init
 from .unet import TimeUNet
 
@@ -163,17 +163,15 @@ class Noiser(Diffuser):
 
     def posterior(
         self,
-        x_t_prev: th.Tensor,
         x_t: th.Tensor,
         x_0: th.Tensor,
         t: th.Tensor,
-    ) -> th.Tensor:
+    ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x_t.size()) == 5
-        assert len(x_t_prev.size()) == 5
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2
 
-        return normal_cdf(x_t_prev, self._mu(x_t, x_0, t), self._sigma(t))
+        return self._mu(x_t, x_0, t), self._sigma(t)
 
 
 ############
@@ -284,21 +282,15 @@ class Denoiser(Diffuser):
 
     def prior(
         self,
-        x_t_prev: th.Tensor,
         x_t: th.Tensor,
         t: th.Tensor,
         eps_theta: th.Tensor,
-    ) -> th.Tensor:
-        assert len(x_t_prev.size()) == 5
+    ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x_t.size()) == 5
         assert len(t.size()) == 2
         assert len(eps_theta.size()) == 5
 
-        return normal_cdf(
-            x_t_prev,
-            self._mu(x_t, eps_theta, t),
-            self._sigma(t),
-        )
+        return self._mu(x_t, eps_theta, t), self._sigma(t)
 
     # pylint: disable=duplicate-code
     def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:

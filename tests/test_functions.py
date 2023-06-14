@@ -63,7 +63,7 @@ def test_normal_cdf(
         batch_size, step_batch_size, channels, *img_sizes, device=device
     )
     mu = th.randn(*x.size(), device=device)
-    sigma = th.rand(*x.size(), device=device)
+    sigma = th.rand(*x.size(), device=device) + 1e-8
 
     proba = normal_cdf(x, mu, sigma)
 
