@@ -5,6 +5,12 @@ import torch as th
 from torch.distributions import Normal
 
 
+def select_time_scheduler(factor: th.Tensor, t: th.Tensor) -> th.Tensor:
+    b, s = t.size()
+    factor = factor[t.flatten(), None, None, None]
+    return th.unflatten(factor, 0, (b, s))
+
+
 def normal_log_prob(
     x: th.Tensor, mu: th.Tensor, sigma: th.Tensor
 ) -> th.Tensor:
@@ -33,12 +39,6 @@ def log_normal_pdf(x: th.Tensor, mu: th.Tensor, sigma: th.Tensor) -> th.Tensor:
     return log_density.flatten(2, -1)
 
 
-def select_time_scheduler(factor: th.Tensor, t: th.Tensor) -> th.Tensor:
-    b, s = t.size()
-    factor = factor[t.flatten(), None, None, None]
-    return th.unflatten(factor, 0, (b, s))
-
-
 def hellinger(p: th.Tensor, q: th.Tensor, epsilon: float = 1e-8) -> th.Tensor:
     return 2 * th.pow(th.sqrt(p + epsilon) - th.sqrt(q + epsilon), 2)
 
@@ -47,16 +47,20 @@ def kl_div(p: th.Tensor, q: th.Tensor, epsilon: float = 1e-8) -> th.Tensor:
     return p * (th.log(p + epsilon) - th.log(q + epsilon))
 
 
-def kl_div_log(log_p: th.Tensor, log_q: th.Tensor) -> th.Tensor:
+def log_kl_div(log_p: th.Tensor, log_q: th.Tensor) -> th.Tensor:
     return log_p.exp() * (log_p - log_q)
 
 
-def normal_kl(
+def normal_kl_div(
     mu_1: th.Tensor,
-    log_var_1: th.Tensor,
+    var_1: th.Tensor,
     mu_2: th.Tensor,
-    log_var_2: th.Tensor,
+    var_2: th.Tensor,
+    epsilon: float = 1e-8,
 ) -> th.Tensor:
+    log_var_1 = th.log(var_1 + epsilon)
+    log_var_2 = th.log(var_2 + epsilon)
+
     return 0.5 * (
         -1.0
         + log_var_2
