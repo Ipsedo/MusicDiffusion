@@ -359,16 +359,15 @@ class Denoiser(Diffuser):
 
             # original sampling method
             # see : https://github.com/hojonathanho/diffusion/issues/5
-            x_t = (
-                self._mu(
-                    x_t.unsqueeze(1), eps, th.tensor([[t]], device=device)
-                ).squeeze(1)
-                # add noise same as simplified method
-                + self._sigma(th.tensor([[t]], device=device))
-                .sqrt()
-                .squeeze(1)
-                * z
+            mu = self._mu(
+                x_t.unsqueeze(1), eps, th.tensor([[t]], device=device)
+            ).squeeze(1)
+
+            sigma = (
+                self._sigma(th.tensor([[t]], device=device)).sqrt().squeeze(1)
             )
+
+            x_t = mu + sigma * z
 
             tqdm_bar.set_description(
                 f"Generate {x_t.size(0)} data with size {tuple(x_t.size()[1:])}"
