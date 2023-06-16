@@ -91,7 +91,7 @@ class Diffuser(ABC, nn.Module):
         pass
 
     @abstractmethod
-    def _sigma(self, *args: th.Tensor) -> th.Tensor:
+    def _var(self, *args: th.Tensor) -> th.Tensor:
         pass
 
 
@@ -154,7 +154,7 @@ class Noiser(Diffuser):
         return mu
 
     # pylint: disable=duplicate-code
-    def _sigma(self, *args: th.Tensor) -> th.Tensor:
+    def _var(self, *args: th.Tensor) -> th.Tensor:
         (t,) = args
 
         betas: th.Tensor = select_time_scheduler(self._betas, t)
@@ -171,7 +171,7 @@ class Noiser(Diffuser):
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2
 
-        return self._mu(x_t, x_0, t), self._sigma(t)
+        return self._mu(x_t, x_0, t), self._var(t)
 
 
 ############
@@ -235,7 +235,7 @@ class Denoiser(Diffuser):
 
         sqrt_alpha = select_time_scheduler(self._sqrt_alpha, t)
         betas = select_time_scheduler(self._betas, t)
-        # alphas = select_time_scheduler(self._alphas, t)
+
         sqrt_alphas_cum_prod = select_time_scheduler(
             self._sqrt_alphas_cum_prod, t
         )
@@ -243,15 +243,6 @@ class Denoiser(Diffuser):
         alphas_cum_prod_prev = select_time_scheduler(
             self._alphas_cum_prod_prev, t
         )
-        # sqrt_one_minus_alphas_cum_prod = select_time_scheduler(
-        #   self._sqrt_one_minus_alphas_cum_prod, t
-        # )
-
-        # mu: th.Tensor = (
-        #      x_t - eps_theta * betas / sqrt_one_minus_alphas_cum_prod
-        # ) / sqrt_alpha
-
-        # return mu
 
         x_t_next_clipped = th.clip(
             x_t / sqrt_alphas_cum_prod
@@ -277,7 +268,7 @@ class Denoiser(Diffuser):
         return mu
 
     # pylint: disable=duplicate-code
-    def _sigma(self, *args: th.Tensor) -> th.Tensor:
+    def _var(self, *args: th.Tensor) -> th.Tensor:
         (t,) = args
 
         betas: th.Tensor = select_time_scheduler(self._betas, t)
@@ -294,7 +285,7 @@ class Denoiser(Diffuser):
         assert len(t.size()) == 2
         assert len(eps_theta.size()) == 5
 
-        return self._mu(x_t, eps_theta, t), self._sigma(t)
+        return self._mu(x_t, eps_theta, t), self._var(t)
 
     # pylint: disable=duplicate-code
     def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
@@ -355,24 +346,19 @@ class Denoiser(Diffuser):
                 else th.zeros_like(x_t, device=device)
             )
 
+            t_tensor = th.tensor([[t]], device=device)
+
             eps = self.__unet(
                 x_t.unsqueeze(1),
-                th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
+                t_tensor.repeat(x_t.size(0), 1),
             )
-            # eps = eps.squeeze(1)
 
             # original sampling method
             # see : https://github.com/hojonathanho/diffusion/issues/5
-            x_t = (
-                self._mu(
-                    x_t.unsqueeze(1), eps, th.tensor([[t]], device=device)
-                ).squeeze(1)
-                # add noise same as simplified method
-                + self._sigma(th.tensor([[t]], device=device))
-                .sqrt()
-                .squeeze(1)
-                * z
-            )
+            mu = self._mu(x_t.unsqueeze(1), eps, t_tensor).squeeze(1)
+            sigma = self._var(t_tensor).sqrt().squeeze(1)
+
+            x_t = mu + sigma * z
 
             tqdm_bar.set_description(
                 f"Generate {x_t.size(0)} data with size {tuple(x_t.size()[1:])}"
