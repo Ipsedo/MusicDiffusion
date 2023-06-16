@@ -127,7 +127,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             tqdm_bar = tqdm(dataloader)
 
             for x_0 in tqdm_bar:
-                x_0 = x_0.to(th.float)
 
                 if model_options.cuda:
                     x_0 = x_0.cuda()

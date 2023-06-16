@@ -212,14 +212,15 @@ def create_dataset(
         nb_sample = magnitude.size()[0]
 
         for s_idx in range(nb_sample):
-            s_magnitude = magnitude[s_idx, :, :].to(th.float64)
-            s_phase = phase[s_idx, :, :].to(th.float64)
+            s_magnitude = magnitude[s_idx, :, :]
+            s_phase = phase[s_idx, :, :]
 
             magnitude_phase_path = join(
                 dataset_output_dir, f"magn_phase_{idx}.pt"
             )
 
             magnitude_phase = th.stack([s_magnitude, s_phase], dim=0)
+            magnitude_phase = magnitude_phase.to(th.float)
 
             th.save(magnitude_phase, magnitude_phase_path)
 
