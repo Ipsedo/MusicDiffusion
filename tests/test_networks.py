@@ -82,6 +82,7 @@ def test_noiser(
 @pytest.mark.parametrize("channels", [2, 4])
 @pytest.mark.parametrize("img_sizes", [(32, 32), (16, 32)])
 @pytest.mark.parametrize("time_size", [2, 4])
+@pytest.mark.parametrize("attention_heads", [2, 4])
 def test_denoiser(
     steps: int,
     step_batch_size: int,
@@ -89,6 +90,7 @@ def test_denoiser(
     channels: int,
     img_sizes: Tuple[int, int],
     time_size: int,
+    attention_heads: int,
     use_cuda: bool,
 ) -> None:
     denoiser = Denoiser(
@@ -98,6 +100,8 @@ def test_denoiser(
         1e-4,
         2e-1,
         [(8, 8), (8, 16), (16, 32)],
+        [False, True, True],
+        attention_heads,
     )
 
     denoiser.eval()
@@ -188,6 +192,11 @@ def test_denoiser(
     "hidden_channels",
     [[(16, 8), (8, 16), (16, 32)], [(16, 8), (8, 40), (40, 16)]],
 )
+@pytest.mark.parametrize(
+    "use_attention",
+    [[True, False, True], [False, True, False]],
+)
+@pytest.mark.parametrize("attention_heads", [2, 4])
 @pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("nb_steps", [1, 2])
@@ -196,6 +205,8 @@ def test_unet(
     channels: int,
     size: Tuple[int, int],
     hidden_channels: List[Tuple[int, int]],
+    use_attention: List[bool],
+    attention_heads: int,
     steps: int,
     time_size: int,
     nb_steps: int,
@@ -205,6 +216,8 @@ def test_unet(
         channels,
         channels,
         hidden_channels,
+        use_attention,
+        attention_heads,
         time_size,
         steps,
     )
