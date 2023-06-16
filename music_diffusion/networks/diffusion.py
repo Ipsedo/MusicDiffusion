@@ -265,68 +265,28 @@ class Denoiser(Diffuser):
 
     # pylint: disable=duplicate-code
     def _var(self, *args: th.Tensor) -> th.Tensor:
-        (t,) = args
+        v, t = args
 
-        betas: th.Tensor = select_time_scheduler(self._betas, t)
-
-        return betas
+        return th.exp(
+            v * th.log(select_time_scheduler(self._betas, t) + 1e-8)
+            + (1.0 - v)
+            * th.log(select_time_scheduler(self._betas_tiddle, t) + 1e-8)
+        )
 
     def prior(
         self,
         x_t: th.Tensor,
         t: th.Tensor,
         eps_theta: th.Tensor,
+        v_theta: th.Tensor,
     ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x_t.size()) == 5
         assert len(t.size()) == 2
         assert len(eps_theta.size()) == 5
 
-        return self._mu(x_t, eps_theta, t), self._var(t)
+        return self._mu(x_t, eps_theta, t), self._var(v_theta, t)
 
-    # pylint: disable=duplicate-code
     def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
-        assert len(x_t.size()) == 4
-        assert x_t.size(1) == self.__channels
-
-        device = "cuda" if next(self.parameters()).is_cuda else "cpu"
-
-        times = list(reversed(range(self._steps)))
-        tqdm_bar = tqdm(times, disable=not verbose, leave=False)
-
-        for t in tqdm_bar:
-            z = (
-                th.randn_like(x_t, device=device)
-                if t > 0
-                else th.zeros_like(x_t, device=device)
-            )
-
-            eps = self.__unet(
-                x_t.unsqueeze(1),
-                th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
-            )
-            eps = eps.squeeze(1)
-
-            mu = (
-                x_t
-                - eps
-                * (1.0 - self._alphas[t])
-                / self._sqrt_one_minus_alphas_cum_prod[t]
-            ) / self._sqrt_alpha[t]
-
-            var = self._betas[t]
-
-            x_t = mu + var.sqrt() * z
-
-            tqdm_bar.set_description(
-                f"Generate {x_t.size(0)} data with size {tuple(x_t.size()[1:])}"
-            )
-
-        return x_t
-
-    # pylint: disable=duplicate-code
-    def original_sample(
-        self, x_t: th.Tensor, verbose: bool = False
-    ) -> th.Tensor:
         assert len(x_t.size()) == 4
         assert x_t.size(1) == self.__channels
 
@@ -344,7 +304,7 @@ class Denoiser(Diffuser):
 
             t_tensor = th.tensor([[t]], device=device)
 
-            eps = self.__unet(
+            eps, v = self.__unet(
                 x_t.unsqueeze(1),
                 t_tensor.repeat(x_t.size(0), 1),
             )
@@ -352,7 +312,7 @@ class Denoiser(Diffuser):
             # original sampling method
             # see : https://github.com/hojonathanho/diffusion/issues/5
             mu = self._mu(x_t.unsqueeze(1), eps, t_tensor).squeeze(1)
-            sigma = self._var(t_tensor).sqrt().squeeze(1)
+            sigma = self._var(v, t_tensor).sqrt().squeeze(1)
 
             x_t = mu + sigma * z
 
@@ -388,7 +348,7 @@ class Denoiser(Diffuser):
                 else th.zeros_like(x_t, device=device)
             )
 
-            eps = self.__unet(
+            eps, _ = self.__unet(
                 x_t.unsqueeze(1),
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             )
