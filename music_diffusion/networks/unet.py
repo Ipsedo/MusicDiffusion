@@ -4,6 +4,7 @@ from typing import List, Tuple
 import torch as th
 from torch import nn
 
+from .attention import SelfAttention2d
 from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock
 from .time import SinusoidTimeEmbedding, TimeBypass, TimeWrapper
 
@@ -14,6 +15,8 @@ class TimeUNet(nn.Module):
         in_channels: int,
         out_channels: int,
         hidden_channels: List[Tuple[int, int]],
+        use_attention: List[bool],
+        attention_heads: int,
         time_size: int,
         steps: int,
     ) -> None:
@@ -28,6 +31,9 @@ class TimeUNet(nn.Module):
         decoding_channels = [
             (c_o, c_i) for c_i, c_o in reversed(hidden_channels)
         ]
+
+        encoder_attention = use_attention.copy()
+        decoder_attention = reversed(use_attention)
 
         self.__time_embedder = SinusoidTimeEmbedding(steps, time_size)
 
@@ -46,10 +52,17 @@ class TimeUNet(nn.Module):
                 c_i,
                 nn.Sequential(
                     ConvBlock(c_i, c_o),
+                    SelfAttention2d(
+                        c_o, attention_heads, c_o, c_o // 8, c_o // 8
+                    )
+                    if use_att
+                    else nn.Identity(),
                     ConvBlock(c_o, c_o),
                 ),
             )
-            for c_i, c_o in encoding_channels
+            for use_att, (c_i, c_o) in zip(
+                encoder_attention, encoding_channels
+            )
         )
 
         self.__encoder_down = nn.ModuleList(
@@ -78,10 +91,17 @@ class TimeUNet(nn.Module):
             TimeBypass(
                 nn.Sequential(
                     ConvBlock(c_i, c_i),
+                    SelfAttention2d(
+                        c_i, attention_heads, c_i, c_i // 8, c_i // 8
+                    )
+                    if use_att
+                    else nn.Identity(),
                     ConvBlock(c_i, c_o),
                 )
             )
-            for c_i, c_o in decoding_channels
+            for use_att, (c_i, c_o) in zip(
+                decoder_attention, decoding_channels
+            )
         )
 
         self.__eps_end_conv = TimeBypass(

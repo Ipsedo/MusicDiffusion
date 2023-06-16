@@ -188,6 +188,8 @@ class Denoiser(Diffuser):
         beta_1: float,
         beta_t: float,
         unet_channels: List[Tuple[int, int]],
+        use_attention: List[bool],
+        attention_heads: int,
     ) -> None:
         super().__init__(steps, beta_1, beta_t)
 
@@ -210,6 +212,8 @@ class Denoiser(Diffuser):
             channels,
             channels,
             unet_channels,
+            use_attention,
+            attention_heads,
             time_size,
             self._steps,
         )
