@@ -69,12 +69,9 @@ def normal_kl_div(
     #     + th.pow(mu_1 - mu_2, 2.0) * th.exp(-log_var_2)
     # )
 
-    log_sigma_1 = th.log(th.sqrt(var_1 + epsilon))
-    log_sigma_2 = th.log(th.sqrt(var_2 + epsilon))
-
     return (
-        log_sigma_2
-        - log_sigma_1
+        th.log(th.sqrt(var_1 + epsilon))
+        - th.log(th.sqrt(var_2 + epsilon))
         + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2)
         - 0.5
     )
