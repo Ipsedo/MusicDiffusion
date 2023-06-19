@@ -70,8 +70,8 @@ def normal_kl_div(
     # )
 
     return (
-        th.log(th.sqrt(var_1 + epsilon))
-        - th.log(th.sqrt(var_2 + epsilon))
+        th.log(th.sqrt(var_2 + epsilon))
+        - th.log(th.sqrt(var_1 + epsilon))
         + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2)
         - 0.5
     )
