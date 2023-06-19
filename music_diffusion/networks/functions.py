@@ -58,15 +58,25 @@ def normal_kl_div(
     var_2: th.Tensor,
     epsilon: float = 1e-8,
 ) -> th.Tensor:
-    log_var_1 = th.log(var_1 + epsilon)
-    log_var_2 = th.log(var_2 + epsilon)
+    # log_var_1 = th.log(var_1 + epsilon)
+    # log_var_2 = th.log(var_2 + epsilon)
+    #
+    # return 0.5 * (
+    #     -1.0
+    #     + log_var_2
+    #     - log_var_1
+    #     + th.exp(log_var_1 - log_var_2)
+    #     + th.pow(mu_1 - mu_2, 2.0) * th.exp(-log_var_2)
+    # )
 
-    return 0.5 * (
-        -1.0
-        + log_var_2
-        - log_var_1
-        + th.exp(log_var_1 - log_var_2)
-        + th.pow(mu_1 - mu_2, 2.0) * th.exp(-log_var_2)
+    log_sigma_1 = th.log(th.sqrt(var_1 + epsilon))
+    log_sigma_2 = th.log(th.sqrt(var_2 + epsilon))
+
+    return (
+        log_sigma_2
+        - log_sigma_1
+        + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2)
+        - 0.5
     )
 
 
