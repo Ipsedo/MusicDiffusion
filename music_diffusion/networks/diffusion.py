@@ -287,50 +287,7 @@ class Denoiser(Diffuser):
 
         return self._mu(x_t, eps_theta, t), self._var(t)
 
-    # pylint: disable=duplicate-code
     def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
-        assert len(x_t.size()) == 4
-        assert x_t.size(1) == self.__channels
-
-        device = "cuda" if next(self.parameters()).is_cuda else "cpu"
-
-        times = list(reversed(range(self._steps)))
-        tqdm_bar = tqdm(times, disable=not verbose, leave=False)
-
-        for t in tqdm_bar:
-            z = (
-                th.randn_like(x_t, device=device)
-                if t > 0
-                else th.zeros_like(x_t, device=device)
-            )
-
-            eps = self.__unet(
-                x_t.unsqueeze(1),
-                th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
-            )
-            eps = eps.squeeze(1)
-
-            mu = (
-                x_t
-                - eps
-                * (1.0 - self._alphas[t])
-                / self._sqrt_one_minus_alphas_cum_prod[t]
-            ) / self._sqrt_alpha[t]
-
-            var = self._betas[t]
-
-            x_t = mu + var.sqrt() * z
-
-            tqdm_bar.set_description(
-                f"Generate {x_t.size(0)} data with size {tuple(x_t.size()[1:])}"
-            )
-
-        return x_t
-
-    # pylint: disable=duplicate-code
-    def original_sample(
-        self, x_t: th.Tensor, verbose: bool = False
-    ) -> th.Tensor:
         assert len(x_t.size()) == 4
         assert x_t.size(1) == self.__channels
 

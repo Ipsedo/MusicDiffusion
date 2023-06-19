@@ -80,6 +80,13 @@ class TimeUNet(nn.Module):
         self.__middle_block = TimeBypass(
             nn.Sequential(
                 ConvBlock(c_m, c_m),
+                SelfAttention2d(
+                    c_m,
+                    attention_heads,
+                    c_m,
+                    c_m // 4,
+                    c_m // 4,
+                ),
                 ConvBlock(c_m, c_m),
             )
         )
