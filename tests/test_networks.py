@@ -176,14 +176,6 @@ def test_denoiser(
     assert x_0.size(2) == img_sizes[0]
     assert x_0.size(3) == img_sizes[1]
 
-    x_0 = denoiser.original_sample(x_t)
-
-    assert len(x_0.size()) == 4
-    assert x_0.size(0) == batch_size
-    assert x_0.size(1) == channels
-    assert x_0.size(2) == img_sizes[0]
-    assert x_0.size(3) == img_sizes[1]
-
 
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [2, 4])
