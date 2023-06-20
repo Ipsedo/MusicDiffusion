@@ -38,16 +38,17 @@ class Diffuser(ABC, nn.Module):
         alphas = 1 - betas"""
 
         betas = th.linspace(beta_1, beta_t, steps=self._steps)
-        betas = th.cat([th.tensor([0]), betas])
 
         alphas = 1 - betas
 
         alphas_cum_prod = th.cumprod(alphas, dim=0)
-        alphas_cum_prod_prev = alphas_cum_prod[:-1]
+        alphas_cum_prod_prev = th.cat(
+            [th.tensor([1]), alphas_cum_prod[:-1]], dim=0
+        )
 
-        alphas_cum_prod = alphas_cum_prod[1:]
-        alphas = alphas[1:]
-        betas = betas[1:]
+        # alphas_cum_prod = alphas_cum_prod[1:]
+        # alphas = alphas[1:]
+        # betas = betas[1:]
 
         sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
@@ -55,6 +56,7 @@ class Diffuser(ABC, nn.Module):
         betas_tiddle = (
             betas * (1.0 - alphas_cum_prod_prev) / (1.0 - alphas_cum_prod)
         )
+        betas_tiddle[betas_tiddle < 1e-20] = 1e-20
 
         # attributes definition
 
@@ -157,7 +159,7 @@ class Noiser(Diffuser):
     def _var(self, *args: th.Tensor) -> th.Tensor:
         (t,) = args
 
-        betas: th.Tensor = select_time_scheduler(self._betas, t)
+        betas: th.Tensor = select_time_scheduler(self._betas_tiddle, t)
 
         return betas
 
@@ -267,7 +269,6 @@ class Denoiser(Diffuser):
 
         return mu
 
-    # pylint: disable=duplicate-code
     def _var(self, *args: th.Tensor) -> th.Tensor:
         (t,) = args
 
