@@ -232,26 +232,22 @@ class Denoiser(Diffuser):
 
         return eps_theta
 
-    def _mu(self, *args: th.Tensor) -> th.Tensor:
-        x_t, eps_theta, t = args
-
-        sqrt_alpha = select_time_scheduler(self._sqrt_alpha, t)
-        betas = select_time_scheduler(self._betas, t)
-
-        sqrt_alphas_cum_prod = select_time_scheduler(
-            self._sqrt_alphas_cum_prod, t
-        )
-        alphas_cum_prod = select_time_scheduler(self._alphas_cum_prod, t)
-        alphas_cum_prod_prev = select_time_scheduler(
-            self._alphas_cum_prod_prev, t
-        )
-
+    @staticmethod
+    def __mu_generic(
+        x_t: th.Tensor,
+        eps_theta: th.Tensor,
+        sqrt_alpha: th.Tensor,
+        betas: th.Tensor,
+        alphas_cum_prod: th.Tensor,
+        alphas_cum_prod_prev: th.Tensor,
+    ) -> th.Tensor:
         x_t_next_clipped = th.clip(
-            x_t / sqrt_alphas_cum_prod
+            x_t / th.sqrt(alphas_cum_prod)
             - eps_theta * th.sqrt((1 - alphas_cum_prod) / alphas_cum_prod),
             -1,
             1,
         )
+
         x_t_next_arg = (
             x_t
             * (1 - alphas_cum_prod_prev)
@@ -269,12 +265,36 @@ class Denoiser(Diffuser):
 
         return mu
 
+    @staticmethod
+    def __var_generic(betas: th.Tensor) -> th.Tensor:
+        return betas
+
+    def _mu(self, *args: th.Tensor) -> th.Tensor:
+        x_t, eps_theta, t = args
+
+        sqrt_alpha = select_time_scheduler(self._sqrt_alpha, t)
+        betas = select_time_scheduler(self._betas, t)
+
+        alphas_cum_prod = select_time_scheduler(self._alphas_cum_prod, t)
+        alphas_cum_prod_prev = select_time_scheduler(
+            self._alphas_cum_prod_prev, t
+        )
+
+        return Denoiser.__mu_generic(
+            x_t,
+            eps_theta,
+            sqrt_alpha,
+            betas,
+            alphas_cum_prod,
+            alphas_cum_prod_prev,
+        )
+
     def _var(self, *args: th.Tensor) -> th.Tensor:
         (t,) = args
 
         betas: th.Tensor = select_time_scheduler(self._betas, t)
 
-        return betas
+        return Denoiser.__var_generic(betas)
 
     def prior(
         self,
@@ -324,7 +344,6 @@ class Denoiser(Diffuser):
 
         return x_t
 
-    # pylint: disable=duplicate-code
     def fast_sample(
         self, x_t: th.Tensor, n_steps: int, verbose: bool = False
     ) -> th.Tensor:
@@ -354,13 +373,19 @@ class Denoiser(Diffuser):
                 x_t.unsqueeze(1),
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             )
-            eps = eps.squeeze(1)
 
-            mu = (
-                x_t - eps * betas_s[s_t] / th.sqrt(1 - alphas_cum_prod_s)[s_t]
-            ) / alphas_s[s_t]
+            mu = Denoiser.__mu_generic(
+                x_t.unsqueeze(1),
+                eps,
+                th.sqrt(alphas_s[s_t, None, None]),
+                betas_s[s_t, None, None],
+                alphas_cum_prod_s[s_t, None, None],
+                alphas_cum_prod_prev_s[s_t, None, None],
+            )
+            mu = mu.squeeze(1)
 
-            var = betas_s[s_t]
+            var = Denoiser.__var_generic(betas_s[s_t, None, None])
+            var = var.squeeze(1)
 
             x_t = mu + var.sqrt() * z
 
