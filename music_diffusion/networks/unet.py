@@ -27,6 +27,8 @@ class TimeUNet(nn.Module):
             for i in range(len(hidden_channels) - 1)
         )
 
+        assert len(hidden_channels) == len(use_attention)
+
         encoding_channels = hidden_channels.copy()
         decoding_channels = [
             (c_o, c_i) for c_i, c_o in reversed(hidden_channels)
@@ -99,9 +101,11 @@ class TimeUNet(nn.Module):
         )
 
         self.__decoder = nn.ModuleList(
-            TimeBypass(
+            TimeWrapper(
+                time_size,
+                c_i * 2,
                 nn.Sequential(
-                    ConvBlock(c_i, c_i),
+                    ConvBlock(c_i * 2, c_i),
                     SelfAttention2d(
                         c_i,
                         attention_heads,
@@ -112,7 +116,7 @@ class TimeUNet(nn.Module):
                     if use_att
                     else nn.Identity(),
                     ConvBlock(c_i, c_o),
-                )
+                ),
             )
             for use_att, (c_i, c_o) in zip(
                 decoder_attention, decoding_channels
@@ -149,8 +153,8 @@ class TimeUNet(nn.Module):
             reversed(bypasses),
         ):
             out = up(out)
-            out = out + bypass
-            out = block(out)
+            out = th.cat([out, bypass], dim=2)
+            out = block(out, time_vec)
 
         eps: th.Tensor = self.__eps_end_conv(out)
 
