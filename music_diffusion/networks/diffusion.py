@@ -190,8 +190,6 @@ class Denoiser(Diffuser):
         beta_1: float,
         beta_t: float,
         unet_channels: List[Tuple[int, int]],
-        use_attention: List[bool],
-        attention_heads: int,
     ) -> None:
         super().__init__(steps, beta_1, beta_t)
 
@@ -214,8 +212,6 @@ class Denoiser(Diffuser):
             channels,
             channels,
             unet_channels,
-            use_attention,
-            attention_heads,
             time_size,
             self._steps,
         )
@@ -348,7 +344,11 @@ class Denoiser(Diffuser):
         self, x_t: th.Tensor, n_steps: int, verbose: bool = False
     ) -> th.Tensor:
 
-        steps = th.arange(0, self._steps, step=n_steps)
+        device = "cuda" if next(self.parameters()).is_cuda else "cpu"
+
+        steps = th.floor(
+            th.linspace(0, self._steps - 1, steps=n_steps, device=device)
+        ).to(th.int)
 
         alphas_cum_prod_s = self._alphas_cum_prod[steps]
         alphas_cum_prod_prev_s = self._alphas_cum_prod_prev[steps]
@@ -357,9 +357,7 @@ class Denoiser(Diffuser):
 
         alphas_s = 1 - betas_s
 
-        device = "cuda" if next(self.parameters()).is_cuda else "cpu"
-
-        times = steps.numpy().tolist()
+        times = steps.cpu().numpy().tolist()
         tqdm_bar = tqdm(times, disable=not verbose, leave=False)
 
         for s_t, t in enumerate(tqdm_bar):

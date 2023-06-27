@@ -77,21 +77,7 @@ def main() -> None:
             (56, 64),
         ],
     )
-    model_parser.add_argument(
-        "--use-attention",
-        type=_attentions,
-        default=[
-            False,
-            False,
-            False,
-            False,
-            True,
-            True,
-            True,
-        ],
-    )
     model_parser.add_argument("--time-size", type=int, default=32)
-    model_parser.add_argument("--attention-heads", type=int, default=8)
     model_parser.add_argument("--cuda", action="store_true")
 
     # Sub command run {train, generate}
@@ -119,6 +105,7 @@ def main() -> None:
 
     generate_parser.add_argument("denoiser_dict_state", type=str)
     generate_parser.add_argument("output_dir", type=str)
+    generate_parser.add_argument("--fast-sample", type=int, required=False)
     generate_parser.add_argument("--frames", type=int, required=True)
     generate_parser.add_argument("--musics", type=int, required=True)
 
@@ -135,8 +122,6 @@ def main() -> None:
             beta_t=args.beta_t,
             input_channels=args.channels,
             unet_channels=args.unet_channels,
-            use_attention=args.use_attention,
-            attention_heads=args.attention_heads,
             time_size=args.time_size,
             cuda=args.cuda,
         )
@@ -162,6 +147,7 @@ def main() -> None:
 
         elif args.run == "generate":
             generate_options = GenerateOptions(
+                fast_sample=args.fast_sample,
                 denoiser_dict_state=args.denoiser_dict_state,
                 output_dir=args.output_dir,
                 frames=args.frames,

@@ -54,8 +54,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             model_options.beta_1,
             model_options.beta_t,
             model_options.unet_channels,
-            model_options.use_attention,
-            model_options.attention_heads,
         )
         # pylint: enable=duplicate-code
 
@@ -151,6 +149,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 p_mu, p_var = denoiser.prior(x_t, t, eps_theta)
 
                 loss = normal_kl_div(q_mu, q_var, p_mu, p_var)
+                loss = loss.sum(dim=[2, 3, 4])
                 loss = loss.mean()
 
                 optim.zero_grad(set_to_none=True)
