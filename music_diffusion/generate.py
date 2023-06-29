@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from os import mkdir
 from os.path import exists, isdir, join
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 import torch as th
 from tqdm import tqdm
@@ -19,6 +19,7 @@ from .utils import ModelOptions
 GenerateOptions = NamedTuple(
     "GenerateOptions",
     [
+        ("fast_sample", Optional[int]),
         ("denoiser_dict_state", str),
         ("output_dir", str),
         ("frames", int),
@@ -46,8 +47,6 @@ def generate(
         model_options.beta_1,
         model_options.beta_t,
         model_options.unet_channels,
-        model_options.use_attention,
-        model_options.attention_heads,
     )
     # pylint: enable=duplicate-code
 
@@ -76,7 +75,13 @@ def generate(
             device=device,
         )
 
-        x_0 = denoiser.sample(x_t, verbose=True)
+        x_0 = (
+            denoiser.fast_sample(
+                x_t, generate_options.fast_sample, verbose=True
+            )
+            if generate_options.fast_sample is not None
+            else denoiser.sample(x_t, verbose=True)
+        )
 
         print("Saving sound...")
 

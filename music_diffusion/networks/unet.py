@@ -4,7 +4,6 @@ from typing import List, Tuple
 import torch as th
 from torch import nn
 
-from .attention import SelfAttention2d
 from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock
 from .time import SinusoidTimeEmbedding, TimeBypass, TimeWrapper
 
@@ -15,8 +14,6 @@ class TimeUNet(nn.Module):
         in_channels: int,
         out_channels: int,
         hidden_channels: List[Tuple[int, int]],
-        use_attention: List[bool],
-        attention_heads: int,
         time_size: int,
         steps: int,
     ) -> None:
@@ -27,15 +24,10 @@ class TimeUNet(nn.Module):
             for i in range(len(hidden_channels) - 1)
         )
 
-        assert len(hidden_channels) == len(use_attention)
-
         encoding_channels = hidden_channels.copy()
         decoding_channels = [
             (c_o, c_i) for c_i, c_o in reversed(hidden_channels)
         ]
-
-        encoder_attention = use_attention.copy()
-        decoder_attention = reversed(use_attention)
 
         self.__time_embedder = SinusoidTimeEmbedding(steps, time_size)
 
@@ -54,21 +46,10 @@ class TimeUNet(nn.Module):
                 c_i,
                 nn.Sequential(
                     ConvBlock(c_i, c_o),
-                    SelfAttention2d(
-                        c_o,
-                        attention_heads,
-                        c_o,
-                        c_o // 4,
-                        c_o // 4,
-                    )
-                    if use_att
-                    else nn.Identity(),
                     ConvBlock(c_o, c_o),
                 ),
             )
-            for use_att, (c_i, c_o) in zip(
-                encoder_attention, encoding_channels
-            )
+            for c_i, c_o in encoding_channels
         )
 
         self.__encoder_down = nn.ModuleList(
@@ -82,13 +63,6 @@ class TimeUNet(nn.Module):
         self.__middle_block = TimeBypass(
             nn.Sequential(
                 ConvBlock(c_m, c_m),
-                SelfAttention2d(
-                    c_m,
-                    attention_heads,
-                    c_m,
-                    c_m // 4,
-                    c_m // 4,
-                ),
                 ConvBlock(c_m, c_m),
             )
         )
@@ -106,21 +80,10 @@ class TimeUNet(nn.Module):
                 c_i * 2,
                 nn.Sequential(
                     ConvBlock(c_i * 2, c_i),
-                    SelfAttention2d(
-                        c_i,
-                        attention_heads,
-                        c_i,
-                        c_i // 4,
-                        c_i // 4,
-                    )
-                    if use_att
-                    else nn.Identity(),
                     ConvBlock(c_i, c_o),
                 ),
             )
-            for use_att, (c_i, c_o) in zip(
-                decoder_attention, decoding_channels
-            )
+            for c_i, c_o in decoding_channels
         )
 
         self.__eps_end_conv = TimeBypass(

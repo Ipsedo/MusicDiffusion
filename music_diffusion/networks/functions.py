@@ -56,7 +56,6 @@ def normal_kl_div(
     var_1: th.Tensor,
     mu_2: th.Tensor,
     var_2: th.Tensor,
-    epsilon: float = 1e-8,
 ) -> th.Tensor:
     # log_var_1 = th.log(var_1 + epsilon)
     # log_var_2 = th.log(var_2 + epsilon)
@@ -69,13 +68,45 @@ def normal_kl_div(
     #     + th.pow(mu_1 - mu_2, 2.0) * th.exp(-log_var_2)
     # )
 
-    return (
-        th.log(th.sqrt(var_2 + epsilon))
-        - th.log(th.sqrt(var_1 + epsilon))
+    return th.sum(
+        th.log(th.sqrt(var_2))
+        - th.log(th.sqrt(var_1))
         + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2)
-        - 0.5
+        - 0.5,
+        dim=[2, 3, 4],
     )
 
 
 def mse(p: th.Tensor, q: th.Tensor) -> th.Tensor:
     return th.pow(p - q, 2.0)
+
+
+def normal_bhattacharyya(
+    mu_1: th.Tensor,
+    var_1: th.Tensor,
+    mu_2: th.Tensor,
+    var_2: th.Tensor,
+) -> th.Tensor:
+    sig_1 = th.sqrt(var_1)
+    sig_2 = th.sqrt(var_2)
+    sigma = (sig_1 + sig_2) / 2.0
+
+    return th.sum(
+        th.pow(mu_1 - mu_2, 2.0) / sigma / 8.0
+        + th.log(sigma / th.sqrt(sig_1 * sig_2)),
+        dim=[2, 3, 4],
+    )
+
+
+def normal_wasserstein(
+    mu_1: th.Tensor,
+    var_1: th.Tensor,
+    mu_2: th.Tensor,
+    var_2: th.Tensor,
+) -> th.Tensor:
+
+    return th.sum(
+        th.pow(mu_1 - mu_2, 2.0)
+        + th.pow(th.sqrt(var_1) - th.sqrt(var_2), 2.0),
+        dim=[2, 3, 4],
+    )
