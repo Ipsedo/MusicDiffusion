@@ -7,5 +7,6 @@ from .functions import (
     mse,
     normal_bhattacharyya,
     normal_kl_div,
+    normal_wasserstein,
 )
 from .unet import TimeUNet

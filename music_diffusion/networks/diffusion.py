@@ -53,10 +53,13 @@ class Diffuser(ABC, nn.Module):
         sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
 
+        self._betas_tiddle_limit = 1e-10
         betas_tiddle = (
             betas * (1.0 - alphas_cum_prod_prev) / (1.0 - alphas_cum_prod)
         )
-        betas_tiddle[betas_tiddle < 1e-20] = 1e-20
+        betas_tiddle[
+            betas_tiddle < self._betas_tiddle_limit
+        ] = self._betas_tiddle_limit
 
         # attributes definition
 
@@ -159,7 +162,7 @@ class Noiser(Diffuser):
     def _var(self, *args: th.Tensor) -> th.Tensor:
         (t,) = args
 
-        betas: th.Tensor = select_time_scheduler(self._betas_tiddle, t)
+        betas: th.Tensor = select_time_scheduler(self._betas, t)
 
         return betas
 

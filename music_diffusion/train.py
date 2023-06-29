@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from .data import AudioDataset
-from .networks import Denoiser, Noiser, normal_bhattacharyya
+from .networks import Denoiser, Noiser, normal_kl_div
 from .utils import ModelOptions, Saver
 
 TrainOptions = NamedTuple(
@@ -148,15 +148,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 q_mu, q_var = noiser.posterior(x_t, x_0, t)
                 p_mu, p_var = denoiser.prior(x_t, t, eps_theta)
 
-                # loss = normal_kl_div(q_mu, q_var, p_mu, p_var)
-                # loss = loss.sum(dim=[2, 3, 4])
-                # loss = loss.mean()
-
-                # loss = th.pow(q_mu - p_mu, 2)
-                # loss = loss.sum(dim=[2, 3, 4])
-                # loss = loss.mean()
-
-                loss = normal_bhattacharyya(q_mu, q_var, p_mu, p_var)
+                loss = normal_kl_div(q_mu, q_var, p_mu, p_var)
                 loss = loss.mean()
 
                 optim.zero_grad(set_to_none=True)
