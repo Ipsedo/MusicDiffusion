@@ -123,7 +123,7 @@ def test_denoiser(
         device=device,
     )
 
-    eps = denoiser(x_t, t)
+    eps, v = denoiser(x_t, t)
 
     assert len(eps.size()) == 5
     assert eps.size(0) == batch_size
@@ -132,7 +132,14 @@ def test_denoiser(
     assert eps.size(3) == img_sizes[0]
     assert eps.size(4) == img_sizes[1]
 
-    prior_mu, prior_var = denoiser.prior(x_t, t, eps)
+    assert len(v.size()) == 5
+    assert v.size(0) == batch_size
+    assert v.size(1) == step_batch_size
+    assert v.size(2) == channels
+    assert v.size(3) == img_sizes[0]
+    assert v.size(4) == img_sizes[1]
+
+    prior_mu, prior_var = denoiser.prior(x_t, t, eps, v)
 
     assert len(prior_mu.size()) == 5
     assert prior_mu.size(0) == batch_size
@@ -144,9 +151,9 @@ def test_denoiser(
     assert len(prior_var.size()) == 5
     assert prior_var.size(0) == batch_size
     assert prior_var.size(1) == step_batch_size
-    assert prior_var.size(2) == 1
-    assert prior_var.size(3) == 1
-    assert prior_var.size(4) == 1
+    assert prior_var.size(2) == channels
+    assert prior_var.size(3) == img_sizes[0]
+    assert prior_var.size(4) == img_sizes[1]
     assert th.all(th.gt(prior_var, 0.0))
 
     x_t = th.randn(
@@ -223,7 +230,7 @@ def test_unet(
         device=device,
     )
 
-    eps = unet(x_t, t)
+    eps, v = unet(x_t, t)
 
     assert len(eps.size()) == 5
     assert eps.size(0) == batch_size
@@ -231,3 +238,10 @@ def test_unet(
     assert eps.size(2) == channels
     assert eps.size(3) == size[0]
     assert eps.size(4) == size[1]
+
+    assert len(v.size()) == 5
+    assert v.size(0) == batch_size
+    assert v.size(1) == nb_steps
+    assert v.size(2) == channels
+    assert v.size(3) == size[0]
+    assert v.size(4) == size[1]

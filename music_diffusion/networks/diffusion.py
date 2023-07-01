@@ -53,7 +53,7 @@ class Diffuser(ABC, nn.Module):
         sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
 
-        self._betas_tiddle_limit = 1e-10
+        self._betas_tiddle_limit = 1e-8
         betas_tiddle = (
             betas * (1.0 - alphas_cum_prod_prev) / (1.0 - alphas_cum_prod)
         )
@@ -221,15 +221,17 @@ class Denoiser(Diffuser):
 
         self.apply(weights_init)
 
-    def forward(self, x_t: th.Tensor, t: th.Tensor) -> th.Tensor:
+    def forward(
+        self, x_t: th.Tensor, t: th.Tensor
+    ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x_t.size()) == 5
         assert len(t.size()) == 2
         assert x_t.size(0) == t.size(0)
         assert x_t.size(1) == t.size(1)
 
-        eps_theta: th.Tensor = self.__unet(x_t, t)
+        eps_theta, v_theta = self.__unet(x_t, t)
 
-        return eps_theta
+        return eps_theta, v_theta
 
     @staticmethod
     def __mu_generic(
@@ -265,8 +267,10 @@ class Denoiser(Diffuser):
         return mu
 
     @staticmethod
-    def __var_generic(betas: th.Tensor) -> th.Tensor:
-        return betas
+    def __var_generic(
+        v: th.Tensor, betas: th.Tensor, betas_tiddle: th.Tensor
+    ) -> th.Tensor:
+        return th.exp(v * th.log(betas) + (1.0 - v) * th.log(betas_tiddle))
 
     def _mu(self, *args: th.Tensor) -> th.Tensor:
         x_t, eps_theta, t = args
@@ -289,23 +293,28 @@ class Denoiser(Diffuser):
         )
 
     def _var(self, *args: th.Tensor) -> th.Tensor:
-        (t,) = args
+        (
+            v,
+            t,
+        ) = args
 
         betas: th.Tensor = select_time_scheduler(self._betas, t)
+        betas_tiddle: th.Tensor = select_time_scheduler(self._betas_tiddle, t)
 
-        return Denoiser.__var_generic(betas)
+        return Denoiser.__var_generic(v, betas, betas_tiddle)
 
     def prior(
         self,
         x_t: th.Tensor,
         t: th.Tensor,
         eps_theta: th.Tensor,
+        v_theta: th.Tensor,
     ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x_t.size()) == 5
         assert len(t.size()) == 2
         assert len(eps_theta.size()) == 5
 
-        return self._mu(x_t, eps_theta, t), self._var(t)
+        return self._mu(x_t, eps_theta, t), self._var(v_theta, t)
 
     def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
         assert len(x_t.size()) == 4
@@ -325,7 +334,7 @@ class Denoiser(Diffuser):
 
             t_tensor = th.tensor([[t]], device=device)
 
-            eps = self.__unet(
+            eps, v = self.__unet(
                 x_t.unsqueeze(1),
                 t_tensor.repeat(x_t.size(0), 1),
             )
@@ -333,7 +342,7 @@ class Denoiser(Diffuser):
             # original sampling method
             # see : https://github.com/hojonathanho/diffusion/issues/5
             mu = self._mu(x_t.unsqueeze(1), eps, t_tensor).squeeze(1)
-            sigma = self._var(t_tensor).sqrt().squeeze(1)
+            sigma = self._var(v, t_tensor).sqrt().squeeze(1)
 
             x_t = mu + sigma * z
 
@@ -358,6 +367,15 @@ class Denoiser(Diffuser):
 
         betas_s = 1 - alphas_cum_prod_s / alphas_cum_prod_prev_s
 
+        betas_tiddle_s = (
+            betas_s
+            * (1.0 - alphas_cum_prod_prev_s)
+            / (1.0 - alphas_cum_prod_s)
+        )
+        betas_tiddle_s[
+            betas_tiddle_s < self._betas_tiddle_limit
+        ] = self._betas_tiddle_limit
+
         alphas_s = 1 - betas_s
 
         times = steps.cpu().numpy().tolist()
@@ -370,7 +388,7 @@ class Denoiser(Diffuser):
                 else th.zeros_like(x_t, device=device)
             )
 
-            eps = self.__unet(
+            eps, v = self.__unet(
                 x_t.unsqueeze(1),
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             )
@@ -385,7 +403,9 @@ class Denoiser(Diffuser):
             )
             mu = mu.squeeze(1)
 
-            var = Denoiser.__var_generic(betas_s[s_t, None, None])
+            var = Denoiser.__var_generic(
+                v, betas_s[s_t, None, None], betas_tiddle_s[s_t, None, None]
+            )
             var = var.squeeze(1)
 
             x_t = mu + var.sqrt() * z

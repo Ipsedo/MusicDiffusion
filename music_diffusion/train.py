@@ -140,15 +140,16 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 )
 
                 x_t, _ = noiser(x_0, t)
-                eps_theta = denoiser(x_t, t)
+                eps_theta, v_theta = denoiser(x_t, t)
 
                 # loss = mse(eps, eps_theta)
                 # loss = loss.mean()
 
                 q_mu, q_var = noiser.posterior(x_t, x_0, t)
-                p_mu, p_var = denoiser.prior(x_t, t, eps_theta)
+                p_mu, p_var = denoiser.prior(x_t, t, eps_theta, v_theta)
 
                 loss = normal_kl_div(q_mu, q_var, p_mu, p_var)
+                loss = loss / loss.detach().max()
                 loss = loss.mean()
 
                 optim.zero_grad(set_to_none=True)
