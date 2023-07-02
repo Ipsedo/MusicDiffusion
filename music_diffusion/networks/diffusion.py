@@ -53,7 +53,7 @@ class Diffuser(ABC, nn.Module):
         sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
 
-        self._betas_tiddle_limit = 1e-8
+        self._betas_tiddle_limit = 1e-20
         betas_tiddle = (
             betas * (1.0 - alphas_cum_prod_prev) / (1.0 - alphas_cum_prod)
         )
