@@ -4,9 +4,9 @@ import re
 from typing import List, Tuple
 
 from .data import create_dataset
-from .generate import GenerateOptions, generate
-from .train import TrainOptions, train
-from .utils import ModelOptions
+from .generate import generate
+from .options import GenerateOptions, ModelOptions, TrainOptions
+from .train import train
 
 
 def _channels(string: str) -> List[Tuple[int, int]]:

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from os import mkdir
 from os.path import exists, isdir, join
-from typing import NamedTuple, Optional
 
 import torch as th
 from tqdm import tqdm
@@ -14,18 +13,7 @@ from .data import (
     magnitude_phase_to_wav,
 )
 from .networks import Denoiser
-from .utils import ModelOptions
-
-GenerateOptions = NamedTuple(
-    "GenerateOptions",
-    [
-        ("fast_sample", Optional[int]),
-        ("denoiser_dict_state", str),
-        ("output_dir", str),
-        ("frames", int),
-        ("musics", int),
-    ],
-)
+from .options import GenerateOptions, ModelOptions
 
 
 def generate(

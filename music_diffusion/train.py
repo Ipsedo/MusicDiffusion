@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from statistics import mean
-from typing import NamedTuple, Optional
 
 import mlflow
 import torch as th
@@ -9,26 +8,8 @@ from tqdm import tqdm
 
 from .data import AudioDataset
 from .networks import Denoiser, Noiser, normal_kl_div
-from .utils import ModelOptions, Saver
-
-TrainOptions = NamedTuple(
-    "TrainOptions",
-    [
-        ("run_name", str),
-        ("dataset_path", str),
-        ("batch_size", int),
-        ("step_batch_size", int),
-        ("epochs", int),
-        ("learning_rate", float),
-        ("metric_window", int),
-        ("save_every", int),
-        ("output_directory", str),
-        ("nb_samples", int),
-        ("noiser_state_dict", Optional[str]),
-        ("denoiser_state_dict", Optional[str]),
-        ("optim_state_dict", Optional[str]),
-    ],
-)
+from .options import ModelOptions, TrainOptions
+from .saver import Saver
 
 
 def train(model_options: ModelOptions, train_options: TrainOptions) -> None:

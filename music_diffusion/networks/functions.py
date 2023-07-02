@@ -57,17 +57,6 @@ def normal_kl_div(
     mu_2: th.Tensor,
     var_2: th.Tensor,
 ) -> th.Tensor:
-    # log_var_1 = th.log(var_1 + epsilon)
-    # log_var_2 = th.log(var_2 + epsilon)
-    #
-    # return 0.5 * (
-    #     -1.0
-    #     + log_var_2
-    #     - log_var_1
-    #     + th.exp(log_var_1 - log_var_2)
-    #     + th.pow(mu_1 - mu_2, 2.0) * th.exp(-log_var_2)
-    # )
-
     return th.sum(
         th.log(th.sqrt(var_2))
         - th.log(th.sqrt(var_1))
