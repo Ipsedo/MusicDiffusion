@@ -19,7 +19,7 @@ class ChannelProjBlock(nn.Sequential):
                 padding=(0, 0),
             ),
             nn.GELU(),
-            nn.InstanceNorm2d(out_channels),
+            nn.GroupNorm(8, out_channels),
         )
 
 
@@ -61,7 +61,7 @@ class StrideConvBlock(nn.Sequential):
                 padding=(1, 1),
             ),
             nn.GELU(),
-            nn.InstanceNorm2d(out_channels),
+            nn.GroupNorm(8, out_channels),
         )
 
 
@@ -80,5 +80,5 @@ class ConvBlock(nn.Sequential):
                 padding=(1, 1),
             ),
             nn.GELU(),
-            nn.InstanceNorm2d(out_channels),
+            nn.GroupNorm(8, out_channels),
         )

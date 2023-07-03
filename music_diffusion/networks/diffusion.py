@@ -360,7 +360,7 @@ class Denoiser(Diffuser):
 
         steps = th.floor(
             th.linspace(0, self._steps - 1, steps=n_steps, device=device)
-        ).to(th.int)
+        ).to(th.long)
 
         alphas_cum_prod_s = self._alphas_cum_prod[steps]
         alphas_cum_prod_prev_s = self._alphas_cum_prod_prev[steps]
