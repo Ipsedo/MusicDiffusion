@@ -180,6 +180,32 @@ def test_denoiser(
     assert x_0.size(2) == img_sizes[0]
     assert x_0.size(3) == img_sizes[1]
 
+    # test with batch size == 1
+    denoiser.eval()
+
+    x_t = th.randn(
+        1,
+        channels,
+        *img_sizes,
+        device=device,
+    )
+
+    x_0 = denoiser.sample(x_t)
+
+    assert len(x_0.size()) == 4
+    assert x_0.size(0) == 1
+    assert x_0.size(1) == channels
+    assert x_0.size(2) == img_sizes[0]
+    assert x_0.size(3) == img_sizes[1]
+
+    x_0 = denoiser.fast_sample(x_t, steps // 2)
+
+    assert len(x_0.size()) == 4
+    assert x_0.size(0) == 1
+    assert x_0.size(1) == channels
+    assert x_0.size(2) == img_sizes[0]
+    assert x_0.size(3) == img_sizes[1]
+
 
 @pytest.mark.parametrize("batch_size", [2, 3])
 @pytest.mark.parametrize("channels", [2, 4])
