@@ -78,7 +78,7 @@ def main() -> None:
         ],
     )
     model_parser.add_argument("--time-size", type=int, default=32)
-    parser.add_argument("--norm-groups", type=int, default=8)
+    model_parser.add_argument("--norm-groups", type=int, default=8)
     model_parser.add_argument("--cuda", action="store_true")
 
     # Sub command run {train, generate}
