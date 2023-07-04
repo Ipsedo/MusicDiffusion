@@ -64,7 +64,7 @@ class TimeWrapper(nn.Module):
         self.__to_channels = nn.Sequential(
             nn.Linear(time_size, channels),
             nn.GELU(),
-            TimeBypass(nn.GroupNorm(8, channels)),
+            nn.Linear(channels, channels),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
