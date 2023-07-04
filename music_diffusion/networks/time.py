@@ -25,9 +25,7 @@ class SinusoidTimeEmbedding(nn.Module):
     def forward(self, t_index: th.Tensor) -> th.Tensor:
         b, t = t_index.size()
 
-        t_index = t_index.flatten()
-
-        out = th.index_select(self._pos_emb, dim=0, index=t_index)
+        out = th.index_select(self._pos_emb, dim=0, index=t_index.flatten())
         out = th.unflatten(out, 0, (b, t))
 
         return out
@@ -62,9 +60,9 @@ class TimeWrapper(nn.Module):
         self.__block = block
 
         self.__to_channels = nn.Sequential(
-            nn.Linear(time_size, channels),
+            nn.Linear(time_size, channels * 2),
             nn.GELU(),
-            nn.Linear(channels, channels),
+            nn.Linear(channels * 2, channels),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
