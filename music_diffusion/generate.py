@@ -35,6 +35,7 @@ def generate(
         model_options.beta_1,
         model_options.beta_t,
         model_options.unet_channels,
+        model_options.norm_groups,
     )
     # pylint: enable=duplicate-code
 

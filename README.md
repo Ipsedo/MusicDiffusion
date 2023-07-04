@@ -12,7 +12,7 @@ $ python -m music_diffusion create_data "/path/to/music_folder/*.flac" "/path/to
 Run training (adapt your hyper-parameters according to your choice) :
 ```bash
 $ cd /path/to/MusicDiffusionModel
-$ python -m music_diffusion model --cuda --unet-channels "[(8, 16), (16, 32), (32, 64), (64, 128), (128, 256), (256, 512), (512, 512)]" --use-attentions "[False, False, False, False, True, False, False]" --attention-heads 8 --time-size 64 --norm-groups 4 --steps 4096 train mlflow_run_name --batch-size 4 --step-batch-size 1 --input-dataset /path/to/music_dataset --output-dir /path/to/train_output --save-every 4096 --learning-rate 1e-4 --vlb-loss-factor 1e-3
+$ python -m music_diffusion model --cuda --unet-channels "[(8, 16), (16, 24), (24, 32), (32, 40), (40, 48), (48, 56), (56, 64)]" --time-size 32 --norm-groups 8 --steps 1024 --beta-1 1e-4 --beta-t 2e-2 train elec_gems_normal --batch-size 8 --step-batch-size 1 --input-dataset /path/to/music_dataset --output-dir /path/to/train_output --save-every 4096 --learning-rate 1e-4
 ```
 
 # References

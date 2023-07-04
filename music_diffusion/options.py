@@ -10,6 +10,7 @@ ModelOptions = NamedTuple(
         ("input_channels", int),
         ("unet_channels", List[Tuple[int, int]]),
         ("time_size", int),
+        ("norm_groups", int),
         ("cuda", bool),
     ],
 )

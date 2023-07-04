@@ -68,16 +68,17 @@ def main() -> None:
         "--unet-channels",
         type=_channels,
         default=[
-            (32, 64),
-            (64, 96),
-            (96, 128),
-            (128, 160),
-            (160, 192),
-            (192, 224),
-            (224, 256),
+            (8, 16),
+            (16, 24),
+            (24, 32),
+            (32, 40),
+            (40, 48),
+            (48, 56),
+            (56, 64),
         ],
     )
-    model_parser.add_argument("--time-size", type=int, default=128)
+    model_parser.add_argument("--time-size", type=int, default=32)
+    parser.add_argument("--norm-groups", type=int, default=8)
     model_parser.add_argument("--cuda", action="store_true")
 
     # Sub command run {train, generate}
@@ -123,6 +124,7 @@ def main() -> None:
             input_channels=args.channels,
             unet_channels=args.unet_channels,
             time_size=args.time_size,
+            norm_groups=args.norm_groups,
             cuda=args.cuda,
         )
 
