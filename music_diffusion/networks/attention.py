@@ -40,7 +40,7 @@ class SelfAttention2d(nn.Module):
         out = out.permute(0, 2, 1)
         out = th.unflatten(out, 2, (w, h))
 
-        # out = out + x
+        out = out + x
 
         return out
 

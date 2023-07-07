@@ -7,7 +7,16 @@ import torch as th
 from torch.optim.optimizer import Optimizer
 from torchvision.transforms import Compose
 
-from .data import OUTPUT_SIZES, ChangeType, InverseRangeChange, RangeChange
+from .data import (
+    N_FFT,
+    OUTPUT_SIZES,
+    SAMPLE_RATE,
+    STFT_STRIDE,
+    ChangeType,
+    InverseRangeChange,
+    RangeChange,
+    magnitude_phase_to_wav,
+)
 from .networks import Denoiser, Noiser
 
 
@@ -89,8 +98,9 @@ class Saver:
                 x_0 = self.__sample_transform(x_0)
 
                 for i in range(self.__nb_sample):
-                    magn = x_0[i, 0, :, :].detach().cpu().numpy()
-                    phase = x_0[i, 1, :, :].detach().cpu().numpy()
+                    magn_phase = x_0[i].detach().cpu()
+                    magn = magn_phase[0]
+                    phase = magn_phase[1]
 
                     # create two subplots
                     fig, (magn_ax, phase_ax) = plt.subplots(1, 2)
@@ -117,6 +127,18 @@ class Saver:
                     )
 
                     plt.close()
+
+                    # Save sample to wav
+                    magnitude_phase_to_wav(
+                        magn_phase.unsqueeze(0),
+                        join(
+                            self.__output_dir,
+                            f"sample_{self.__curr_save}_ID{i}.wav",
+                        ),
+                        SAMPLE_RATE,
+                        N_FFT,
+                        STFT_STRIDE,
+                    )
 
         self.__curr_idx += 1
 
