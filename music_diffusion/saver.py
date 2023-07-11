@@ -95,12 +95,12 @@ class Saver:
                 x_0 = self.__denoiser.sample(x_t, verbose=True)
                 self.__denoiser.train()
 
-                x_0 = self.__sample_transform(x_0)
-
                 for i in range(self.__nb_sample):
-                    magn_phase = x_0[i].detach().cpu()
-                    magn = magn_phase[0]
-                    phase = magn_phase[1]
+                    magn_phase = x_0[i, None].detach().cpu()
+
+                    magn_phase_vizu = self.__sample_transform(magn_phase)[0]
+                    magn = magn_phase_vizu[0]
+                    phase = magn_phase_vizu[1]
 
                     # create two subplots
                     fig, (magn_ax, phase_ax) = plt.subplots(1, 2)
@@ -130,7 +130,7 @@ class Saver:
 
                     # Save sample to wav
                     magnitude_phase_to_wav(
-                        magn_phase.unsqueeze(0),
+                        magn_phase,
                         join(
                             self.__output_dir,
                             f"sample_{self.__curr_save}_ID{i}.wav",
