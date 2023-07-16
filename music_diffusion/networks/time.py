@@ -61,7 +61,7 @@ class TimeWrapper(nn.Module):
 
         self.__to_channels = nn.Sequential(
             nn.Linear(time_size, channels * 2),
-            nn.SiLU(),
+            nn.Mish(),
             nn.Linear(channels * 2, channels),
         )
 

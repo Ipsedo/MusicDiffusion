@@ -132,6 +132,7 @@ class TimeUNet(nn.Module):
         ):
             out = up(out)
             out = th.cat([out, bypass], dim=2)
+            # out = out + bypass
             out = block(out, time_vec)
 
         eps: th.Tensor = self.__eps_end_conv(out)
