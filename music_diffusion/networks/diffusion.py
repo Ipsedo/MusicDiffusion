@@ -19,7 +19,14 @@ class Diffuser(ABC, nn.Module):
 
         self._steps = steps
 
-        """s = 8e-4
+        # unused
+        self._beta_1 = beta_1
+        self._beta_t = beta_t
+
+        # betas = th.linspace(self._beta_1, self._beta_t, steps=self._steps)
+
+        # time schedulers improved
+        s = 8e-4
 
         linear_space: th.Tensor = th.linspace(0.0, 1.0, steps=self._steps + 1)
         # exponent: th.Tensor = linear_space * 3. * th.pi - 1.5 * th.pi
@@ -35,9 +42,6 @@ class Diffuser(ABC, nn.Module):
         betas = 1 - alphas_cum_prod / alphas_cum_prod_prev
         betas[betas > 0.999] = 0.999
         betas[betas < 1e-4] = 1e-4
-        alphas = 1 - betas"""
-
-        betas = th.linspace(beta_1, beta_t, steps=self._steps)
 
         alphas = 1 - betas
 
@@ -45,10 +49,6 @@ class Diffuser(ABC, nn.Module):
         alphas_cum_prod_prev = th.cat(
             [th.tensor([1]), alphas_cum_prod[:-1]], dim=0
         )
-
-        # alphas_cum_prod = alphas_cum_prod[1:]
-        # alphas = alphas[1:]
-        # betas = betas[1:]
 
         sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
