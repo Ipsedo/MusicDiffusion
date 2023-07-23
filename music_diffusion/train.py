@@ -131,7 +131,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 p_mu, p_var = denoiser.prior(x_t, t, eps_theta, v_theta)
 
                 loss = normal_kl_div(q_mu, q_var, p_mu, p_var)
-                loss = loss / loss.detach().max()
+                loss = th.clamp_max(loss * 1e-3, 10.0)
                 loss = loss.mean()
 
                 optim.zero_grad(set_to_none=True)
