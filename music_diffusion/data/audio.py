@@ -4,7 +4,6 @@ from os import mkdir
 from os.path import exists, isdir, join
 from typing import Literal, Tuple
 
-import numpy as np
 import torch as th
 import torch.nn.functional as th_f
 import torchaudio as th_audio
@@ -21,10 +20,10 @@ def diff(x: th.Tensor) -> th.Tensor:
 
 def unwrap(phi: th.Tensor) -> th.Tensor:
     d_phi = diff(phi)
-    d_phi_m = ((d_phi + np.pi) % (2 * np.pi)) - np.pi
-    d_phi_m[(d_phi_m == -np.pi) & (d_phi > 0)] = np.pi
+    d_phi_m = ((d_phi + th.pi) % (2 * th.pi)) - th.pi
+    d_phi_m[(d_phi_m == -th.pi) & (d_phi > 0)] = th.pi
     phi_adj = d_phi_m - d_phi
-    phi_adj[d_phi.abs() < np.pi] = 0
+    phi_adj[d_phi.abs() < th.pi] = 0
     return phi + phi_adj.cumsum(1)
 
 
@@ -154,9 +153,9 @@ def magnitude_phase_to_wav(
     magnitude = (magnitude + 1.0) / 2.0
     magnitude = bark_scale(magnitude, "unscale")
 
-    phase = (phase + 1.0) / 2.0 * 2.0 * np.pi - np.pi
+    phase = (phase + 1.0) / 2.0 * 2.0 * th.pi - th.pi
     phase = simpson(th.zeros(phase.size()[0], 1), phase, 1, 1.0)
-    phase = phase % (2 * np.pi)
+    phase = phase % (2 * th.pi)
 
     real = magnitude * th.cos(phase)
     imaginary = magnitude * th.sin(phase)

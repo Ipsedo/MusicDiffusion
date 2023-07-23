@@ -3,7 +3,7 @@ from typing import Final, Tuple
 
 N_FFT: Final[int] = 1024
 N_VEC: Final[int] = 512
-STFT_STRIDE: Final[int] = 256
+STFT_STRIDE: Final[int] = 128
 
 SAMPLE_RATE: Final[int] = 16000
 
