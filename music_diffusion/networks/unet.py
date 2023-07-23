@@ -65,7 +65,6 @@ class TimeUNet(nn.Module):
         self.__middle_block = TimeBypass(
             nn.Sequential(
                 ConvBlock(c_m, c_m, norm_groups),
-                # SelfAttention2d(c_m, 8, c_m, c_m // 8, c_m // 8, norm_groups),
                 ConvBlock(c_m, c_m, norm_groups),
             )
         )
@@ -132,7 +131,6 @@ class TimeUNet(nn.Module):
         ):
             out = up(out)
             out = th.cat([out, bypass], dim=2)
-            # out = out + bypass
             out = block(out, time_vec)
 
         eps: th.Tensor = self.__eps_end_conv(out)
