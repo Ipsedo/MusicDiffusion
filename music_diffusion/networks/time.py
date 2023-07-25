@@ -48,6 +48,21 @@ class TimeEmbedding(nn.Module):
         return out
 
 
+class TimeBypass(nn.Module):
+    def __init__(self, module: nn.Module) -> None:
+        super().__init__()
+        self.__module = module
+
+    def forward(self, x: th.Tensor) -> th.Tensor:
+        b, t = x.size()[:2]
+
+        x = x.flatten(0, 1)
+        out: th.Tensor = self.__module(x)
+        out = th.unflatten(out, 0, (b, t))
+
+        return out
+
+
 class TimeWrapper(nn.Module):
     def __init__(
         self,
@@ -62,7 +77,8 @@ class TimeWrapper(nn.Module):
         self.__to_channels = nn.Sequential(
             nn.Linear(time_size, channels * 2),
             nn.Mish(),
-            nn.Linear(channels * 2, channels),
+            TimeBypass(nn.BatchNorm1d(channels * 2)),
+            nn.Linear(channels * 2, channels * 2),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
@@ -70,26 +86,12 @@ class TimeWrapper(nn.Module):
 
         proj_time_emb = self.__to_channels(time_emb)
         proj_time_emb = proj_time_emb[:, :, :, None, None]
+        shift, scale = th.chunk(proj_time_emb, dim=2, chunks=2)
 
-        x_time = x + proj_time_emb
+        x_time = x * th.sigmoid(scale) + shift
 
         x_time = x_time.flatten(0, 1)
         out: th.Tensor = self.__block(x_time)
-        out = th.unflatten(out, 0, (b, t))
-
-        return out
-
-
-class TimeBypass(nn.Module):
-    def __init__(self, module: nn.Module) -> None:
-        super().__init__()
-        self.__module = module
-
-    def forward(self, x: th.Tensor) -> th.Tensor:
-        b, t = x.size()[:2]
-
-        x = x.flatten(0, 1)
-        out: th.Tensor = self.__module(x)
         out = th.unflatten(out, 0, (b, t))
 
         return out
