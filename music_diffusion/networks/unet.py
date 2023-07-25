@@ -4,7 +4,13 @@ from typing import List, Tuple
 import torch as th
 from torch import nn
 
-from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock
+from .convolutions import (
+    ChannelProjBlock,
+    ConvBlock,
+    EndConvBlock,
+    OutChannelProjBlock,
+    StrideConvBlock,
+)
 from .time import SinusoidTimeEmbedding, TimeBypass, TimeWrapper
 
 
@@ -65,7 +71,6 @@ class TimeUNet(nn.Module):
         self.__middle_block = TimeBypass(
             nn.Sequential(
                 ConvBlock(c_m, c_m, norm_groups),
-                # SelfAttention2d(c_m, 8, c_m, c_m // 8, c_m // 8, norm_groups),
                 ConvBlock(c_m, c_m, norm_groups),
             )
         )
@@ -77,12 +82,22 @@ class TimeUNet(nn.Module):
             for c_i, _ in decoding_channels
         )
 
+        self.__decoder_bypass_proj = nn.ModuleList(
+            TimeBypass(
+                nn.Sequential(
+                    ChannelProjBlock(c_i, int(c_i * 1.5), norm_groups),
+                    OutChannelProjBlock(int(c_i * 1.5), c_i),
+                )
+            )
+            for c_i, _ in decoding_channels
+        )
+
         self.__decoder = nn.ModuleList(
             TimeWrapper(
                 time_size,
-                c_i * 2,
+                c_i,
                 nn.Sequential(
-                    ConvBlock(c_i * 2, c_i, norm_groups),
+                    ConvBlock(c_i, c_i, norm_groups),
                     ConvBlock(c_i, c_o, norm_groups),
                 ),
             )
@@ -125,14 +140,15 @@ class TimeUNet(nn.Module):
 
         out = self.__middle_block(out)
 
-        for block, up, bypass in zip(
+        for block, up, proj, bypass in zip(
             self.__decoder,
             self.__decoder_up,
+            self.__decoder_bypass_proj,
             reversed(bypasses),
         ):
             out = up(out)
-            out = th.cat([out, bypass], dim=2)
-            # out = out + bypass
+            bypass = proj(bypass)
+            out = out + bypass
             out = block(out, time_vec)
 
         eps: th.Tensor = self.__eps_end_conv(out)
