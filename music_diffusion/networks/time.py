@@ -78,7 +78,7 @@ class TimeWrapper(nn.Module):
             nn.Linear(time_size, channels * 2),
             nn.Mish(),
             TimeBypass(nn.BatchNorm1d(channels * 2)),
-            nn.Linear(channels * 2, channels * 2),
+            nn.Linear(channels * 2, channels),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
@@ -86,9 +86,8 @@ class TimeWrapper(nn.Module):
 
         proj_time_emb = self.__to_channels(time_emb)
         proj_time_emb = proj_time_emb[:, :, :, None, None]
-        shift, scale = th.chunk(proj_time_emb, dim=2, chunks=2)
 
-        x_time = x * th.sigmoid(scale) + shift
+        x_time = x + proj_time_emb
 
         x_time = x_time.flatten(0, 1)
         out: th.Tensor = self.__block(x_time)

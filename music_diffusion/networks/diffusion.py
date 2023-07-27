@@ -40,8 +40,7 @@ class Diffuser(ABC, nn.Module):
         alphas_cum_prod_prev = f_values[:-1] / f_values[0]
 
         betas = 1 - alphas_cum_prod / alphas_cum_prod_prev
-        betas[betas > 0.999] = 0.999
-        betas[betas < 1e-4] = 1e-4
+        betas = th.clamp(betas, 1e-4, 0.999)
 
         alphas = 1 - betas
 
@@ -53,13 +52,11 @@ class Diffuser(ABC, nn.Module):
         sqrt_alphas_cum_prod = th.sqrt(alphas_cum_prod)
         sqrt_one_minus_alphas_cum_prod = th.sqrt(1 - alphas_cum_prod)
 
-        self._betas_tiddle_limit = 1e-20
         betas_tiddle = (
             betas * (1.0 - alphas_cum_prod_prev) / (1.0 - alphas_cum_prod)
         )
-        betas_tiddle[
-            betas_tiddle < self._betas_tiddle_limit
-        ] = self._betas_tiddle_limit
+        self._betas_tiddle_limit = 1e-20
+        betas_tiddle = th.clamp_min(betas_tiddle, self._betas_tiddle_limit)
 
         # attributes definition
 
@@ -374,9 +371,7 @@ class Denoiser(Diffuser):
             * (1.0 - alphas_cum_prod_prev_s)
             / (1.0 - alphas_cum_prod_s)
         )
-        betas_tiddle_s[
-            betas_tiddle_s < self._betas_tiddle_limit
-        ] = self._betas_tiddle_limit
+        betas_tiddle_s = th.clamp_min(betas_tiddle_s, self._betas_tiddle_limit)
 
         alphas_s = 1 - betas_s
 
