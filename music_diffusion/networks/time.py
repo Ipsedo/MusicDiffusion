@@ -63,6 +63,27 @@ class TimeBypass(nn.Module):
         return out
 
 
+class TimeEmbWrapper(nn.Module):
+    def __init__(self, steps: int, channels: int, block: nn.Module):
+        super().__init__()
+
+        self.__block = block
+        self.__time_emb = SinusoidTimeEmbedding(steps, channels)
+
+    def forward(self, x: th.Tensor, t: th.Tensor) -> th.Tensor:
+        b, b_t = x.size()[:2]
+
+        time_emb = self.__time_emb(t)[:, :, :, None, None]
+
+        x_time = x + time_emb
+
+        x_time = x_time.flatten(0, 1)
+        out: th.Tensor = self.__block(x_time)
+        out = th.unflatten(out, 0, (b, b_t))
+
+        return out
+
+
 class TimeWrapper(nn.Module):
     def __init__(
         self,
