@@ -5,7 +5,7 @@ import torch as th
 from torch import nn
 
 from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock
-from .time import SinusoidTimeEmbedding, TimeBypass, TimeWrapper
+from .time import TimeBypass, TimeEmbWrapper
 
 
 class TimeUNet(nn.Module):
@@ -14,7 +14,6 @@ class TimeUNet(nn.Module):
         in_channels: int,
         out_channels: int,
         hidden_channels: List[Tuple[int, int]],
-        time_size: int,
         norm_groups: int,
         steps: int,
     ) -> None:
@@ -30,8 +29,6 @@ class TimeUNet(nn.Module):
             (c_o, c_i) for c_i, c_o in reversed(hidden_channels)
         ]
 
-        self.__time_embedder = SinusoidTimeEmbedding(steps, time_size)
-
         # Encoder stuff
 
         self.__start_conv = TimeBypass(
@@ -43,8 +40,8 @@ class TimeUNet(nn.Module):
         )
 
         self.__encoder = nn.ModuleList(
-            TimeWrapper(
-                time_size,
+            TimeEmbWrapper(
+                steps,
                 c_i,
                 nn.Sequential(
                     ConvBlock(c_i, c_o, norm_groups),
@@ -62,11 +59,13 @@ class TimeUNet(nn.Module):
         # Middle stuff
 
         c_m = encoding_channels[-1][1]
-        self.__middle_block = TimeBypass(
+        self.__middle_block = TimeEmbWrapper(
+            steps,
+            c_m,
             nn.Sequential(
                 ConvBlock(c_m, c_m, norm_groups),
                 ConvBlock(c_m, c_m, norm_groups),
-            )
+            ),
         )
 
         # Decoder stuff
@@ -77,8 +76,8 @@ class TimeUNet(nn.Module):
         )
 
         self.__decoder = nn.ModuleList(
-            TimeWrapper(
-                time_size,
+            TimeEmbWrapper(
+                steps,
                 c_i * 2,
                 nn.Sequential(
                     ConvBlock(c_i * 2, c_i, norm_groups),
@@ -108,7 +107,6 @@ class TimeUNet(nn.Module):
     def forward(
         self, img: th.Tensor, t: th.Tensor
     ) -> Tuple[th.Tensor, th.Tensor]:
-        time_vec = self.__time_embedder(t)
 
         bypasses = []
 
@@ -118,11 +116,11 @@ class TimeUNet(nn.Module):
             self.__encoder,
             self.__encoder_down,
         ):
-            out = block(out, time_vec)
+            out = block(out, t)
             bypasses.append(out)
             out = down(out)
 
-        out = self.__middle_block(out)
+        out = self.__middle_block(out, t)
 
         for block, up, bypass in zip(
             self.__decoder,
@@ -131,7 +129,7 @@ class TimeUNet(nn.Module):
         ):
             out = up(out)
             out = th.cat([out, bypass], dim=2)
-            out = block(out, time_vec)
+            out = block(out, t)
 
         eps: th.Tensor = self.__eps_end_conv(out)
         v: th.Tensor = self.__v_end_conv(out)

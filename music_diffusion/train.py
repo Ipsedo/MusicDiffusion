@@ -31,7 +31,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
         denoiser = Denoiser(
             model_options.input_channels,
             model_options.steps,
-            model_options.time_size,
             model_options.beta_1,
             model_options.beta_t,
             model_options.unet_channels,
@@ -89,7 +88,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 "beta_1": model_options.beta_1,
                 "beta_t": model_options.beta_t,
                 "steps": model_options.steps,
-                "time_size": model_options.time_size,
                 "input_channels": model_options.input_channels,
                 "unet_channels": model_options.unet_channels,
                 "input_dataset": train_options.dataset_path,

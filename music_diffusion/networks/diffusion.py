@@ -186,7 +186,6 @@ class Denoiser(Diffuser):
         self,
         channels: int,
         steps: int,
-        time_size: int,
         beta_1: float,
         beta_t: float,
         unet_channels: List[Tuple[int, int]],
@@ -213,7 +212,6 @@ class Denoiser(Diffuser):
             channels,
             channels,
             unet_channels,
-            time_size,
             norm_groups,
             self._steps,
         )

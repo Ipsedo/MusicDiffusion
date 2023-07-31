@@ -31,7 +31,6 @@ def generate(
     denoiser = Denoiser(
         model_options.input_channels,
         model_options.steps,
-        model_options.time_size,
         model_options.beta_1,
         model_options.beta_t,
         model_options.unet_channels,

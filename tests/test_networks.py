@@ -81,20 +81,17 @@ def test_noiser(
 @pytest.mark.parametrize("batch_size", [2, 3])
 @pytest.mark.parametrize("channels", [2, 4])
 @pytest.mark.parametrize("img_sizes", [(32, 32), (16, 32)])
-@pytest.mark.parametrize("time_size", [2, 4])
 def test_denoiser(
     steps: int,
     step_batch_size: int,
     batch_size: int,
     channels: int,
     img_sizes: Tuple[int, int],
-    time_size: int,
     use_cuda: bool,
 ) -> None:
     denoiser = Denoiser(
         channels,
         steps,
-        time_size,
         1e-4,
         2e-1,
         [(8, 16), (16, 16), (16, 32)],
@@ -216,7 +213,6 @@ def test_denoiser(
 )
 @pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("norm_groups", [4, 2])
-@pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("nb_steps", [1, 2])
 def test_unet(
     batch_size: int,
@@ -225,7 +221,6 @@ def test_unet(
     hidden_channels: List[Tuple[int, int]],
     steps: int,
     norm_groups: int,
-    time_size: int,
     nb_steps: int,
     use_cuda: bool,
 ) -> None:
@@ -233,7 +228,6 @@ def test_unet(
         channels,
         channels,
         hidden_channels,
-        time_size,
         norm_groups,
         steps,
     )

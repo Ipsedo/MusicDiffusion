@@ -14,7 +14,7 @@ from music_diffusion.saver import Saver
 @pytest.mark.parametrize("nb_samples", [2, 3])
 def test_saver(save_every: int, nb_samples: int) -> None:
     noiser = Noiser(10, 1e-4, 2e-2)
-    denoiser = Denoiser(2, 3, 8, 1e-4, 2e-2, [(8, 16)], 8)
+    denoiser = Denoiser(2, 3, 1e-4, 2e-2, [(8, 16)], 8)
     optim = th.optim.Adam(denoiser.parameters())
 
     tmp_dir = join(dirname(__file__), "__tmp_dir__")
