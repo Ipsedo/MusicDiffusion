@@ -3,6 +3,7 @@ import math
 
 import torch as th
 from torch import nn
+from torch.nn import functional as th_f
 
 
 class SinusoidTimeEmbedding(nn.Module):
@@ -89,6 +90,7 @@ class TimeWrapper(nn.Module):
         self,
         time_size: int,
         channels: int,
+        norm_groups: int,
         block: nn.Module,
     ) -> None:
         super().__init__()
@@ -98,8 +100,8 @@ class TimeWrapper(nn.Module):
         self.__to_channels = nn.Sequential(
             nn.Linear(time_size, channels * 2),
             nn.Mish(),
-            TimeBypass(nn.GroupNorm(channels, channels * 2)),
-            nn.Linear(channels * 2, channels),
+            TimeBypass(nn.GroupNorm(norm_groups, channels * 2)),
+            nn.Linear(channels * 2, channels * 2),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
@@ -107,8 +109,9 @@ class TimeWrapper(nn.Module):
 
         proj_time_emb = self.__to_channels(time_emb)
         proj_time_emb = proj_time_emb[:, :, :, None, None]
+        scale, shift = th.chunk(proj_time_emb, chunks=2, dim=2)
 
-        x_time = x + proj_time_emb
+        x_time = x * th_f.softplus(scale) + shift
 
         x_time = x_time.flatten(0, 1)
         out: th.Tensor = self.__block(x_time)

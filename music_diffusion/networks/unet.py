@@ -46,6 +46,7 @@ class TimeUNet(nn.Module):
             TimeWrapper(
                 time_size,
                 c_i,
+                norm_groups,
                 nn.Sequential(
                     ConvBlock(c_i, c_o, norm_groups),
                     ConvBlock(c_o, c_o, norm_groups),
@@ -80,6 +81,7 @@ class TimeUNet(nn.Module):
             TimeWrapper(
                 time_size,
                 c_i * 2,
+                norm_groups,
                 nn.Sequential(
                     ConvBlock(c_i * 2, c_i, norm_groups),
                     ConvBlock(c_i, c_o, norm_groups),

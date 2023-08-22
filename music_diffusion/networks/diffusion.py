@@ -27,7 +27,7 @@ class Diffuser(ABC, nn.Module):
 
         # time schedulers improved
         # 8e-4
-        s = 1e-8
+        s = 3e-2
 
         linear_space: th.Tensor = th.linspace(0.0, 1.0, steps=self._steps + 1)
         # exponent: th.Tensor = linear_space * 3. * th.pi - 1.5 * th.pi
