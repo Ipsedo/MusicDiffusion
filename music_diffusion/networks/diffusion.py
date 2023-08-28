@@ -364,9 +364,13 @@ class Denoiser(Diffuser):
         ).to(th.long)
 
         alphas_cum_prod_s = self._alphas_cum_prod[steps]
-        alphas_cum_prod_prev_s = self._alphas_cum_prod_prev[steps]
+        # alphas_cum_prod_prev_s = self._alphas_cum_prod_prev[steps]
+        alphas_cum_prod_prev_s = th.cat(
+            [th.tensor([1], device=device), alphas_cum_prod_s[:-1]], dim=0
+        )
 
-        betas_s = 1 - alphas_cum_prod_s / alphas_cum_prod_prev_s
+        betas_s = 1.0 - alphas_cum_prod_s / alphas_cum_prod_prev_s
+        betas_s = th.clamp(betas_s, self._beta_1, 1 - self._beta_1)
 
         betas_tiddle_s = (
             betas_s
@@ -375,12 +379,14 @@ class Denoiser(Diffuser):
         )
         betas_tiddle_s = th.clamp_min(betas_tiddle_s, self._betas_tiddle_limit)
 
-        alphas_s = 1 - betas_s
+        alphas_s = 1.0 - betas_s
 
-        times = steps.cpu().numpy().tolist()
+        times = steps.flip(0).cpu().numpy().tolist()
         tqdm_bar = tqdm(times, disable=not verbose, leave=False)
 
         for s_t, t in enumerate(tqdm_bar):
+            s_t = len(times) - s_t - 1
+
             z = (
                 th.randn_like(x_t, device=device)
                 if t > 0
