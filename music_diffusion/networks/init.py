@@ -1,11 +1,12 @@
+# -*- coding: utf-8 -*-
 from torch import nn
 
 
 def weights_init(m: nn.Module) -> None:
     if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d, nn.Linear)):
-        nn.init.xavier_normal_(m.weight)
+        nn.init.xavier_normal_(m.weight, gain=1e-3)
         if m.bias is not None:
-            nn.init.normal_(m.bias)
+            nn.init.normal_(m.bias, std=1e-3)
     elif isinstance(
         m, (nn.BatchNorm1d, nn.BatchNorm2d, nn.LayerNorm, nn.GroupNorm)
     ):

@@ -1,11 +1,11 @@
+# -*- coding: utf-8 -*-
 from typing import List, Tuple
 
 import torch as th
 from torch import nn
 
-from .attention import SelfAttention2d
 from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock
-from .time import TimeBypass, TimeEmbeder, TimeWrapper
+from .time import SinusoidTimeEmbedding, TimeBypass, TimeWrapper
 
 
 class TimeUNet(nn.Module):
@@ -14,15 +14,12 @@ class TimeUNet(nn.Module):
         in_channels: int,
         out_channels: int,
         hidden_channels: List[Tuple[int, int]],
-        use_attentions: List[bool],
-        attention_heads: int,
         time_size: int,
-        steps: int,
         norm_groups: int,
+        steps: int,
     ) -> None:
         super().__init__()
 
-        assert len(hidden_channels) == len(use_attentions)
         assert all(
             hidden_channels[i][1] == hidden_channels[i + 1][0]
             for i in range(len(hidden_channels) - 1)
@@ -33,10 +30,7 @@ class TimeUNet(nn.Module):
             (c_o, c_i) for c_i, c_o in reversed(hidden_channels)
         ]
 
-        encoder_attentions = use_attentions.copy()
-        decoder_attentions = reversed(use_attentions)
-
-        self.__time_embedder = TimeEmbeder(steps, time_size)
+        self.__time_embedder = SinusoidTimeEmbedding(steps, time_size)
 
         # Encoder stuff
 
@@ -52,24 +46,13 @@ class TimeUNet(nn.Module):
             TimeWrapper(
                 time_size,
                 c_i,
+                norm_groups,
                 nn.Sequential(
                     ConvBlock(c_i, c_o, norm_groups),
-                    SelfAttention2d(
-                        c_o,
-                        attention_heads,
-                        c_o,
-                        c_o // 8,
-                        c_o // 8,
-                    )
-                    if use_att
-                    else nn.Identity(),
                     ConvBlock(c_o, c_o, norm_groups),
                 ),
-                norm_groups,
             )
-            for use_att, (c_i, c_o) in zip(
-                encoder_attentions, encoding_channels
-            )
+            for c_i, c_o in encoding_channels
         )
 
         self.__encoder_down = nn.ModuleList(
@@ -97,35 +80,36 @@ class TimeUNet(nn.Module):
         self.__decoder = nn.ModuleList(
             TimeWrapper(
                 time_size,
-                c_i,
+                c_i * 2,
+                norm_groups,
                 nn.Sequential(
-                    ConvBlock(c_i, c_i, norm_groups),
-                    SelfAttention2d(
-                        c_i,
-                        attention_heads,
-                        c_i,
-                        c_i // 8,
-                        c_i // 8,
-                    )
-                    if use_att
-                    else nn.Identity(),
+                    ConvBlock(c_i * 2, c_i, norm_groups),
                     ConvBlock(c_i, c_o, norm_groups),
                 ),
-                norm_groups,
             )
-            for use_att, (c_i, c_o) in zip(
-                decoder_attentions, decoding_channels
-            )
+            for c_i, c_o in decoding_channels
         )
 
-        self.__end_conv = TimeBypass(
+        self.__eps_end_conv = TimeBypass(
             EndConvBlock(
                 decoding_channels[-1][1],
                 out_channels,
             )
         )
 
-    def forward(self, img: th.Tensor, t: th.Tensor) -> th.Tensor:
+        self.__v_end_conv = TimeBypass(
+            nn.Sequential(
+                EndConvBlock(
+                    decoding_channels[-1][1],
+                    out_channels,
+                ),
+                nn.Sigmoid(),
+            )
+        )
+
+    def forward(
+        self, img: th.Tensor, t: th.Tensor
+    ) -> Tuple[th.Tensor, th.Tensor]:
         time_vec = self.__time_embedder(t)
 
         bypasses = []
@@ -148,9 +132,10 @@ class TimeUNet(nn.Module):
             reversed(bypasses),
         ):
             out = up(out)
-            out = out + bypass
+            out = th.cat([out, bypass], dim=2)
             out = block(out, time_vec)
 
-        out = self.__end_conv(out)
+        eps: th.Tensor = self.__eps_end_conv(out)
+        v: th.Tensor = self.__v_end_conv(out)
 
-        return out
+        return eps, v

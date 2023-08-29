@@ -18,15 +18,16 @@ warn_return_any = true
 disallow_untyped_defs = true
 
 [tool.pylint]
+good-names-rgxs = "^[_a-z][_a-z0-9]?$"
 max-line-length = 80
 disable = [
     "missing-module-docstring",
     "missing-class-docstring",
     "missing-function-docstring",
     "too-many-instance-attributes",
-    "invalid-name",
     "too-many-arguments",
     "too-many-locals",
     "too-few-public-methods",
-    "no-member"
+    "too-many-statements",
+    "no-member",
 ]

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from typing import List, Tuple
 
 import pytest
@@ -27,7 +28,7 @@ def test_noiser(
     else:
         device = "cpu"
 
-    x = th.randn(
+    x_0 = th.randn(
         batch_size,
         channels,
         img_sizes[0],
@@ -41,14 +42,14 @@ def test_noiser(
         device=device,
     )
 
-    x_noised, eps = noiser(x, t)
+    x_t, eps = noiser(x_0, t)
 
-    assert len(x_noised.size()) == 5
-    assert x_noised.size(0) == batch_size
-    assert x_noised.size(1) == step_batch_size
-    assert x_noised.size(2) == channels
-    assert x_noised.size(3) == img_sizes[0]
-    assert x_noised.size(4) == img_sizes[1]
+    assert len(x_t.size()) == 5
+    assert x_t.size(0) == batch_size
+    assert x_t.size(1) == step_batch_size
+    assert x_t.size(2) == channels
+    assert x_t.size(3) == img_sizes[0]
+    assert x_t.size(4) == img_sizes[1]
 
     assert len(eps.size()) == 5
     assert eps.size(0) == batch_size
@@ -57,20 +58,35 @@ def test_noiser(
     assert eps.size(3) == img_sizes[0]
     assert eps.size(4) == img_sizes[1]
 
+    post_mu, post_var = noiser.posterior(x_t, x_0, t)
+
+    assert len(post_mu.size()) == 5
+    assert post_mu.size(0) == batch_size
+    assert post_mu.size(1) == step_batch_size
+    assert post_mu.size(2) == channels
+    assert post_mu.size(3) == img_sizes[0]
+    assert post_mu.size(4) == img_sizes[1]
+
+    assert len(post_var.size()) == 5
+    assert post_var.size(0) == batch_size
+    assert post_var.size(1) == step_batch_size
+    assert post_var.size(2) == 1
+    assert post_var.size(3) == 1
+    assert post_var.size(4) == 1
+    assert th.all(th.gt(post_var, 0))
+
 
 @pytest.mark.parametrize("steps", [10, 20])
-@pytest.mark.parametrize("step_batch_size", [1, 2])
-@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("step_batch_size", [2, 3])
+@pytest.mark.parametrize("batch_size", [2, 3])
 @pytest.mark.parametrize("channels", [2, 4])
-@pytest.mark.parametrize("norm_groups", [1, 2])
-@pytest.mark.parametrize("img_sizes", [(16, 16), (8, 16)])
+@pytest.mark.parametrize("img_sizes", [(32, 32), (16, 32)])
 @pytest.mark.parametrize("time_size", [2, 4])
 def test_denoiser(
     steps: int,
     step_batch_size: int,
     batch_size: int,
     channels: int,
-    norm_groups: int,
     img_sizes: Tuple[int, int],
     time_size: int,
     use_cuda: bool,
@@ -81,10 +97,8 @@ def test_denoiser(
         time_size,
         1e-4,
         2e-1,
-        [(8, 8), (8, 16), (16, 32)],
-        [False, False, True],
-        2,
-        norm_groups,
+        [(8, 16), (16, 16), (16, 32)],
+        8,
     )
 
     denoiser.eval()
@@ -95,7 +109,7 @@ def test_denoiser(
     else:
         device = "cpu"
 
-    x = th.randn(
+    x_t = th.randn(
         batch_size,
         step_batch_size,
         channels,
@@ -110,55 +124,107 @@ def test_denoiser(
         device=device,
     )
 
-    o = denoiser(x, t)
+    eps, v = denoiser(x_t, t)
 
-    assert len(o.size()) == 5
-    assert o.size(0) == batch_size
-    assert o.size(1) == step_batch_size
-    assert o.size(2) == channels
-    assert o.size(3) == img_sizes[0]
-    assert o.size(4) == img_sizes[1]
+    assert len(eps.size()) == 5
+    assert eps.size(0) == batch_size
+    assert eps.size(1) == step_batch_size
+    assert eps.size(2) == channels
+    assert eps.size(3) == img_sizes[0]
+    assert eps.size(4) == img_sizes[1]
 
-    x = th.randn(
+    assert len(v.size()) == 5
+    assert v.size(0) == batch_size
+    assert v.size(1) == step_batch_size
+    assert v.size(2) == channels
+    assert v.size(3) == img_sizes[0]
+    assert v.size(4) == img_sizes[1]
+
+    prior_mu, prior_var = denoiser.prior(x_t, t, eps, v)
+
+    assert len(prior_mu.size()) == 5
+    assert prior_mu.size(0) == batch_size
+    assert prior_mu.size(1) == step_batch_size
+    assert prior_mu.size(2) == channels
+    assert prior_mu.size(3) == img_sizes[0]
+    assert prior_mu.size(4) == img_sizes[1]
+
+    assert len(prior_var.size()) == 5
+    assert prior_var.size(0) == batch_size
+    assert prior_var.size(1) == step_batch_size
+    assert prior_var.size(2) == channels
+    assert prior_var.size(3) == img_sizes[0]
+    assert prior_var.size(4) == img_sizes[1]
+    assert th.all(th.gt(prior_var, 0.0))
+
+    x_t = th.randn(
         batch_size,
         channels,
         *img_sizes,
         device=device,
     )
 
-    o = denoiser.sample(x)
+    x_0 = denoiser.sample(x_t)
 
-    assert len(o.size()) == 4
-    assert o.size(0) == batch_size
-    assert o.size(1) == channels
-    assert o.size(2) == img_sizes[0]
-    assert o.size(3) == img_sizes[1]
+    assert len(x_0.size()) == 4
+    assert x_0.size(0) == batch_size
+    assert x_0.size(1) == channels
+    assert x_0.size(2) == img_sizes[0]
+    assert x_0.size(3) == img_sizes[1]
+
+    x_0 = denoiser.fast_sample(x_t, steps // 2)
+
+    assert len(x_0.size()) == 4
+    assert x_0.size(0) == batch_size
+    assert x_0.size(1) == channels
+    assert x_0.size(2) == img_sizes[0]
+    assert x_0.size(3) == img_sizes[1]
+
+    # test with batch size == 1
+    denoiser.eval()
+
+    x_t = th.randn(
+        1,
+        channels,
+        *img_sizes,
+        device=device,
+    )
+
+    x_0 = denoiser.sample(x_t)
+
+    assert len(x_0.size()) == 4
+    assert x_0.size(0) == 1
+    assert x_0.size(1) == channels
+    assert x_0.size(2) == img_sizes[0]
+    assert x_0.size(3) == img_sizes[1]
+
+    x_0 = denoiser.fast_sample(x_t, steps // 2)
+
+    assert len(x_0.size()) == 4
+    assert x_0.size(0) == 1
+    assert x_0.size(1) == channels
+    assert x_0.size(2) == img_sizes[0]
+    assert x_0.size(3) == img_sizes[1]
 
 
-@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("batch_size", [2, 3])
 @pytest.mark.parametrize("channels", [2, 4])
-@pytest.mark.parametrize("norm_groups", [1, 2])
-@pytest.mark.parametrize("size", [(16, 16), (8, 16)])
+@pytest.mark.parametrize("size", [(32, 32), (16, 32)])
 @pytest.mark.parametrize(
     "hidden_channels",
-    [[(16, 8), (8, 16), (16, 32)], [(16, 8), (8, 40), (40, 16)]],
+    [[(16, 8), (8, 16), (16, 32)], [(16, 8), (8, 32), (32, 16)]],
 )
-@pytest.mark.parametrize(
-    "use_attentions", [[True, True, True], [False, False, False]]
-)
-@pytest.mark.parametrize("attention_heads", [1, 2])
 @pytest.mark.parametrize("steps", [2, 3])
+@pytest.mark.parametrize("norm_groups", [4, 2])
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("nb_steps", [1, 2])
 def test_unet(
     batch_size: int,
     channels: int,
-    norm_groups: int,
     size: Tuple[int, int],
     hidden_channels: List[Tuple[int, int]],
-    use_attentions: List[bool],
-    attention_heads: int,
     steps: int,
+    norm_groups: int,
     time_size: int,
     nb_steps: int,
     use_cuda: bool,
@@ -167,11 +233,9 @@ def test_unet(
         channels,
         channels,
         hidden_channels,
-        use_attentions,
-        attention_heads,
         time_size,
-        steps,
         norm_groups,
+        steps,
     )
 
     unet.eval()
@@ -182,7 +246,7 @@ def test_unet(
     else:
         device = "cpu"
 
-    x = th.randn(
+    x_t = th.randn(
         batch_size,
         nb_steps,
         channels,
@@ -196,11 +260,18 @@ def test_unet(
         device=device,
     )
 
-    o = unet(x, t)
+    eps, v = unet(x_t, t)
 
-    assert len(o.size()) == 5
-    assert o.size(0) == batch_size
-    assert o.size(1) == nb_steps
-    assert o.size(2) == channels
-    assert o.size(3) == size[0]
-    assert o.size(4) == size[1]
+    assert len(eps.size()) == 5
+    assert eps.size(0) == batch_size
+    assert eps.size(1) == nb_steps
+    assert eps.size(2) == channels
+    assert eps.size(3) == size[0]
+    assert eps.size(4) == size[1]
+
+    assert len(v.size()) == 5
+    assert v.size(0) == batch_size
+    assert v.size(1) == nb_steps
+    assert v.size(2) == channels
+    assert v.size(3) == size[0]
+    assert v.size(4) == size[1]

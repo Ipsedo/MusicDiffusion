@@ -1,9 +1,9 @@
+# -*- coding: utf-8 -*-
 import glob
 from os import mkdir
 from os.path import exists, isdir, join
 from typing import Literal, Tuple
 
-import numpy as np
 import torch as th
 import torch.nn.functional as th_f
 import torchaudio as th_audio
@@ -11,6 +11,7 @@ import torchaudio.functional as th_audio_f
 from tqdm import tqdm
 
 from . import constants
+from .primitive import simpson
 
 
 def diff(x: th.Tensor) -> th.Tensor:
@@ -19,10 +20,10 @@ def diff(x: th.Tensor) -> th.Tensor:
 
 def unwrap(phi: th.Tensor) -> th.Tensor:
     d_phi = diff(phi)
-    d_phi_m = ((d_phi + np.pi) % (2 * np.pi)) - np.pi
-    d_phi_m[(d_phi_m == -np.pi) & (d_phi > 0)] = np.pi
+    d_phi_m = ((d_phi + th.pi) % (2 * th.pi)) - th.pi
+    d_phi_m[(d_phi_m == -th.pi) & (d_phi > 0)] = th.pi
     phi_adj = d_phi_m - d_phi
-    phi_adj[d_phi.abs() < np.pi] = 0
+    phi_adj[d_phi.abs() < th.pi] = 0
     return phi + phi_adj.cumsum(1)
 
 
@@ -34,7 +35,7 @@ def bark_scale(
     ), f"(STFT, TIME), actual = {magnitude.size()}"
 
     min_hz = 20.0
-    max_hz = 44100 // 2
+    max_hz = constants.SAMPLE_RATE // 2
 
     lin_space: th.Tensor = (
         th.linspace(min_hz, max_hz, magnitude.size()[0]) / 600.0
@@ -48,97 +49,11 @@ def bark_scale(
     return res
 
 
-def simpson(
-    first_primitive: th.Tensor,
-    derivative: th.Tensor,
-    dim: int,
-    dx: float,
-) -> th.Tensor:
-    sizes = derivative.size()
-    n = derivative.size()[dim]
-
-    evens = th.arange(0, n, 2)
-    odds = th.arange(1, n, 2)
-
-    even_derivative = th.index_select(derivative, dim, evens)
-    odd_derivative = th.index_select(derivative, dim, odds)
-
-    shift_odd_derivative = th_f.pad(
-        odd_derivative,
-        [
-            p
-            for d in reversed(range(len(sizes)))
-            for p in [1 if d == dim else 0, 0]
-        ],
-        "constant",
-        0,
-    )
-
-    even_primitive = first_primitive + dx / 3 * (
-        (
-            2 * even_derivative
-            + 4
-            * th.index_select(
-                shift_odd_derivative,
-                dim=dim,
-                index=th.arange(0, even_derivative.size()[dim]),
-            )
-        ).cumsum(dim)
-        - th.select(even_derivative, dim, 0).unsqueeze(dim)
-        - th.select(even_derivative, dim, 0).unsqueeze(dim)
-    )
-
-    odd_primitive = (dx / 3) * (
-        (
-            2 * odd_derivative
-            + 4
-            * th.index_select(
-                even_derivative,
-                dim=dim,
-                index=th.arange(0, odd_derivative.size()[dim]),
-            )
-        ).cumsum(dim)
-        - 4 * th.select(even_derivative, dim, 0).unsqueeze(dim)
-        - th.select(odd_derivative, dim, 0).unsqueeze(dim)
-        - odd_derivative
-    )
-
-    odd_primitive += first_primitive + dx / 12 * (
-        5 * th.select(derivative, dim, 0)
-        + 8 * th.select(derivative, dim, 1)
-        - th.select(derivative, dim, 2)
-    ).unsqueeze(dim)
-
-    primitive = th.zeros_like(derivative)
-
-    view = [-1 if i == dim else 1 for i in range(len(sizes))]
-    repeat = [1 if i == dim else s for i, s in enumerate(sizes)]
-    evens = evens.view(*view).repeat(*repeat)
-    odds = odds.view(*view).repeat(*repeat)
-
-    primitive.scatter_(dim, evens, even_primitive)
-    primitive.scatter_(dim, odds, odd_primitive)
-
-    return primitive
-
-
-def trapezoid(
-    first_primitive: th.Tensor,
-    derivative: th.Tensor,
-    dim: int,
-    dx: float,
-) -> th.Tensor:
-    return first_primitive + dx * (
-        derivative.cumsum(dim=dim)
-        - derivative / 2.0
-        - th.select(derivative, dim, 0).unsqueeze(dim) / 2.0
-    )
-
-
 def wav_to_stft(
     wav_p: str,
     n_per_seg: int = constants.N_FFT,
     stride: int = constants.STFT_STRIDE,
+    epsilon: float = 1e-8,
 ) -> th.Tensor:
     raw_audio, sr = th_audio.load(wav_p)
 
@@ -151,7 +66,7 @@ def wav_to_stft(
     raw_audio_mono = (
         2
         * (raw_audio_mono - raw_audio_mono.min())
-        / (raw_audio_mono.max() - raw_audio_mono.min())
+        / (raw_audio_mono.max() - raw_audio_mono.min() + epsilon)
         - 1.0
     )
 
@@ -238,9 +153,9 @@ def magnitude_phase_to_wav(
     magnitude = (magnitude + 1.0) / 2.0
     magnitude = bark_scale(magnitude, "unscale")
 
-    phase = (phase + 1.0) / 2.0 * 2.0 * np.pi - np.pi
+    phase = (phase + 1.0) / 2.0 * 2.0 * th.pi - th.pi
     phase = simpson(th.zeros(phase.size()[0], 1), phase, 1, 1.0)
-    phase = phase % (2 * np.pi)
+    phase = phase % (2 * th.pi)
 
     real = magnitude * th.cos(phase)
     imaginary = magnitude * th.sin(phase)
@@ -296,14 +211,15 @@ def create_dataset(
         nb_sample = magnitude.size()[0]
 
         for s_idx in range(nb_sample):
-            s_magnitude = magnitude[s_idx, :, :].to(th.float64)
-            s_phase = phase[s_idx, :, :].to(th.float64)
+            s_magnitude = magnitude[s_idx, :, :]
+            s_phase = phase[s_idx, :, :]
 
             magnitude_phase_path = join(
                 dataset_output_dir, f"magn_phase_{idx}.pt"
             )
 
             magnitude_phase = th.stack([s_magnitude, s_phase], dim=0)
+            magnitude_phase = magnitude_phase.to(th.float)
 
             th.save(magnitude_phase, magnitude_phase_path)
 

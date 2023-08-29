@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 from typing import Final, Tuple
 
 N_FFT: Final[int] = 1024
 N_VEC: Final[int] = 512
-STFT_STRIDE: Final[int] = 256
+STFT_STRIDE: Final[int] = 128
 
-SAMPLE_RATE: Final[int] = 44100
+SAMPLE_RATE: Final[int] = 16000
 
 OUTPUT_SIZES: Final[Tuple[int, int]] = (N_FFT // 2, N_VEC)

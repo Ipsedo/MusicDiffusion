@@ -1,34 +1,15 @@
+# -*- coding: utf-8 -*-
 from statistics import mean
-from typing import NamedTuple, Optional
 
 import mlflow
 import torch as th
 from torch.utils.data import DataLoader
-from torchvision.transforms import Compose
 from tqdm import tqdm
 
-from .data import AudioDataset, ChangeType, ChannelMinMaxNorm, RangeChange
-from .networks import Denoiser, Noiser
-from .utils import ModelOptions, Saver
-
-TrainOptions = NamedTuple(
-    "TrainOptions",
-    [
-        ("run_name", str),
-        ("dataset_path", str),
-        ("batch_size", int),
-        ("step_batch_size", int),
-        ("epochs", int),
-        ("learning_rate", float),
-        ("metric_window", int),
-        ("save_every", int),
-        ("output_directory", str),
-        ("nb_samples", int),
-        ("noiser_state_dict", Optional[str]),
-        ("denoiser_state_dict", Optional[str]),
-        ("optim_state_dict", Optional[str]),
-    ],
-)
+from .data import AudioDataset
+from .networks import Denoiser, Noiser, normal_kl_div
+from .options import ModelOptions, TrainOptions
+from .saver import Saver
 
 
 def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
@@ -54,8 +35,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             model_options.beta_1,
             model_options.beta_t,
             model_options.unet_channels,
-            model_options.use_attentions,
-            model_options.attention_heads,
             model_options.norm_groups,
         )
         # pylint: enable=duplicate-code
@@ -101,14 +80,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             pin_memory=True,
         )
 
-        transform = Compose(
-            [
-                ChangeType(th.float),
-                ChannelMinMaxNorm(),
-                RangeChange(-1.0, 1.0),
-            ]
-        )
-
         mlflow.log_params(
             {
                 "batch_size": train_options.batch_size,
@@ -127,19 +98,18 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
         device = "cuda" if model_options.cuda else "cpu"
 
-        losses = [0.0 for _ in range(train_options.metric_window)]
+        losses = [1.0 for _ in range(train_options.metric_window)]
+        grad_norms = [1.0 for _ in range(train_options.metric_window)]
         metric_step = 0
 
         for e in range(train_options.epochs):
 
             tqdm_bar = tqdm(dataloader)
 
-            for x in tqdm_bar:
+            for x_0 in tqdm_bar:
 
                 if model_options.cuda:
-                    x = x.cuda()
-
-                x = transform(x)
+                    x_0 = x_0.cuda()
 
                 t = th.randint(
                     0,
@@ -151,30 +121,47 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     device=device,
                 )
 
-                x_noised, eps = noiser(x, t)
-                eps_theta = denoiser(x_noised, t)
+                x_t, _ = noiser(x_0, t)
+                eps_theta, v_theta = denoiser(x_t, t)
 
-                loss = th.pow(eps - eps_theta, 2.0)
-                # loss = loss * denoiser.loss_factor(t)
+                # loss = mse(eps, eps_theta)
+                # loss = loss.mean()
+
+                q_mu, q_var = noiser.posterior(x_t, x_0, t)
+                p_mu, p_var = denoiser.prior(x_t, t, eps_theta, v_theta)
+
+                loss = normal_kl_div(q_mu, q_var, p_mu, p_var)
+                loss = th.clamp_max(loss, 1e3)
+                loss = loss * 1e-3
                 loss = loss.mean()
 
                 optim.zero_grad(set_to_none=True)
                 loss.backward()
                 optim.step()
 
-                denoiser.update_ema()
+                grad_norm = denoiser.grad_norm()
 
                 del losses[0]
                 losses.append(loss.item())
 
-                mlflow.log_metric("loss", loss.item(), step=metric_step)
+                del grad_norms[0]
+                grad_norms.append(grad_norm)
+
+                mlflow.log_metrics(
+                    {
+                        "loss": loss.item(),
+                        "grad_norm": grad_norm,
+                    },
+                    step=metric_step,
+                )
                 metric_step += 1
 
                 tqdm_bar.set_description(
                     f"Epoch {e} / {train_options.epochs - 1} - "
                     f"save {saver.curr_save} "
                     f"[{saver.curr_step} / {train_options.save_every - 1}] "
-                    f"loss = {mean(losses):.6f}"
+                    f"loss = {mean(losses):.6f}, "
+                    f"grad_norm = {mean(grad_norms):.6f}"
                 )
 
                 saver.save()

@@ -1,9 +1,8 @@
+# -*- coding: utf-8 -*-
 from os import mkdir
 from os.path import exists, isdir, join
-from typing import NamedTuple
 
 import torch as th
-from torchvision.transforms import Compose
 from tqdm import tqdm
 
 from .data import (
@@ -11,22 +10,10 @@ from .data import (
     OUTPUT_SIZES,
     SAMPLE_RATE,
     STFT_STRIDE,
-    ChannelMinMaxNorm,
-    RangeChange,
     magnitude_phase_to_wav,
 )
 from .networks import Denoiser
-from .utils import ModelOptions
-
-GenerateOptions = NamedTuple(
-    "GenerateOptions",
-    [
-        ("denoiser_dict_state", str),
-        ("output_dir", str),
-        ("frames", int),
-        ("musics", int),
-    ],
-)
+from .options import GenerateOptions, ModelOptions
 
 
 def generate(
@@ -48,8 +35,6 @@ def generate(
         model_options.beta_1,
         model_options.beta_t,
         model_options.unet_channels,
-        model_options.use_attentions,
-        model_options.attention_heads,
         model_options.norm_groups,
     )
     # pylint: enable=duplicate-code
@@ -65,13 +50,6 @@ def generate(
     if model_options.cuda:
         denoiser.cuda()
 
-    transform = Compose(
-        [
-            ChannelMinMaxNorm(),
-            RangeChange(-1.0, 1.0),
-        ]
-    )
-
     height, width = OUTPUT_SIZES
 
     with th.no_grad():
@@ -86,8 +64,13 @@ def generate(
             device=device,
         )
 
-        x_0 = denoiser.sample(x_t, verbose=True)
-        x_0 = transform(x_0)
+        x_0 = (
+            denoiser.fast_sample(
+                x_t, generate_options.fast_sample, verbose=True
+            )
+            if generate_options.fast_sample is not None
+            else denoiser.sample(x_t, verbose=True)
+        )
 
         print("Saving sound...")
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from typing import Literal
 
 from torch import nn
@@ -8,7 +9,7 @@ class ChannelProjBlock(nn.Sequential):
         self,
         in_channels: int,
         out_channels: int,
-        groups: int,
+        norm_groups: int,
     ) -> None:
         super().__init__(
             nn.Conv2d(
@@ -18,8 +19,25 @@ class ChannelProjBlock(nn.Sequential):
                 stride=(1, 1),
                 padding=(0, 0),
             ),
-            nn.ELU(),
-            nn.GroupNorm(groups, out_channels),
+            nn.Mish(),
+            nn.GroupNorm(norm_groups, out_channels),
+        )
+
+
+class OutChannelProjBlock(nn.Sequential):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+    ) -> None:
+        super().__init__(
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=(1, 1),
+                stride=(1, 1),
+                padding=(0, 0),
+            ),
         )
 
 
@@ -46,7 +64,7 @@ class StrideConvBlock(nn.Sequential):
         in_channels: int,
         out_channels: int,
         scale: Literal["up", "down"],
-        groups: int,
+        norm_groups: int,
     ) -> None:
         conv_constructor = {
             "up": nn.ConvTranspose2d,
@@ -61,8 +79,8 @@ class StrideConvBlock(nn.Sequential):
                 stride=(2, 2),
                 padding=(1, 1),
             ),
-            nn.ELU(),
-            nn.GroupNorm(groups, out_channels),
+            nn.Mish(),
+            nn.GroupNorm(norm_groups, out_channels),
         )
 
 
@@ -71,7 +89,7 @@ class ConvBlock(nn.Sequential):
         self,
         in_channels: int,
         out_channels: int,
-        groups: int,
+        norm_groups: int,
     ) -> None:
         super().__init__(
             nn.Conv2d(
@@ -81,6 +99,6 @@ class ConvBlock(nn.Sequential):
                 stride=(1, 1),
                 padding=(1, 1),
             ),
-            nn.ELU(),
-            nn.GroupNorm(groups, out_channels),
+            nn.Mish(),
+            nn.GroupNorm(norm_groups, out_channels),
         )

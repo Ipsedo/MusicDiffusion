@@ -1,11 +1,12 @@
+# -*- coding: utf-8 -*-
 import argparse
 import re
 from typing import List, Tuple
 
 from .data import create_dataset
-from .generate import GenerateOptions, generate
-from .train import TrainOptions, train
-from .utils import ModelOptions
+from .generate import generate
+from .options import GenerateOptions, ModelOptions, TrainOptions
+from .train import train
 
 
 def _channels(string: str) -> List[Tuple[int, int]]:
@@ -63,35 +64,21 @@ def main() -> None:
     model_parser.add_argument("--beta-1", type=float, default=1e-4)
     model_parser.add_argument("--beta-t", type=float, default=2e-2)
     model_parser.add_argument("--channels", type=int, default=2)
-    model_parser.add_argument("--norm-groups", type=int, default=2)
     model_parser.add_argument(
         "--unet-channels",
         type=_channels,
         default=[
-            (64, 96),
-            (96, 128),
-            (128, 192),
-            (192, 256),
-            (256, 320),
-            (320, 382),
-            (382, 512),
+            (8, 16),
+            (16, 24),
+            (24, 32),
+            (32, 40),
+            (40, 48),
+            (48, 56),
+            (56, 64),
         ],
     )
-    model_parser.add_argument(
-        "--use-attentions",
-        type=_attentions,
-        default=[
-            False,
-            False,
-            False,
-            False,
-            True,
-            False,
-            False,
-        ],
-    )
-    model_parser.add_argument("--attention-heads", type=int, default=8)
-    model_parser.add_argument("--time-size", type=int, default=128)
+    model_parser.add_argument("--time-size", type=int, default=32)
+    model_parser.add_argument("--norm-groups", type=int, default=8)
     model_parser.add_argument("--cuda", action="store_true")
 
     # Sub command run {train, generate}
@@ -105,7 +92,7 @@ def main() -> None:
     train_parser.add_argument("run_name", type=str)
 
     train_parser.add_argument("-i", "--input-dataset", type=str, required=True)
-    train_parser.add_argument("--batch-size", type=int, default=2)
+    train_parser.add_argument("--batch-size", type=int, default=8)
     train_parser.add_argument("--step-batch-size", type=int, default=1)
     train_parser.add_argument("--epochs", type=int, default=1000)
     train_parser.add_argument("--learning-rate", type=float, default=2e-4)
@@ -119,6 +106,7 @@ def main() -> None:
 
     generate_parser.add_argument("denoiser_dict_state", type=str)
     generate_parser.add_argument("output_dir", type=str)
+    generate_parser.add_argument("--fast-sample", type=int, required=False)
     generate_parser.add_argument("--frames", type=int, required=True)
     generate_parser.add_argument("--musics", type=int, required=True)
 
@@ -134,11 +122,9 @@ def main() -> None:
             beta_1=args.beta_1,
             beta_t=args.beta_t,
             input_channels=args.channels,
-            norm_groups=args.norm_groups,
             unet_channels=args.unet_channels,
-            use_attentions=args.use_attentions,
-            attention_heads=args.attention_heads,
             time_size=args.time_size,
+            norm_groups=args.norm_groups,
             cuda=args.cuda,
         )
 
@@ -163,6 +149,7 @@ def main() -> None:
 
         elif args.run == "generate":
             generate_options = GenerateOptions(
+                fast_sample=args.fast_sample,
                 denoiser_dict_state=args.denoiser_dict_state,
                 output_dir=args.output_dir,
                 frames=args.frames,
