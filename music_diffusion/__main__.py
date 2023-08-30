@@ -97,6 +97,9 @@ def main() -> None:
     train_parser.add_argument("--save-every", type=int, default=4096)
     train_parser.add_argument("-o", "--output-dir", type=str, required=True)
     train_parser.add_argument("--nb-samples", type=int, default=5)
+    train_parser.add_argument("--denoiser-state-dict", type=str)
+    train_parser.add_argument("--noiser-state-dict", type=str)
+    train_parser.add_argument("--optim-state-dict", type=str)
 
     # Generate parser
     generate_parser = model_sub_command.add_parser("generate")
@@ -137,9 +140,9 @@ def main() -> None:
                 save_every=args.save_every,
                 output_directory=args.output_dir,
                 nb_samples=args.nb_samples,
-                noiser_state_dict=None,
-                denoiser_state_dict=None,
-                optim_state_dict=None,
+                noiser_state_dict=args.noiser_state_dict,
+                denoiser_state_dict=args.denoiser_state_dict,
+                optim_state_dict=args.optim_state_dict,
             )
 
             train(model_options, train_options)
