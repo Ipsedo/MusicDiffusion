@@ -358,6 +358,8 @@ class Denoiser(Diffuser):
     def fast_sample(
         self, x_t: th.Tensor, n_steps: int, verbose: bool = False
     ) -> th.Tensor:
+        assert len(x_t.size()) == 4
+        assert x_t.size(1) == self.__channels
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
 
