@@ -3,6 +3,7 @@ from statistics import mean
 
 import mlflow
 import torch as th
+from ema_pytorch import EMA
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -39,11 +40,14 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
         )
         # pylint: enable=duplicate-code
 
+        denoiser_ema = EMA(denoiser)
+
         print(f"Parameters count = {denoiser.count_parameters()}")
 
         if model_options.cuda:
             noiser.cuda()
             denoiser.cuda()
+            denoiser_ema.cuda()
 
         optim = th.optim.Adam(
             denoiser.parameters(),
@@ -64,6 +68,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             noiser,
             denoiser,
             optim,
+            denoiser_ema,
             train_options.output_directory,
             train_options.save_every,
             train_options.nb_samples,
@@ -92,6 +97,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 "time_size": model_options.time_size,
                 "input_channels": model_options.input_channels,
                 "unet_channels": model_options.unet_channels,
+                "norm_groups": model_options.norm_groups,
                 "input_dataset": train_options.dataset_path,
             }
         )
@@ -138,6 +144,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 optim.zero_grad(set_to_none=True)
                 loss.backward()
                 optim.step()
+
+                denoiser_ema.update()
 
                 grad_norm = denoiser.grad_norm()
 

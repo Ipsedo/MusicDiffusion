@@ -4,6 +4,7 @@ from os.path import exists, isdir, join
 
 import matplotlib.pyplot as plt
 import torch as th
+from ema_pytorch import EMA
 from torch.optim.optimizer import Optimizer
 from torchvision.transforms import Compose
 
@@ -27,6 +28,7 @@ class Saver:
         noiser: Noiser,
         denoiser: Denoiser,
         denoiser_optim: Optimizer,
+        ema_denoiser: EMA,
         output_dir: str,
         save_every: int,
         nb_sample: int,
@@ -45,6 +47,7 @@ class Saver:
         self.__noiser = noiser
         self.__denoiser = denoiser
         self.__denoiser_optim = denoiser_optim
+        self.__ema_denoiser = ema_denoiser
 
         self.__curr_save = -1
         self.__curr_idx = 0
@@ -76,6 +79,10 @@ class Saver:
                     self.__output_dir, f"denoiser_optim_{self.__curr_save}.pt"
                 ),
             )
+            th.save(
+                self.__ema_denoiser.state_dict(),
+                join(self.__output_dir, f"denoiser_ema_{self.__curr_save}.pt"),
+            )
 
             with th.no_grad():
                 device = (
@@ -92,7 +99,7 @@ class Saver:
                 )
 
                 self.__denoiser.eval()
-                x_0 = self.__denoiser.sample(x_t, verbose=True)
+                x_0 = self.__ema_denoiser.ema_model.sample(x_t, verbose=True)
                 self.__denoiser.train()
 
                 for i in range(self.__nb_sample):

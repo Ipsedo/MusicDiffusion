@@ -317,6 +317,7 @@ class Denoiser(Diffuser):
 
         return self._mu(x_t, eps_theta, t), self._var(v_theta, t)
 
+    @th.no_grad()
     def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
         assert len(x_t.size()) == 4
         assert x_t.size(1) == self.__channels
@@ -353,15 +354,16 @@ class Denoiser(Diffuser):
 
         return x_t
 
+    @th.no_grad()
     def fast_sample(
         self, x_t: th.Tensor, n_steps: int, verbose: bool = False
     ) -> th.Tensor:
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
 
-        steps = th.floor(
-            th.linspace(0, self._steps - 1, steps=n_steps, device=device)
-        ).to(th.long)
+        steps = th.linspace(
+            0, self._steps - 1, steps=n_steps, dtype=th.long, device=device
+        )
 
         alphas_cum_prod_s = self._alphas_cum_prod[steps]
         # alphas_cum_prod_prev_s = self._alphas_cum_prod_prev[steps]

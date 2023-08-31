@@ -5,6 +5,7 @@ from shutil import rmtree
 
 import pytest
 import torch as th
+from ema_pytorch import EMA
 
 from music_diffusion.networks import Denoiser, Noiser
 from music_diffusion.saver import Saver
@@ -16,11 +17,14 @@ def test_saver(save_every: int, nb_samples: int) -> None:
     noiser = Noiser(10, 1e-4, 2e-2)
     denoiser = Denoiser(2, 3, 8, 1e-4, 2e-2, [(8, 16)], 8)
     optim = th.optim.Adam(denoiser.parameters())
+    ema = EMA(denoiser)
 
     tmp_dir = join(dirname(__file__), "__tmp_dir__")
     mkdir(tmp_dir)
 
-    saver = Saver(2, noiser, denoiser, optim, tmp_dir, save_every, nb_samples)
+    saver = Saver(
+        2, noiser, denoiser, optim, ema, tmp_dir, save_every, nb_samples
+    )
     try:
         for _ in range(save_every - 1):
             saver.save()
