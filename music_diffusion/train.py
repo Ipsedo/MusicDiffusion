@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from .data import AudioDataset
-from .networks import Denoiser, Noiser, mse, normal_kl_div
+from .networks import Noiser, mse, normal_kl_div
 from .options import ModelOptions, TrainOptions
 from .saver import Saver
 
@@ -28,17 +28,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             model_options.beta_t,
         )
 
-        # pylint: disable=duplicate-code
-        denoiser = Denoiser(
-            model_options.input_channels,
-            model_options.steps,
-            model_options.time_size,
-            model_options.beta_1,
-            model_options.beta_t,
-            model_options.unet_channels,
-            model_options.norm_groups,
-        )
-        # pylint: enable=duplicate-code
+        denoiser = model_options.to_denoiser()
 
         denoiser_ema = EMA(denoiser)
 

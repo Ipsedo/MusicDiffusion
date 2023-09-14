@@ -272,6 +272,7 @@ class Denoiser(Diffuser):
         alphas_cum_prod_prev: Optional[th.Tensor] = None,
     ) -> th.Tensor:
         x_0_clipped = self.__x0_from_noise(x_t, eps_theta, t, alphas_cum_prod)
+
         mu = self._mu_tiddle(
             x_t,
             x_0_clipped,
@@ -281,6 +282,7 @@ class Denoiser(Diffuser):
             alphas_cum_prod,
             alphas_cum_prod_prev,
         )
+
         return mu
 
     def __mu(
@@ -439,15 +441,13 @@ class Denoiser(Diffuser):
 
     def loss_factor(self, t: th.Tensor) -> th.Tensor:
         assert len(t.size()) == 2
-        batch_size, steps = t.size()
 
-        t = t.flatten(0, 1)
+        alphas = select_time_scheduler(self._alphas, t)
+        betas = select_time_scheduler(self._betas, t)
+        alphas_cum_prod = select_time_scheduler(self._alphas_cum_prod, t)
 
-        scale: th.Tensor = self._betas[t] / (
-            2.0 * self._alphas[t] * (1.0 - self._alphas_cum_prod[t])
-        )
-
-        scale = th.unflatten(scale, 0, (batch_size, steps))
+        # sig^2 = beta
+        scale: th.Tensor = betas / (2.0 * alphas * (1.0 - alphas_cum_prod))
 
         return scale[:, :, None, None, None]
 
