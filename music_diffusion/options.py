@@ -14,7 +14,7 @@ class ModelOptions(NamedTuple):
     norm_groups: int
     cuda: bool
 
-    def to_denoiser(self) -> Denoiser:
+    def new_denoiser(self) -> Denoiser:
         return Denoiser(
             self.input_channels,
             self.steps,

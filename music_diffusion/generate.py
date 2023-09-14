@@ -26,7 +26,7 @@ def generate(
 
     print("Load model...")
 
-    denoiser = model_options.to_denoiser()
+    denoiser = model_options.new_denoiser()
 
     device = "cuda" if model_options.cuda else "cpu"
 

@@ -28,7 +28,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             model_options.beta_t,
         )
 
-        denoiser = model_options.to_denoiser()
+        denoiser = model_options.new_denoiser()
 
         denoiser_ema = EMA(denoiser)
 
