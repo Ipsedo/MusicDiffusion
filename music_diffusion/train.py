@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from .data import AudioDataset
-from .networks import Denoiser, Noiser, normal_kl_div
+from .networks import Denoiser, Noiser, mse, normal_kl_div
 from .options import ModelOptions, TrainOptions
 from .saver import Saver
 
@@ -105,6 +105,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
         device = "cuda" if model_options.cuda else "cpu"
 
         losses = [1.0 for _ in range(train_options.metric_window)]
+        mse_losses = [1.0 for _ in range(train_options.metric_window)]
+        kl_losses = [1.0 for _ in range(train_options.metric_window)]
         grad_norms = [1.0 for _ in range(train_options.metric_window)]
         metric_step = 0
 
@@ -127,18 +129,19 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     device=device,
                 )
 
-                x_t, _ = noiser(x_0, t)
+                x_t, eps = noiser(x_0, t)
                 eps_theta, v_theta = denoiser(x_t, t)
 
-                # loss = mse(eps, eps_theta)
-                # loss = loss.mean()
+                loss_mse = mse(eps, eps_theta)
 
                 q_mu, q_var = noiser.posterior(x_t, x_0, t)
-                p_mu, p_var = denoiser.prior(x_t, t, eps_theta, v_theta)
+                p_mu, p_var = denoiser.prior(
+                    x_t, t, eps_theta.detach(), v_theta
+                )
 
-                loss = normal_kl_div(q_mu, q_var, p_mu, p_var)
-                loss = th.clamp_max(loss, 1e3)
-                loss = loss * 1e-3
+                loss_kl = normal_kl_div(q_mu, q_var, p_mu, p_var)
+
+                loss = loss_kl * 1e-3 + loss_mse
                 loss = loss.mean()
 
                 optim.zero_grad(set_to_none=True)
@@ -150,15 +153,21 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 grad_norm = denoiser.grad_norm()
 
                 del losses[0]
+                del mse_losses[0]
+                del kl_losses[0]
                 losses.append(loss.item())
+                kl_losses.append(loss_kl.mean().item())
+                mse_losses.append(loss_mse.mean().item())
 
                 del grad_norms[0]
                 grad_norms.append(grad_norm)
 
                 mlflow.log_metrics(
                     {
-                        "loss": loss.item(),
-                        "grad_norm": grad_norm,
+                        "loss": losses[-1],
+                        "loss_vlb": kl_losses[-1],
+                        "loss_mse": mse_losses[-1],
+                        "grad_norm": grad_norms[-1],
                     },
                     step=metric_step,
                 )
@@ -169,6 +178,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     f"save {saver.curr_save} "
                     f"[{saver.curr_step} / {train_options.save_every - 1}] "
                     f"loss = {mean(losses):.6f}, "
+                    f"mse = {mean(mse_losses):.6f}, "
+                    f"vlb = {mean(kl_losses):.6f}, "
                     f"grad_norm = {mean(grad_norms):.6f}"
                 )
 
