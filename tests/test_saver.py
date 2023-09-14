@@ -30,6 +30,7 @@ def test_saver(save_every: int, nb_samples: int) -> None:
             saver.save()
 
             assert not exists(join(tmp_dir, "denoiser_0.pt"))
+            assert not exists(join(tmp_dir, "denoiser_ema_0.pt"))
             assert not exists(join(tmp_dir, "denoiser_optim_0.pt"))
             assert not exists(join(tmp_dir, "noiser_0.pt"))
 
@@ -41,6 +42,9 @@ def test_saver(save_every: int, nb_samples: int) -> None:
 
         assert exists(join(tmp_dir, "denoiser_0.pt")) and isfile(
             join(tmp_dir, "denoiser_0.pt")
+        )
+        assert exists(join(tmp_dir, "denoiser_ema_0.pt")) and isfile(
+            join(tmp_dir, "denoiser_ema_0.pt")
         )
         assert exists(join(tmp_dir, "denoiser_optim_0.pt")) and isfile(
             join(tmp_dir, "denoiser_optim_0.pt")
