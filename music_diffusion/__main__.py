@@ -109,6 +109,7 @@ def main() -> None:
     generate_parser.add_argument("--fast-sample", type=int, required=False)
     generate_parser.add_argument("--frames", type=int, required=True)
     generate_parser.add_argument("--musics", type=int, required=True)
+    generate_parser.add_argument("--ema", action="store_true")
 
     #######
     # Main
@@ -151,6 +152,7 @@ def main() -> None:
             generate_options = GenerateOptions(
                 fast_sample=args.fast_sample,
                 denoiser_dict_state=args.denoiser_dict_state,
+                ema_denoiser=args.ema,
                 output_dir=args.output_dir,
                 frames=args.frames,
                 musics=args.musics,

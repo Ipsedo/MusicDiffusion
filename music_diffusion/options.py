@@ -39,6 +39,7 @@ GenerateOptions = NamedTuple(
     [
         ("fast_sample", Optional[int]),
         ("denoiser_dict_state", str),
+        ("ema_denoiser", bool),
         ("output_dir", str),
         ("frames", int),
         ("musics", int),

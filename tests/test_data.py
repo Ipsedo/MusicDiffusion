@@ -15,14 +15,14 @@ from music_diffusion.data import (
 )
 
 
-@pytest.mark.parametrize("start", [0.0, 2.0, 4.0])
-@pytest.mark.parametrize("end", [6.0, 8.0, 10.0])
-@pytest.mark.parametrize("dx", [0.01, 0.02, 0.03])
-def test_simpson(start: float, end: float, dx: float) -> None:
+@pytest.mark.parametrize("dx", [0.01, 0.02, 0.04])
+def test_simpson(dx: float) -> None:
+    start = -8.0
+    end = 8.0
 
     steps = int((end - start) / dx)
 
-    delta = 1e-1
+    delta = 1e-2
     dim = 1
 
     derivative = th.cos(th.linspace(start, end, steps))[None, :, None].repeat(
@@ -39,14 +39,14 @@ def test_simpson(start: float, end: float, dx: float) -> None:
     assert th.all(th.abs(primitive - res_simpson).mean(dim=dim) < delta)
 
 
-@pytest.mark.parametrize("start", [0.0, 2.0, 4.0])
-@pytest.mark.parametrize("end", [6.0, 8.0, 10.0])
-@pytest.mark.parametrize("dx", [0.01, 0.02, 0.03])
-def test_trapezoid(start: float, end: float, dx: float) -> None:
+@pytest.mark.parametrize("dx", [0.01, 0.02, 0.04])
+def test_trapezoid(dx: float) -> None:
+    start = -8.0
+    end = 8.0
 
     steps = int((end - start) / dx)
 
-    delta = 1e-1
+    delta = 1e-2
     dim = 1
 
     derivative = th.cos(th.linspace(start, end, steps))[None, :, None].repeat(

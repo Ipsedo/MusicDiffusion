@@ -41,9 +41,20 @@ def generate(
 
     device = "cuda" if model_options.cuda else "cpu"
 
-    denoiser.load_state_dict(
-        th.load(generate_options.denoiser_dict_state, map_location=device)
+    loaded_state_dict = th.load(
+        generate_options.denoiser_dict_state, map_location=device
     )
+    state_dict = (
+        {
+            k[10:]: p
+            for k, p in loaded_state_dict.items()
+            if k.startswith("ema_model.")
+        }
+        if generate_options.ema_denoiser
+        else loaded_state_dict
+    )
+
+    denoiser.load_state_dict(state_dict)
 
     denoiser.eval()
 
