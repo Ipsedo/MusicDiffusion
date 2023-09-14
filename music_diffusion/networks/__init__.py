@@ -4,8 +4,10 @@ from .functions import (
     hellinger,
     kl_div,
     log_kl_div,
+    log_likelihood,
     mse,
     normal_bhattacharyya,
+    normal_cdf,
     normal_kl_div,
     normal_wasserstein,
 )

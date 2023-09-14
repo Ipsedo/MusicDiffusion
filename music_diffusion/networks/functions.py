@@ -56,18 +56,19 @@ def normal_kl_div(
     var_1: th.Tensor,
     mu_2: th.Tensor,
     var_2: th.Tensor,
+    epsilon: float = 1e-8,
 ) -> th.Tensor:
-    return th.sum(
-        th.log(var_2) / 2.0
-        - th.log(var_1) / 2.0
-        + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2)
+    return th.mean(
+        th.log(var_2 + epsilon) / 2.0
+        - th.log(var_1 + epsilon) / 2.0
+        + (var_1 + th.pow(mu_1 - mu_2, 2.0) + epsilon) / (2 * var_2 + epsilon)
         - 0.5,
         dim=[2, 3, 4],
     )
 
 
 def mse(p: th.Tensor, q: th.Tensor) -> th.Tensor:
-    return th.pow(p - q, 2.0).sum(dim=[2, 3, 4])
+    return th.pow(p - q, 2.0).mean(dim=[2, 3, 4])
 
 
 def normal_bhattacharyya(
@@ -98,4 +99,10 @@ def normal_wasserstein(
         th.pow(mu_1 - mu_2, 2.0)
         + th.pow(th.sqrt(var_1) - th.sqrt(var_2), 2.0),
         dim=[2, 3, 4],
+    )
+
+
+def log_likelihood(x: th.Tensor, mu: th.Tensor, var: th.Tensor) -> th.Tensor:
+    return th.mean(
+        -th.log(th.clamp_min(normal_cdf(x, mu, var), 1e-20)), dim=[2, 3, 4]
     )

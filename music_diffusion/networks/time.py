@@ -3,7 +3,6 @@ import math
 
 import torch as th
 from torch import nn
-from torch.nn import functional as th_f
 
 
 class SinusoidTimeEmbedding(nn.Module):
@@ -111,7 +110,7 @@ class TimeWrapper(nn.Module):
         proj_time_emb = proj_time_emb[:, :, :, None, None]
         scale, shift = th.chunk(proj_time_emb, chunks=2, dim=2)
 
-        x_time = x * th_f.softplus(scale) + shift
+        x_time = x * (scale + 1.0) + shift
 
         x_time = x_time.flatten(0, 1)
         out: th.Tensor = self.__block(x_time)
