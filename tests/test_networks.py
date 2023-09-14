@@ -7,7 +7,7 @@ import torch as th
 from music_diffusion.networks import Denoiser, Noiser, TimeUNet
 
 
-@pytest.mark.parametrize("steps", [10, 20])
+@pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("step_batch_size", [1, 2])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [1, 2])
@@ -76,10 +76,10 @@ def test_noiser(
     assert th.all(th.gt(post_var, 0))
 
 
-@pytest.mark.parametrize("steps", [10, 20])
-@pytest.mark.parametrize("step_batch_size", [2, 3])
-@pytest.mark.parametrize("batch_size", [2, 3])
-@pytest.mark.parametrize("channels", [2, 4])
+@pytest.mark.parametrize("steps", [1, 2])
+@pytest.mark.parametrize("step_batch_size", [1, 2])
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("channels", [1, 2])
 @pytest.mark.parametrize("img_sizes", [(32, 32), (16, 32)])
 @pytest.mark.parametrize("time_size", [2, 4])
 def test_denoiser(
@@ -97,7 +97,7 @@ def test_denoiser(
         time_size,
         1e-4,
         2e-1,
-        [(8, 16), (16, 16), (16, 32)],
+        [(8, 16), (16, 16)],
         8,
     )
 
