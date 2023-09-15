@@ -59,8 +59,8 @@ def normal_kl_div(
     epsilon: float = 1e-8,
 ) -> th.Tensor:
     return th.mean(
-        th.log(var_2 + epsilon) / 2.0
-        - th.log(var_1 + epsilon) / 2.0
+        th.log(var_2) / 2.0
+        - th.log(var_1) / 2.0
         + (var_1 + th.pow(mu_1 - mu_2, 2.0) + epsilon) / (2 * var_2 + epsilon)
         - 0.5,
         dim=[2, 3, 4],

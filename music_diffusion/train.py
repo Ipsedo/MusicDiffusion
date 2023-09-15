@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from .data import AudioDataset
-from .networks import Noiser, mse, normal_kl_div
+from .networks import mse, normal_kl_div
 from .options import ModelOptions, TrainOptions
 from .saver import Saver
 
@@ -22,14 +22,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
         if model_options.cuda:
             th.backends.cudnn.benchmark = True
 
-        noiser = Noiser(
-            model_options.steps,
-            model_options.beta_1,
-            model_options.beta_t,
-        )
-
+        noiser = model_options.new_noiser()
         denoiser = model_options.new_denoiser()
-
         denoiser_ema = EMA(denoiser)
 
         print(f"Parameters count = {denoiser.count_parameters()}")

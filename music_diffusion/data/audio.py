@@ -191,34 +191,30 @@ def create_dataset(
     elif not isdir(dataset_output_dir):
         raise NotADirectoryError(dataset_output_dir)
 
-    n_per_seg = constants.N_FFT
-    stride = constants.STFT_STRIDE
-
-    nb_vec = constants.N_VEC
-
     idx = 0
 
     for wav_p in tqdm(w_p):
-        complex_values = wav_to_stft(wav_p, n_per_seg=n_per_seg, stride=stride)
+        complex_values = wav_to_stft(
+            wav_p, n_per_seg=constants.N_FFT, stride=constants.STFT_STRIDE
+        )
 
-        if complex_values.size()[1] < nb_vec:
+        if complex_values.size()[1] < constants.N_VEC:
             continue
 
         magnitude, phase = stft_to_magnitude_phase(
-            complex_values, nb_vec=nb_vec
+            complex_values, nb_vec=constants.N_VEC
         )
 
         nb_sample = magnitude.size()[0]
 
         for s_idx in range(nb_sample):
-            s_magnitude = magnitude[s_idx, :, :]
-            s_phase = phase[s_idx, :, :]
-
             magnitude_phase_path = join(
                 dataset_output_dir, f"magn_phase_{idx}.pt"
             )
 
-            magnitude_phase = th.stack([s_magnitude, s_phase], dim=0)
+            magnitude_phase = th.stack(
+                [magnitude[s_idx, :, :], phase[s_idx, :, :]], dim=0
+            )
             magnitude_phase = magnitude_phase.to(th.float)
 
             th.save(magnitude_phase, magnitude_phase_path)

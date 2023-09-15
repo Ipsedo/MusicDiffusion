@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import List, NamedTuple, Optional, Tuple
 
-from .networks import Denoiser
+from .networks import Denoiser, Noiser
 
 
 class ModelOptions(NamedTuple):
@@ -23,6 +23,13 @@ class ModelOptions(NamedTuple):
             self.beta_t,
             self.unet_channels,
             self.norm_groups,
+        )
+
+    def new_noiser(self) -> Noiser:
+        return Noiser(
+            self.steps,
+            self.beta_1,
+            self.beta_t,
         )
 
 
