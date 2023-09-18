@@ -30,9 +30,3 @@ disable = [
     "too-many-statements",
     "no-member",
 ]
-
-[project]
-dynamic = ["dependencies"]
-
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
