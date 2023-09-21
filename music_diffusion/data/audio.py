@@ -49,6 +49,27 @@ def bark_scale(
     return res
 
 
+# copied code from
+# https://github.com/magenta/magenta/blob/main/magenta/models/gansynth/lib/spectral_ops.py
+_MEL_BREAK_FREQUENCY_HERTZ = 700.0
+_MEL_HIGH_FREQUENCY_Q = 1127.0
+
+
+def mel_to_hertz(mel_values: th.Tensor) -> th.Tensor:
+    return _MEL_BREAK_FREQUENCY_HERTZ * (
+        th.exp(mel_values / _MEL_HIGH_FREQUENCY_Q) - 1.0
+    )
+
+
+def hertz_to_mel(frequencies_hertz: th.Tensor) -> th.Tensor:
+    return _MEL_HIGH_FREQUENCY_Q * th.log(
+        1.0 + (frequencies_hertz / _MEL_BREAK_FREQUENCY_HERTZ)
+    )
+
+
+# end of copied code
+
+
 def wav_to_stft(
     wav_p: str,
     n_per_seg: int = constants.N_FFT,
@@ -96,7 +117,8 @@ def stft_to_magnitude_phase(
     magnitude = th.abs(complex_values)
     phase = th.angle(complex_values)
 
-    magnitude = bark_scale(magnitude, "scale")
+    # magnitude = bark_scale(magnitude, "scale")
+    magnitude = hertz_to_mel(magnitude)
     magnitude = th_f.pad(magnitude, (1, 0, 0, 0), "constant", 0.0)
 
     phase = unwrap(phase)
@@ -151,7 +173,8 @@ def magnitude_phase_to_wav(
     phase = magnitude_phase_flattened[1, :, :]
 
     magnitude = (magnitude + 1.0) / 2.0
-    magnitude = bark_scale(magnitude, "unscale")
+    # magnitude = bark_scale(magnitude, "unscale")
+    magnitude = mel_to_hertz(magnitude)
 
     phase = (phase + 1.0) / 2.0 * 2.0 * th.pi - th.pi
     phase = simpson(th.zeros(phase.size()[0], 1), phase, 1, 1.0)

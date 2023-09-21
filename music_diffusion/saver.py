@@ -102,6 +102,13 @@ class Saver:
                 x_0 = self.__ema_denoiser.ema_model.sample(x_t, verbose=True)
                 self.__denoiser.train()
 
+                th.save(
+                    x_0,
+                    join(
+                        self.__output_dir, f"magn_phase_{self.__curr_save}.pt"
+                    ),
+                )
+
                 for i in range(self.__nb_sample):
                     magn_phase = x_0[i, None].detach().cpu()
 

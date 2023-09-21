@@ -57,6 +57,7 @@ def normal_kl_div(
     mu_2: th.Tensor,
     var_2: th.Tensor,
     epsilon: float = 1e-20,
+    clip_max: float = 16.0,
 ) -> th.Tensor:
     return th.mean(
         th.clamp_max(
@@ -65,7 +66,7 @@ def normal_kl_div(
             + (var_1 + th.pow(mu_1 - mu_2, 2.0) + epsilon)
             / (2 * var_2 + epsilon)
             - 0.5,
-            1.0,
+            clip_max,
         ),
         dim=[2, 3, 4],
     )
@@ -106,7 +107,17 @@ def normal_wasserstein(
     )
 
 
-def log_likelihood(x: th.Tensor, mu: th.Tensor, var: th.Tensor) -> th.Tensor:
+def log_likelihood(
+    x: th.Tensor,
+    mu: th.Tensor,
+    var: th.Tensor,
+    epsilon: float = 1e-20,
+    clip_max: float = 16.0,
+) -> th.Tensor:
     return th.mean(
-        -th.log(th.clamp_min(normal_cdf(x, mu, var), 1e-20)), dim=[2, 3, 4]
+        th.clamp_max(
+            -th.log(Normal(mu, th.sqrt(var)).cdf(x) + epsilon),
+            clip_max,
+        ),
+        dim=[2, 3, 4],
     )
