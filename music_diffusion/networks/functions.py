@@ -66,7 +66,7 @@ def normal_kl_div(
             + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2 + epsilon)
             - 0.5
         )
-        .clamp(epsilon, clip_max)
+        .clamp(0, clip_max)
         .mean(dim=[2, 3, 4])
     )
 
@@ -121,7 +121,7 @@ def log_likelihood(
                 + th.pow(x - mu, 2.0) / (var + epsilon)
             )
         )
-        .clamp(epsilon, clip_max)
+        .clamp(0, clip_max)
         .mean(dim=[2, 3, 4])
     )
     return ll
