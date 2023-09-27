@@ -42,7 +42,7 @@ class Diffuser(ABC, nn.Module):
 
         betas = 1 - alphas_cum_prod / alphas_cum_prod_prev
         # 1e-4 and 0.999
-        betas = th.clamp(betas, self._beta_1, 1 - self._beta_1)
+        betas = th.clamp(betas, 0.0, 0.999)
 
         alphas = 1 - betas
 

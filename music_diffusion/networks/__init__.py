@@ -8,6 +8,7 @@ from .functions import (
     mse,
     normal_bhattacharyya,
     normal_cdf,
+    normal_js_div,
     normal_kl_div,
     normal_wasserstein,
 )

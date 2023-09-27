@@ -91,6 +91,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
         losses = [1.0 for _ in range(train_options.metric_window)]
         mse_losses = [1.0 for _ in range(train_options.metric_window)]
         vlb_losses = [1.0 for _ in range(train_options.metric_window)]
+        kl_losses = [1.0 for _ in range(train_options.metric_window)]
+        ll_losses = [1.0 for _ in range(train_options.metric_window)]
         grad_norms = [1.0 for _ in range(train_options.metric_window)]
         metric_step = 0
 
@@ -123,9 +125,9 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     x_t, t, eps_theta.detach(), v_theta
                 )
 
-                loss_vlb_kl = normal_kl_div(q_mu, q_var, p_mu, p_var)
-                loss_vlb_0 = log_likelihood(x_0, p_mu, p_var)
-                loss_vlb = th.where(t == 0, loss_vlb_0, loss_vlb_kl)
+                loss_kl = normal_kl_div(q_mu, q_var, p_mu, p_var)
+                loss_ll = log_likelihood(x_0, p_mu, p_var)
+                loss_vlb = th.where(t == 0, loss_ll, loss_kl)
 
                 loss = loss_vlb * 1e-3 + loss_mse
                 loss = loss.mean()
@@ -141,8 +143,12 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 del losses[0]
                 del mse_losses[0]
                 del vlb_losses[0]
+                del kl_losses[0]
+                del ll_losses[0]
                 losses.append(loss.item())
                 vlb_losses.append(loss_vlb.mean().item())
+                kl_losses.append(loss_vlb.mean().item())
+                ll_losses.append(loss_vlb.mean().item())
                 mse_losses.append(loss_mse.mean().item())
 
                 del grad_norms[0]
@@ -152,6 +158,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     {
                         "loss": losses[-1],
                         "loss_vlb": vlb_losses[-1],
+                        "loss_kl": kl_losses[-1],
+                        "loss_ll": ll_losses[-1],
                         "loss_mse": mse_losses[-1],
                         "grad_norm": grad_norms[-1],
                     },
@@ -166,6 +174,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     f"loss = {mean(losses):.6f}, "
                     f"mse = {mean(mse_losses):.6f}, "
                     f"vlb = {mean(vlb_losses):.6f}, "
+                    f"kl = {mean(kl_losses):.6f}, "
+                    f"ll = {mean(ll_losses):.6f}, "
                     f"grad_norm = {mean(grad_norms):.6f}"
                 )
 

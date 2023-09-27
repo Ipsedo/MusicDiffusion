@@ -67,6 +67,74 @@ def hertz_to_mel(frequencies_hertz: th.Tensor) -> th.Tensor:
     )
 
 
+def linear_to_mel_weight_matrix(
+    num_mel_bins: int = constants.N_FFT // 2,
+    num_spectrogram_bins: int = constants.N_FFT // 2,
+    sample_rate: int = constants.SAMPLE_RATE,
+    lower_edge_hertz: float = 125.0,
+    upper_edge_hertz: float = 3800.0,
+) -> th.Tensor:
+
+    # HTK excludes the spectrogram DC bin.
+    bands_to_zero = 1
+    nyquist_hertz = sample_rate / 2.0
+    linear_frequencies = th.linspace(0.0, nyquist_hertz, num_spectrogram_bins)[
+        bands_to_zero:, None
+    ]
+    # spectrogram_bins_mel = hertz_to_mel(linear_frequencies)
+
+    # Compute num_mel_bins triples of (lower_edge, center, upper_edge). The
+    # center of each band is the lower and upper edge of the adjacent bands.
+    # Accordingly, we divide [lower_edge_hertz, upper_edge_hertz] into
+    # num_mel_bins + 2 pieces.
+    band_edges_mel = th.linspace(
+        hertz_to_mel(th.tensor(lower_edge_hertz)).item(),
+        hertz_to_mel(th.tensor(upper_edge_hertz)).item(),
+        num_mel_bins + 2,
+    )
+
+    lower_edge_mel = band_edges_mel[0:-2]
+    center_mel = band_edges_mel[1:-1]
+    upper_edge_mel = band_edges_mel[2:]
+
+    freq_res = nyquist_hertz / float(num_spectrogram_bins)
+    freq_th = 1.5 * freq_res
+    for i in range(0, num_mel_bins):
+        center_hz = mel_to_hertz(center_mel[i])
+        lower_hz = mel_to_hertz(lower_edge_mel[i])
+        upper_hz = mel_to_hertz(upper_edge_mel[i])
+        if upper_hz - lower_hz < freq_th:
+            rhs = 0.5 * freq_th / (center_hz + _MEL_BREAK_FREQUENCY_HERTZ)
+            dm = _MEL_HIGH_FREQUENCY_Q * th.log(rhs + th.sqrt(1.0 + rhs**2))
+            lower_edge_mel[i] = center_mel[i] - dm
+            upper_edge_mel[i] = center_mel[i] + dm
+
+    lower_edge_hz = mel_to_hertz(lower_edge_mel)[None, :]
+    center_hz = mel_to_hertz(center_mel)[None, :]
+    upper_edge_hz = mel_to_hertz(upper_edge_mel)[None, :]
+
+    # Calculate lower and upper slopes for every spectrogram bin.
+    # Line segments are linear in the mel domain, not Hertz.
+    lower_slopes = (linear_frequencies - lower_edge_hz) / (
+        center_hz - lower_edge_hz
+    )
+    upper_slopes = (upper_edge_hz - linear_frequencies) / (
+        upper_edge_hz - center_hz
+    )
+
+    # Intersect the line segments with each other and zero.
+    mel_weights_matrix = th.maximum(
+        th.tensor(0.0), th.minimum(lower_slopes, upper_slopes)
+    )
+
+    # Re-add the zeroed lower bins we sliced out above.
+    # [freq, mel]
+    mel_weights_matrix = th_f.pad(
+        mel_weights_matrix, [bands_to_zero, 0, 0, 0], "constant"
+    )
+    return mel_weights_matrix
+
+
 # end of copied code
 
 
@@ -118,7 +186,6 @@ def stft_to_magnitude_phase(
     phase = th.angle(complex_values)
 
     # magnitude = bark_scale(magnitude, "scale")
-    magnitude = hertz_to_mel(magnitude)
     magnitude = th_f.pad(magnitude, (1, 0, 0, 0), "constant", 0.0)
 
     phase = unwrap(phase)
@@ -174,7 +241,6 @@ def magnitude_phase_to_wav(
 
     magnitude = (magnitude + 1.0) / 2.0
     # magnitude = bark_scale(magnitude, "unscale")
-    magnitude = mel_to_hertz(magnitude)
 
     phase = (phase + 1.0) / 2.0 * 2.0 * th.pi - th.pi
     phase = simpson(th.zeros(phase.size()[0], 1), phase, 1, 1.0)
