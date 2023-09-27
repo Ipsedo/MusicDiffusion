@@ -118,7 +118,7 @@ def log_likelihood(
             -0.5
             * (
                 th.log(2 * th.pi * var + epsilon)
-                + ((x - mu) ** 2 + epsilon) / (var + epsilon)
+                + th.pow(x - mu, 2.0) / (var + epsilon)
             )
         )
         .clamp(epsilon, clip_max)
