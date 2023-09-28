@@ -26,8 +26,8 @@ class Diffuser(ABC, nn.Module):
         # betas = th.linspace(self._beta_1, self._beta_t, steps=self._steps)
 
         # time schedulers improved
-        # 8e-4
-        s = 1e-8
+        # 16-bit audio : 1/(2^16/2) ?
+        s = 2e-5
 
         linear_space: th.Tensor = th.linspace(0.0, 1.0, steps=self._steps + 1)
         # exponent: th.Tensor = linear_space * 3. * th.pi - 1.5 * th.pi
@@ -171,7 +171,7 @@ class Noiser(Diffuser):
 
     def __var(self, t: th.Tensor) -> th.Tensor:
 
-        betas: th.Tensor = select_time_scheduler(self._betas, t)
+        betas: th.Tensor = select_time_scheduler(self._betas_tiddle, t)
 
         return betas
 
