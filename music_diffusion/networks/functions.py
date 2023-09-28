@@ -61,8 +61,8 @@ def normal_kl_div(
 ) -> th.Tensor:
     return (
         (
-            th.log(var_2 + epsilon) / 2.0
-            - th.log(var_1 + epsilon) / 2.0
+            th.log(var_2) / 2.0
+            - th.log(var_1) / 2.0
             + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2 + epsilon)
             - 0.5
         )
@@ -113,18 +113,14 @@ def log_likelihood(
     epsilon: float = 1e-20,
     clip_max: float = 16.0,
 ) -> th.Tensor:
-    ll: th.Tensor = (
+    return (
         (
-            -0.5
-            * (
-                th.log(2 * th.pi * var + epsilon)
-                + th.pow(x - mu, 2.0) / (var + epsilon)
-            )
+            0.5
+            * (th.log(2 * th.pi * var) + th.pow(x - mu, 2.0) / (var + epsilon))
         )
         .clamp(0, clip_max)
         .mean(dim=[2, 3, 4])
     )
-    return ll
 
 
 def normal_js_div(
