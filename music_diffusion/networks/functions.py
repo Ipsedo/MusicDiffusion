@@ -57,7 +57,7 @@ def normal_kl_div(
     mu_2: th.Tensor,
     var_2: th.Tensor,
     epsilon: float = 1e-20,
-    clip_max: float = 16.0,
+    clip_max: float = 2.0,
 ) -> th.Tensor:
     return (
         (
@@ -111,7 +111,7 @@ def log_likelihood(
     mu: th.Tensor,
     var: th.Tensor,
     epsilon: float = 1e-20,
-    clip_max: float = 16.0,
+    clip_max: float = 2.0,
 ) -> th.Tensor:
     return (
         (
