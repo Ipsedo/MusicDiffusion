@@ -24,7 +24,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
         noiser = model_options.new_noiser()
         denoiser = model_options.new_denoiser()
-        denoiser_ema = EMA(denoiser)
+        denoiser_ema = EMA(denoiser, include_online_model=True)
 
         print(f"Parameters count = {denoiser.count_parameters()}")
 
