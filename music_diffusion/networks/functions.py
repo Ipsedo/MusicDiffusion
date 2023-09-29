@@ -106,7 +106,7 @@ def normal_wasserstein(
     )
 
 
-def log_likelihood(
+def negative_log_likelihood(
     x: th.Tensor,
     mu: th.Tensor,
     var: th.Tensor,
