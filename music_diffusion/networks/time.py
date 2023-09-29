@@ -101,7 +101,6 @@ class TimeWrapper(nn.Module):
             nn.Mish(),
             TimeBypass(nn.GroupNorm(norm_groups, channels * 2)),
             nn.Linear(channels * 2, channels * 2),
-            nn.Tanh(),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
