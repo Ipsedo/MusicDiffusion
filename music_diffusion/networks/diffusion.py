@@ -41,7 +41,6 @@ class Diffuser(ABC, nn.Module):
         alphas_cum_prod_prev = f_values[:-1] / f_values[0]
 
         betas = 1 - alphas_cum_prod / alphas_cum_prod_prev
-        # 1e-4 and 0.999
         betas = th.clamp(betas, 0.0, 0.999)
 
         alphas = 1 - betas
@@ -57,7 +56,8 @@ class Diffuser(ABC, nn.Module):
         betas_tiddle = (
             betas * (1.0 - alphas_cum_prod_prev) / (1.0 - alphas_cum_prod)
         )
-        self._betas_tiddle_limit = 1e-20
+
+        self._betas_tiddle_limit = 1e-10
         betas_tiddle = th.clamp_min(betas_tiddle, self._betas_tiddle_limit)
 
         # attributes definition
