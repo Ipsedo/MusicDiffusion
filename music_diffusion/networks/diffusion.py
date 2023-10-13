@@ -41,7 +41,7 @@ class Diffuser(ABC, nn.Module):
         alphas_cum_prod_prev = f_values[:-1] / f_values[0]
 
         betas = 1 - alphas_cum_prod / alphas_cum_prod_prev
-        betas = th.clamp(betas, 0.0, 0.999)
+        betas = th.clamp_max(betas, 0.999)
 
         alphas = 1 - betas
 

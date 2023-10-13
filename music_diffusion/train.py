@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from .data import AudioDataset
-from .networks import mse, negative_log_likelihood, normal_kl_div
+from .networks import discretized_nll, mse, normal_kl_div
 from .options import ModelOptions, TrainOptions
 from .saver import Saver
 
@@ -121,15 +121,14 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 loss_mse = mse(eps, eps_theta)
 
                 q_mu, q_var = noiser.posterior(x_t, x_0, t)
-                p_mu, p_var = denoiser.prior(
-                    x_t, t, eps_theta.detach(), v_theta
-                )
+                p_mu, p_var = denoiser.prior(x_t, t, eps_theta, v_theta)
 
                 loss_kl = normal_kl_div(q_mu, q_var, p_mu, p_var)
-                loss_nll = negative_log_likelihood(x_0, p_mu, p_var)
+                # loss_nll = negative_log_likelihood(x_0, p_mu, p_var)
+                loss_nll = discretized_nll(x_0, p_mu, p_var)
                 loss_vlb = th.where(t == 0, loss_nll, loss_kl)
 
-                loss = loss_vlb * 1e-3 + loss_mse
+                loss = loss_vlb  # + loss_mse
                 loss = loss.mean()
 
                 optim.zero_grad(set_to_none=True)

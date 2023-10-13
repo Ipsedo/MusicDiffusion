@@ -98,9 +98,9 @@ class Saver:
                     device=device,
                 )
 
-                self.__ema_denoiser.ema_model.eval()
+                self.__ema_denoiser.eval()
                 x_0 = self.__ema_denoiser.ema_model.sample(x_t, verbose=True)
-                self.__ema_denoiser.ema_model.train()
+                self.__ema_denoiser.train()
 
                 th.save(
                     x_0,

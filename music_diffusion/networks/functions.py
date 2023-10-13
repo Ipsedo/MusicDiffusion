@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 from math import sqrt
+from typing import Tuple
 
 import torch as th
 from torch.distributions import Normal
+
+from music_diffusion.data import BIN_SIZE
 
 
 def select_time_scheduler(factor: th.Tensor, t: th.Tensor) -> th.Tensor:
@@ -56,18 +59,19 @@ def normal_kl_div(
     var_1: th.Tensor,
     mu_2: th.Tensor,
     var_2: th.Tensor,
-    epsilon: float = 1e-10,
-    clip_max: float = 64.0,
+    clip_max: float = 4096.0,
+    div_factor: float = 1024,
 ) -> th.Tensor:
     return (
         (
             th.log(var_2) / 2.0
             - th.log(var_1) / 2.0
-            + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2 + epsilon)
+            + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2)
             - 0.5
         )
+        .sum(dim=[2, 3, 4])
         .clamp(0, clip_max)
-        .mean(dim=[2, 3, 4])
+        .div(div_factor)
     )
 
 
@@ -111,7 +115,7 @@ def negative_log_likelihood(
     mu: th.Tensor,
     var: th.Tensor,
     epsilon: float = 1e-10,
-    clip_max: float = 64.0,
+    clip_max: float = 128.0,
 ) -> th.Tensor:
     return (
         (
@@ -120,4 +124,39 @@ def negative_log_likelihood(
         )
         .clamp(0, clip_max)
         .mean(dim=[2, 3, 4])
+    )
+
+
+def discretized_nll(
+    x: th.Tensor,
+    mu: th.Tensor,
+    var: th.Tensor,
+    precision: float = BIN_SIZE,
+    cut_off: Tuple[float, float] = (-0.999, 0.999),
+    epsilon: float = 1e-20,
+    clip_max: float = 4096.0,
+    div_factor: float = 1024,
+) -> th.Tensor:
+
+    min_cut_off, max_cut_off = cut_off
+    sigma = th.sqrt(var)
+
+    cdf_plus = th.where(
+        x < max_cut_off,
+        normal_cdf(x + precision, mu, sigma),
+        th.tensor(1.0, device=x.device),
+    )
+
+    cdf_min = th.where(
+        x > min_cut_off,
+        normal_cdf(x - precision, mu, sigma),
+        th.tensor(0.0, device=x.device),
+    )
+
+    return (
+        th.log(th.clamp_min(cdf_plus - cdf_min, epsilon))
+        .sum(dim=[2, 3, 4])
+        .mul(-1)
+        .clamp_max(clip_max)
+        .div(div_factor)
     )

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from .diffusion import Denoiser, Noiser
 from .functions import (
+    discretized_nll,
     hellinger,
     kl_div,
     log_kl_div,

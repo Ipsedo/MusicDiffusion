@@ -6,7 +6,14 @@ from .audio import (
     stft_to_magnitude_phase,
     wav_to_stft,
 )
-from .constants import N_FFT, N_VEC, OUTPUT_SIZES, SAMPLE_RATE, STFT_STRIDE
+from .constants import (
+    BIN_SIZE,
+    N_FFT,
+    N_VEC,
+    OUTPUT_SIZES,
+    SAMPLE_RATE,
+    STFT_STRIDE,
+)
 from .datasets import AudioDataset
 from .primitive import simpson, trapezoid
 from .transform import (

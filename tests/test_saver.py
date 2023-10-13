@@ -18,7 +18,7 @@ def test_saver(save_every: int, nb_samples: int) -> None:
     channels = 2
 
     noiser = Noiser(steps, 1e-4, 2e-2)
-    denoiser = Denoiser(channels, steps, 1, 1e-4, 2e-2, [(2, 4)], 2)
+    denoiser = Denoiser(channels, steps, 1, 1e-4, 2e-2, [(2, 4)], 1)
     optim = th.optim.Adam(denoiser.parameters())
     ema = EMA(denoiser)
 
@@ -36,6 +36,7 @@ def test_saver(save_every: int, nb_samples: int) -> None:
             assert not exists(join(tmp_dir, "denoiser_ema_0.pt"))
             assert not exists(join(tmp_dir, "denoiser_optim_0.pt"))
             assert not exists(join(tmp_dir, "noiser_0.pt"))
+            assert not exists(join(tmp_dir, "magn_phase_0.pt"))
 
             for i in range(nb_samples):
                 assert not exists(join(tmp_dir, f"magn_phase_0_ID{i}.png"))
@@ -54,6 +55,9 @@ def test_saver(save_every: int, nb_samples: int) -> None:
         )
         assert exists(join(tmp_dir, "noiser_0.pt")) and isfile(
             join(tmp_dir, "noiser_0.pt")
+        )
+        assert exists(join(tmp_dir, "magn_phase_0.pt")) and isfile(
+            join(tmp_dir, "magn_phase_0.pt")
         )
 
         for i in range(nb_samples):
