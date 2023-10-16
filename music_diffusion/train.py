@@ -79,7 +79,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 "time_size": model_options.time_size,
                 "input_channels": model_options.input_channels,
                 "unet_channels": model_options.unet_channels,
-                "norm_groups": model_options.norm_groups,
                 "input_dataset": train_options.dataset_path,
             }
         )

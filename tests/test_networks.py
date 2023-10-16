@@ -96,7 +96,6 @@ def test_denoiser(
         steps,
         time_size,
         [(8, 16), (16, 16)],
-        1,
     )
 
     denoiser.eval()
@@ -213,7 +212,6 @@ def test_denoiser(
     [[(16, 8), (8, 16), (16, 32)], [(16, 8), (8, 32), (32, 16)]],
 )
 @pytest.mark.parametrize("steps", [2, 3])
-@pytest.mark.parametrize("norm_groups", [1, 2])
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("nb_steps", [1, 2])
 def test_unet(
@@ -222,7 +220,6 @@ def test_unet(
     size: Tuple[int, int],
     hidden_channels: List[Tuple[int, int]],
     steps: int,
-    norm_groups: int,
     time_size: int,
     nb_steps: int,
     use_cuda: bool,
@@ -232,7 +229,6 @@ def test_unet(
         channels,
         hidden_channels,
         time_size,
-        norm_groups,
         steps,
     )
 

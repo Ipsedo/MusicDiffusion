@@ -73,7 +73,6 @@ def main() -> None:
         ],
     )
     model_parser.add_argument("--time-size", type=int, default=48)
-    model_parser.add_argument("--norm-groups", type=int, default=16)
     model_parser.add_argument("--cuda", action="store_true")
 
     # Sub command run {train, generate}
@@ -121,7 +120,6 @@ def main() -> None:
             input_channels=args.channels,
             unet_channels=args.unet_channels,
             time_size=args.time_size,
-            norm_groups=args.norm_groups,
             cuda=args.cuda,
         )
 

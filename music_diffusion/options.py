@@ -9,7 +9,6 @@ class ModelOptions(NamedTuple):
     input_channels: int
     unet_channels: List[Tuple[int, int]]
     time_size: int
-    norm_groups: int
     cuda: bool
 
     def new_denoiser(self) -> Denoiser:
@@ -18,7 +17,6 @@ class ModelOptions(NamedTuple):
             self.steps,
             self.time_size,
             self.unet_channels,
-            self.norm_groups,
         )
 
     def new_noiser(self) -> Noiser:

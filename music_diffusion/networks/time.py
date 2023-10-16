@@ -89,7 +89,6 @@ class TimeWrapper(nn.Module):
         self,
         time_size: int,
         channels: int,
-        norm_groups: int,
         block: nn.Module,
     ) -> None:
         super().__init__()
@@ -98,7 +97,6 @@ class TimeWrapper(nn.Module):
 
         self.__to_channels = nn.Sequential(
             nn.Linear(time_size, channels * 2),
-            TimeBypass(nn.GroupNorm(norm_groups, channels * 2)),
             nn.Mish(),
             nn.Linear(channels * 2, channels * 2),
         )

@@ -15,7 +15,6 @@ class TimeUNet(nn.Module):
         out_channels: int,
         hidden_channels: List[Tuple[int, int]],
         time_size: int,
-        norm_groups: int,
         steps: int,
     ) -> None:
         super().__init__()
@@ -38,7 +37,6 @@ class TimeUNet(nn.Module):
             ConvBlock(
                 in_channels,
                 encoding_channels[0][0],
-                norm_groups,
             )
         )
 
@@ -46,17 +44,16 @@ class TimeUNet(nn.Module):
             TimeWrapper(
                 time_size,
                 c_i,
-                norm_groups,
                 nn.Sequential(
-                    ConvBlock(c_i, c_o, norm_groups),
-                    ConvBlock(c_o, c_o, norm_groups),
+                    ConvBlock(c_i, c_o),
+                    ConvBlock(c_o, c_o),
                 ),
             )
             for c_i, c_o in encoding_channels
         )
 
         self.__encoder_down = nn.ModuleList(
-            TimeBypass(StrideConvBlock(c_o, c_o, "down", norm_groups))
+            TimeBypass(StrideConvBlock(c_o, c_o, "down"))
             for _, c_o in encoding_channels
         )
 
@@ -65,15 +62,15 @@ class TimeUNet(nn.Module):
         c_m = encoding_channels[-1][1]
         self.__middle_block = TimeBypass(
             nn.Sequential(
-                ConvBlock(c_m, c_m, norm_groups),
-                ConvBlock(c_m, c_m, norm_groups),
+                ConvBlock(c_m, c_m),
+                ConvBlock(c_m, c_m),
             )
         )
 
         # Decoder stuff
 
         self.__decoder_up = nn.ModuleList(
-            TimeBypass(StrideConvBlock(c_i, c_i, "up", norm_groups))
+            TimeBypass(StrideConvBlock(c_i, c_i, "up"))
             for c_i, _ in decoding_channels
         )
 
@@ -81,10 +78,9 @@ class TimeUNet(nn.Module):
             TimeWrapper(
                 time_size,
                 c_i * 2,
-                norm_groups,
                 nn.Sequential(
-                    ConvBlock(c_i * 2, c_i, norm_groups),
-                    ConvBlock(c_i, c_o, norm_groups),
+                    ConvBlock(c_i * 2, c_i),
+                    ConvBlock(c_i, c_o),
                 ),
             )
             for c_i, c_o in decoding_channels

@@ -3,13 +3,14 @@ from typing import Literal
 
 from torch import nn
 
+from .normalization import PixelNorm
+
 
 class ChannelProjBlock(nn.Sequential):
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
-        norm_groups: int,
     ) -> None:
         super().__init__(
             nn.Conv2d(
@@ -19,8 +20,8 @@ class ChannelProjBlock(nn.Sequential):
                 stride=(1, 1),
                 padding=(0, 0),
             ),
-            nn.GroupNorm(norm_groups, out_channels),
             nn.Mish(),
+            PixelNorm(),
         )
 
 
@@ -64,7 +65,6 @@ class StrideConvBlock(nn.Sequential):
         in_channels: int,
         out_channels: int,
         scale: Literal["up", "down"],
-        norm_groups: int,
     ) -> None:
         conv_constructor = {
             "up": nn.ConvTranspose2d,
@@ -79,8 +79,8 @@ class StrideConvBlock(nn.Sequential):
                 stride=(2, 2),
                 padding=(1, 1),
             ),
-            nn.GroupNorm(norm_groups, out_channels),
             nn.Mish(),
+            PixelNorm(),
         )
 
 
@@ -89,7 +89,6 @@ class ConvBlock(nn.Sequential):
         self,
         in_channels: int,
         out_channels: int,
-        norm_groups: int,
     ) -> None:
         super().__init__(
             nn.Conv2d(
@@ -99,6 +98,6 @@ class ConvBlock(nn.Sequential):
                 stride=(1, 1),
                 padding=(1, 1),
             ),
-            nn.GroupNorm(norm_groups, out_channels),
             nn.Mish(),
+            PixelNorm(),
         )
