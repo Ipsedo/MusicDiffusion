@@ -98,8 +98,8 @@ class TimeWrapper(nn.Module):
 
         self.__to_channels = nn.Sequential(
             nn.Linear(time_size, channels * 2),
-            nn.Mish(),
             TimeBypass(nn.GroupNorm(norm_groups, channels * 2)),
+            nn.Mish(),
             nn.Linear(channels * 2, channels * 2),
         )
 

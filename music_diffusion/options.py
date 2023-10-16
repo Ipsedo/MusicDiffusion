@@ -6,8 +6,6 @@ from .networks import Denoiser, Noiser
 
 class ModelOptions(NamedTuple):
     steps: int
-    beta_1: float
-    beta_t: float
     input_channels: int
     unet_channels: List[Tuple[int, int]]
     time_size: int
@@ -19,18 +17,12 @@ class ModelOptions(NamedTuple):
             self.input_channels,
             self.steps,
             self.time_size,
-            self.beta_1,
-            self.beta_t,
             self.unet_channels,
             self.norm_groups,
         )
 
     def new_noiser(self) -> Noiser:
-        return Noiser(
-            self.steps,
-            self.beta_1,
-            self.beta_t,
-        )
+        return Noiser(self.steps)
 
 
 class TrainOptions(NamedTuple):

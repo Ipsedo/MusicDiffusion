@@ -20,7 +20,7 @@ def test_noiser(
     img_sizes: Tuple[int, int],
     use_cuda: bool,
 ) -> None:
-    noiser = Noiser(steps, 1e-4, 2e-1)
+    noiser = Noiser(steps)
 
     if use_cuda:
         noiser.cuda()
@@ -95,8 +95,6 @@ def test_denoiser(
         channels,
         steps,
         time_size,
-        1e-4,
-        2e-1,
         [(8, 16), (16, 16)],
         1,
     )

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from statistics import mean
 
 import mlflow
 import torch as th
@@ -8,6 +7,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from .data import AudioDataset
+from .metrics import Metric
 from .networks import discretized_nll, mse, normal_kl_div
 from .options import ModelOptions, TrainOptions
 from .saver import Saver
@@ -75,8 +75,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 "step_batch_size": train_options.step_batch_size,
                 "learning_rate": train_options.learning_rate,
                 "epochs": train_options.epochs,
-                "beta_1": model_options.beta_1,
-                "beta_t": model_options.beta_t,
                 "steps": model_options.steps,
                 "time_size": model_options.time_size,
                 "input_channels": model_options.input_channels,
@@ -88,12 +86,13 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
         device = "cuda" if model_options.cuda else "cpu"
 
-        losses = [1.0 for _ in range(train_options.metric_window)]
-        mse_losses = [1.0 for _ in range(train_options.metric_window)]
-        vlb_losses = [1.0 for _ in range(train_options.metric_window)]
-        kl_losses = [1.0 for _ in range(train_options.metric_window)]
-        nll_losses = [1.0 for _ in range(train_options.metric_window)]
-        grad_norms = [1.0 for _ in range(train_options.metric_window)]
+        losses = Metric(train_options.metric_window)
+        mse_losses = Metric(train_options.metric_window)
+        vlb_losses = Metric(train_options.metric_window)
+        kl_losses = Metric(train_options.metric_window)
+        nll_losses = Metric(train_options.metric_window)
+        grad_norms = Metric(train_options.metric_window)
+
         metric_step = 0
 
         for e in range(train_options.epochs):
@@ -126,7 +125,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 loss_kl = normal_kl_div(q_mu, q_var, p_mu, p_var)
                 # loss_nll = negative_log_likelihood(x_0, p_mu, p_var)
                 loss_nll = discretized_nll(x_0, p_mu, p_var)
-                loss_vlb = th.where(t == 0, loss_nll, loss_kl)
+                loss_vlb = th.where(th.eq(t, 0), loss_nll, loss_kl)
 
                 loss = loss_vlb  # + loss_mse
                 loss = loss.mean()
@@ -139,28 +138,21 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
                 grad_norm = denoiser.grad_norm()
 
-                del losses[0]
-                del mse_losses[0]
-                del vlb_losses[0]
-                del kl_losses[0]
-                del nll_losses[0]
-                losses.append(loss.item())
-                vlb_losses.append(loss_vlb.mean().item())
-                kl_losses.append(loss_vlb.mean().item())
-                nll_losses.append(loss_vlb.mean().item())
-                mse_losses.append(loss_mse.mean().item())
-
-                del grad_norms[0]
-                grad_norms.append(grad_norm)
+                losses.add_result(loss)
+                mse_losses.add_result(loss_mse)
+                vlb_losses.add_result(loss_vlb)
+                kl_losses.add_result(loss_kl)
+                nll_losses.add_result(loss_nll)
+                grad_norms.add_result(grad_norm)
 
                 mlflow.log_metrics(
                     {
-                        "loss": losses[-1],
-                        "loss_vlb": vlb_losses[-1],
-                        "loss_kl": kl_losses[-1],
-                        "loss_nll": nll_losses[-1],
-                        "loss_mse": mse_losses[-1],
-                        "grad_norm": grad_norms[-1],
+                        "loss": losses.get_last_metric(),
+                        "loss_vlb": vlb_losses.get_last_metric(),
+                        "loss_kl": kl_losses.get_last_metric(),
+                        "loss_nll": nll_losses.get_last_metric(),
+                        "loss_mse": mse_losses.get_last_metric(),
+                        "grad_norm": grad_norms.get_last_metric(),
                     },
                     step=metric_step,
                 )
@@ -170,12 +162,12 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     f"Epoch {e} / {train_options.epochs - 1} - "
                     f"save {saver.curr_save} "
                     f"[{saver.curr_step} / {train_options.save_every - 1}] "
-                    f"loss = {mean(losses):.6f}, "
-                    f"mse = {mean(mse_losses):.6f}, "
-                    f"vlb = {mean(vlb_losses):.6f}, "
-                    f"kl = {mean(kl_losses):.6f}, "
-                    f"nll = {mean(nll_losses):.6f}, "
-                    f"grad_norm = {mean(grad_norms):.6f}"
+                    f"loss = {losses.get_smoothed_metric():.6f}, "
+                    f"mse = {mse_losses.get_smoothed_metric():.6f}, "
+                    f"vlb = {vlb_losses.get_smoothed_metric():.6f}, "
+                    f"kl = {kl_losses.get_smoothed_metric():.6f}, "
+                    f"nll = {nll_losses.get_smoothed_metric():.6f}, "
+                    f"grad_norm = {grad_norms.get_smoothed_metric():.6f}"
                 )
 
                 saver.save()

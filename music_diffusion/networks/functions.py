@@ -60,7 +60,7 @@ def normal_kl_div(
     mu_2: th.Tensor,
     var_2: th.Tensor,
     clip_max: float = 4096.0,
-    div_factor: float = 1024,
+    div_factor: float = 1024.0,
 ) -> th.Tensor:
     return (
         (
@@ -70,7 +70,7 @@ def normal_kl_div(
             - 0.5
         )
         .sum(dim=[2, 3, 4])
-        .clamp(0, clip_max)
+        .clamp_max(clip_max)
         .div(div_factor)
     )
 
@@ -135,28 +135,28 @@ def discretized_nll(
     cut_off: Tuple[float, float] = (-0.999, 0.999),
     epsilon: float = 1e-20,
     clip_max: float = 4096.0,
-    div_factor: float = 1024,
+    div_factor: float = 1024.0,
 ) -> th.Tensor:
 
     min_cut_off, max_cut_off = cut_off
     sigma = th.sqrt(var)
 
     cdf_plus = th.where(
-        x < max_cut_off,
+        th.lt(x, max_cut_off),
         normal_cdf(x + precision, mu, sigma),
         th.tensor(1.0, device=x.device),
     )
 
     cdf_min = th.where(
-        x > min_cut_off,
+        th.gt(x, min_cut_off),
         normal_cdf(x - precision, mu, sigma),
         th.tensor(0.0, device=x.device),
     )
 
     return (
         th.log(th.clamp_min(cdf_plus - cdf_min, epsilon))
-        .sum(dim=[2, 3, 4])
         .mul(-1)
+        .sum(dim=[2, 3, 4])
         .clamp_max(clip_max)
         .div(div_factor)
     )

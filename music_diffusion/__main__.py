@@ -61,8 +61,6 @@ def main() -> None:
     model_parser = sub_command.add_parser("model")
 
     model_parser.add_argument("--steps", type=int, default=4096)
-    model_parser.add_argument("--beta-1", type=float, default=2.5e-5)
-    model_parser.add_argument("--beta-t", type=float, default=5e-3)
     model_parser.add_argument("--channels", type=int, default=2)
     model_parser.add_argument(
         "--unet-channels",
@@ -120,8 +118,6 @@ def main() -> None:
     if args.mode == "model":
         model_options = ModelOptions(
             steps=args.steps,
-            beta_1=args.beta_1,
-            beta_t=args.beta_t,
             input_channels=args.channels,
             unet_channels=args.unet_channels,
             time_size=args.time_size,

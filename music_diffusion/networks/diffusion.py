@@ -14,14 +14,10 @@ from .unet import TimeUNet
 
 
 class Diffuser(ABC, nn.Module):
-    def __init__(self, steps: int, beta_1: float, beta_t: float):
+    def __init__(self, steps: int):
         super().__init__()
 
         self._steps = steps
-
-        # unused
-        self._beta_1 = beta_1
-        self._beta_t = beta_t
 
         # betas = th.linspace(self._beta_1, self._beta_t, steps=self._steps)
 
@@ -199,12 +195,10 @@ class Denoiser(Diffuser):
         channels: int,
         steps: int,
         time_size: int,
-        beta_1: float,
-        beta_t: float,
         unet_channels: List[Tuple[int, int]],
         norm_groups: int,
     ) -> None:
-        super().__init__(steps, beta_1, beta_t)
+        super().__init__(steps)
 
         self.__channels = channels
 
@@ -387,7 +381,7 @@ class Denoiser(Diffuser):
         )
 
         betas_s = 1.0 - alphas_cum_prod_s / alphas_cum_prod_prev_s
-        betas_s = th.clamp(betas_s, self._beta_1, 1 - self._beta_1)
+        betas_s = th.clamp_max(betas_s, th.tensor(0.999))
 
         betas_tiddle_s = (
             betas_s
