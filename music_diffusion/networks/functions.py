@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from math import sqrt
+from math import log, sqrt
 from typing import Tuple
 
 import torch as th
@@ -59,19 +59,13 @@ def normal_kl_div(
     var_1: th.Tensor,
     mu_2: th.Tensor,
     var_2: th.Tensor,
-    clip_max: float = 4096.0,
-    div_factor: float = 1024.0,
 ) -> th.Tensor:
-    return (
-        (
-            th.log(var_2) / 2.0
-            - th.log(var_1) / 2.0
-            + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2)
-            - 0.5
-        )
-        .sum(dim=[2, 3, 4])
-        .clamp_max(clip_max)
-        .div(div_factor)
+    return th.mean(
+        th.log(var_2) / 2.0
+        - th.log(var_1) / 2.0
+        + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2)
+        - 0.5,
+        dim=[2, 3, 4],
     )
 
 
@@ -134,9 +128,8 @@ def discretized_nll(
     precision: float = BIN_SIZE,
     cut_off: Tuple[float, float] = (-0.999, 0.999),
     epsilon: float = 1e-20,
-    clip_max: float = 4096.0,
-    div_factor: float = 1024.0,
 ) -> th.Tensor:
+    div_factor = -log(epsilon)
 
     min_cut_off, max_cut_off = cut_off
     sigma = th.sqrt(var)
@@ -156,7 +149,6 @@ def discretized_nll(
     return (
         th.log(th.clamp_min(cdf_plus - cdf_min, epsilon))
         .mul(-1)
-        .sum(dim=[2, 3, 4])
-        .clamp_max(clip_max)
+        .mean(dim=[2, 3, 4])
         .div(div_factor)
     )

@@ -52,9 +52,7 @@ class Diffuser(ABC, nn.Module):
         betas_tiddle = (
             betas * (1.0 - alphas_cum_prod_prev) / (1.0 - alphas_cum_prod)
         )
-
-        self._betas_tiddle_limit = 1e-10
-        betas_tiddle = th.clamp_min(betas_tiddle, self._betas_tiddle_limit)
+        betas_tiddle = th.clamp_min(betas_tiddle, betas_tiddle[1])
 
         # attributes definition
 
@@ -386,7 +384,7 @@ class Denoiser(Diffuser):
             * (1.0 - alphas_cum_prod_prev_s)
             / (1.0 - alphas_cum_prod_s)
         )
-        betas_tiddle_s = th.clamp_min(betas_tiddle_s, self._betas_tiddle_limit)
+        betas_tiddle_s = th.clamp_min(betas_tiddle_s, betas_tiddle_s[1])
 
         alphas_s = 1.0 - betas_s
 

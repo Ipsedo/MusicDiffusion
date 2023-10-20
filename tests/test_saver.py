@@ -14,7 +14,7 @@ from music_diffusion.saver import Saver
 @pytest.mark.parametrize("save_every", [2, 3])
 @pytest.mark.parametrize("nb_samples", [2, 3])
 def test_saver(save_every: int, nb_samples: int) -> None:
-    steps = 1
+    steps = 2
     channels = 2
 
     noiser = Noiser(steps)

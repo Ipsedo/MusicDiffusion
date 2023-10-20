@@ -19,25 +19,22 @@ repos:
     rev: 22.10.0
     hooks:
       - id: black
-        args: [ --config=pyproject.toml ]
   - repo: https://github.com/hadialqattan/pycln
     rev: v2.1.2
     hooks:
       - id: pycln
-        args: [ --config=pyproject.toml ]
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
     hooks:
       - id: isort
         files: "\\.(py)$"
-        args: [ --settings-path=pyproject.toml ]
   - repo: local
     hooks:
       - id: mypy
         name: mypy
         language: system
         entry: mypy
-        args: [ music_diffusion, tests, --config-file=pyproject.toml ]
+        args: [ music_diffusion, tests ]
         types: [ python ]
         pass_filenames: false
         require_serial: true
@@ -45,7 +42,7 @@ repos:
         name: pylint
         language: system
         entry: pylint
-        args: [ music_diffusion, tests, --rcfile, pyproject.toml ]
+        args: [ music_diffusion, tests ]
         types: [ python ]
         pass_filenames: false
         require_serial: true

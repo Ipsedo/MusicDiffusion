@@ -76,7 +76,7 @@ def test_noiser(
     assert th.all(th.gt(post_var, 0))
 
 
-@pytest.mark.parametrize("steps", [1, 2])
+@pytest.mark.parametrize("steps", [4, 6])
 @pytest.mark.parametrize("step_batch_size", [1, 2])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [1, 2])

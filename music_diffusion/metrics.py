@@ -8,7 +8,7 @@ import torch as th
 class Metric:
     def __init__(self, window_size: int) -> None:
         self.__window_size = window_size
-        self.__result: List[float] = []
+        self.__result: List[float] = [0.0]
 
     def add_result(self, res: Union[th.Tensor, float]) -> None:
         if isinstance(res, th.Tensor):
