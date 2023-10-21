@@ -59,13 +59,19 @@ def normal_kl_div(
     var_1: th.Tensor,
     mu_2: th.Tensor,
     var_2: th.Tensor,
+    clip_max: float = 4096.0,
+    div_factor: float = 512.0,
 ) -> th.Tensor:
-    return th.mean(
-        th.log(var_2) / 2.0
-        - th.log(var_1) / 2.0
-        + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2)
-        - 0.5,
-        dim=[2, 3, 4],
+    return (
+        (
+            th.log(var_2) / 2.0
+            - th.log(var_1) / 2.0
+            + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2)
+            - 0.5
+        )
+        .sum(dim=[2, 3, 4])
+        .clamp_max(clip_max)
+        .div(div_factor)
     )
 
 
