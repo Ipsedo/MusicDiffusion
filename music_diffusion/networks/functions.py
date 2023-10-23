@@ -59,8 +59,8 @@ def normal_kl_div(
     var_1: th.Tensor,
     mu_2: th.Tensor,
     var_2: th.Tensor,
-    clip_max: float = 4096.0,
-    div_factor: float = 512.0,
+    clip_max: float = 1024.0,
+    div_factor: float = 1024.0,
 ) -> th.Tensor:
     return (
         (
