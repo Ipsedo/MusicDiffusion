@@ -8,6 +8,8 @@ import torch as th
 from torch import nn
 from tqdm import tqdm
 
+from music_diffusion.data import BIN_SIZE
+
 from .functions import select_time_scheduler
 from .init import weights_init
 from .unet import TimeUNet
@@ -23,7 +25,7 @@ class Diffuser(ABC, nn.Module):
 
         # time schedulers improved
         # 16-bit audio : 1/(2^16/2) ?
-        s = 2e-5
+        s = BIN_SIZE
 
         linear_space: th.Tensor = th.linspace(0.0, 1.0, steps=self._steps + 1)
         # exponent: th.Tensor = linear_space * 3. * th.pi - 1.5 * th.pi

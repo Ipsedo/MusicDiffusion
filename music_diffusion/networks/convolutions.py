@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from typing import Literal
 
+import torch as th
 from torch import nn
 
 from .normalization import PixelNorm
+from .time import TimeBypass, TimeWrapper
 
 
 class ChannelProjBlock(nn.Sequential):
@@ -101,3 +103,16 @@ class ConvBlock(nn.Sequential):
             nn.Mish(),
             PixelNorm(),
         )
+
+
+class DoubleConvBlock(nn.Module):
+    def __init__(self, c_i: int, c_m: int, c_o: int, time_size: int) -> None:
+        super().__init__()
+
+        self.__conv_1 = TimeWrapper(time_size, c_m, ConvBlock(c_i, c_m))
+        self.__conv_2 = TimeBypass(ConvBlock(c_m, c_o))
+
+    def forward(self, x: th.Tensor, time_vec: th.Tensor) -> th.Tensor:
+        out: th.Tensor = self.__conv_1(x, time_vec)
+        out = self.__conv_2(out)
+        return out

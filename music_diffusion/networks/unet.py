@@ -4,8 +4,8 @@ from typing import List, Tuple
 import torch as th
 from torch import nn
 
-from .convolutions import ConvBlock, EndConvBlock, StrideConvBlock
-from .time import SinusoidTimeEmbedding, TimeBypass, TimeWrapper
+from .convolutions import DoubleConvBlock, EndConvBlock, StrideConvBlock
+from .time import SinusoidTimeEmbedding, TimeBypass
 
 
 class TimeUNet(nn.Module):
@@ -32,23 +32,11 @@ class TimeUNet(nn.Module):
         self.__time_embedder = SinusoidTimeEmbedding(steps, time_size)
 
         # Encoder stuff
-
-        self.__start_conv = TimeBypass(
-            ConvBlock(
-                in_channels,
-                encoding_channels[0][0],
-            )
-        )
+        c_i = encoding_channels[0][0]
+        self.__start_conv = DoubleConvBlock(in_channels, c_i, c_i, time_size)
 
         self.__encoder = nn.ModuleList(
-            TimeWrapper(
-                time_size,
-                c_i,
-                nn.Sequential(
-                    ConvBlock(c_i, c_o),
-                    ConvBlock(c_o, c_o),
-                ),
-            )
+            DoubleConvBlock(c_i, c_o, c_o, time_size)
             for c_i, c_o in encoding_channels
         )
 
@@ -58,49 +46,27 @@ class TimeUNet(nn.Module):
         )
 
         # Middle stuff
-
         c_m = encoding_channels[-1][1]
-        self.__middle_block = TimeBypass(
-            nn.Sequential(
-                ConvBlock(c_m, c_m),
-                ConvBlock(c_m, c_m),
-            )
-        )
+        self.__middle_block = DoubleConvBlock(c_m, c_m, c_m, time_size)
 
         # Decoder stuff
-
         self.__decoder_up = nn.ModuleList(
             TimeBypass(StrideConvBlock(c_i, c_i, "up"))
             for c_i, _ in decoding_channels
         )
 
         self.__decoder = nn.ModuleList(
-            TimeWrapper(
-                time_size,
-                c_i * 2,
-                nn.Sequential(
-                    ConvBlock(c_i * 2, c_i),
-                    ConvBlock(c_i, c_o),
-                ),
-            )
+            DoubleConvBlock(c_i * 2, c_i, c_o, time_size)
             for c_i, c_o in decoding_channels
         )
 
+        c_o = decoding_channels[-1][1]
         self.__eps_end_conv = TimeBypass(
-            EndConvBlock(
-                decoding_channels[-1][1],
-                out_channels,
-            )
+            EndConvBlock(c_o, out_channels),
         )
 
         self.__v_end_conv = TimeBypass(
-            nn.Sequential(
-                EndConvBlock(
-                    decoding_channels[-1][1],
-                    out_channels,
-                ),
-                nn.Sigmoid(),
-            )
+            EndConvBlock(c_o, out_channels),
         )
 
     def forward(
@@ -110,7 +76,7 @@ class TimeUNet(nn.Module):
 
         bypasses = []
 
-        out: th.Tensor = self.__start_conv(img)
+        out: th.Tensor = self.__start_conv(img, time_vec)
 
         for block, down in zip(
             self.__encoder,
@@ -120,7 +86,7 @@ class TimeUNet(nn.Module):
             bypasses.append(out)
             out = down(out)
 
-        out = self.__middle_block(out)
+        out = self.__middle_block(out, time_vec)
 
         for block, up, bypass in zip(
             self.__decoder,
