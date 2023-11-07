@@ -379,7 +379,7 @@ class Denoiser(Diffuser):
         )
 
         betas_s = 1.0 - alphas_cum_prod_s / alphas_cum_prod_prev_s
-        betas_s = th.clamp_max(betas_s, th.tensor(0.999))
+        betas_s = th.clamp_max(betas_s, 0.999)
 
         betas_tiddle_s = (
             betas_s

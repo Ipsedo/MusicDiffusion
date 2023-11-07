@@ -1,11 +1,11 @@
-torch
-torchaudio
-torchvision
-ema-pytorch
+torch==2.1.0
+torchaudio==2.1.0
+torchvision==0.16.0
+ema-pytorch==0.3.0
 jupyter
 mlflow
 tqdm
-numpy
+numpy==1.26.1
 matplotlib
 
 # pre-commit

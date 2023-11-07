@@ -219,6 +219,7 @@ def magnitude_phase_to_wav(
     sample_rate: int,
     n_fft: int = constants.N_FFT,
     stft_stride: int = constants.STFT_STRIDE,
+    threshold: float = 1.0 / 2**8,
 ) -> None:
     assert (
         len(magnitude_phase.size()) == 4
@@ -240,6 +241,7 @@ def magnitude_phase_to_wav(
     phase = magnitude_phase_flattened[1, :, :]
 
     magnitude = (magnitude + 1.0) / 2.0
+    magnitude[magnitude < threshold] = 0.0
     # magnitude = bark_scale(magnitude, "unscale")
 
     phase = (phase + 1.0) / 2.0 * 2.0 * th.pi - th.pi
