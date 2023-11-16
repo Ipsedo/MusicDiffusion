@@ -48,7 +48,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             optim.load_state_dict(th.load(train_options.optim_state_dict))
 
         saver = Saver(
-            model_options.input_channels,
+            model_options.unet_channels[0][0],
             noiser,
             denoiser,
             optim,
@@ -77,7 +77,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 "epochs": train_options.epochs,
                 "steps": model_options.steps,
                 "time_size": model_options.time_size,
-                "input_channels": model_options.input_channels,
                 "unet_channels": model_options.unet_channels,
                 "input_dataset": train_options.dataset_path,
             }

@@ -61,11 +61,11 @@ def main() -> None:
     model_parser = sub_command.add_parser("model")
 
     model_parser.add_argument("--steps", type=int, default=4096)
-    model_parser.add_argument("--channels", type=int, default=2)
     model_parser.add_argument(
         "--unet-channels",
         type=_channels,
         default=[
+            (2, 16),
             (16, 32),
             (32, 48),
             (48, 64),
@@ -95,6 +95,7 @@ def main() -> None:
     train_parser.add_argument("-o", "--output-dir", type=str, required=True)
     train_parser.add_argument("--nb-samples", type=int, default=5)
     train_parser.add_argument("--denoiser-state-dict", type=str)
+    train_parser.add_argument("--ema-state-dict", type=str)
     train_parser.add_argument("--noiser-state-dict", type=str)
     train_parser.add_argument("--optim-state-dict", type=str)
 
@@ -107,6 +108,7 @@ def main() -> None:
     generate_parser.add_argument("--frames", type=int, required=True)
     generate_parser.add_argument("--musics", type=int, required=True)
     generate_parser.add_argument("--ema", action="store_true")
+    generate_parser.add_argument("--magn-scale", type=float, default=1.0)
 
     #######
     # Main
@@ -117,7 +119,6 @@ def main() -> None:
     if args.mode == "model":
         model_options = ModelOptions(
             steps=args.steps,
-            input_channels=args.channels,
             unet_channels=args.unet_channels,
             time_size=args.time_size,
             cuda=args.cuda,
@@ -150,6 +151,7 @@ def main() -> None:
                 output_dir=args.output_dir,
                 frames=args.frames,
                 musics=args.musics,
+                magn_scale=args.magn_scale,
             )
 
             generate(model_options, generate_options)

@@ -61,7 +61,7 @@ def generate(
 
         x_t = th.randn(
             generate_options.musics,
-            model_options.input_channels,
+            model_options.unet_channels[0][0],
             height,
             width * generate_options.frames,
             device=device,
@@ -88,4 +88,5 @@ def generate(
                 SAMPLE_RATE,
                 N_FFT,
                 STFT_STRIDE,
+                magn_scale=generate_options.magn_scale,
             )

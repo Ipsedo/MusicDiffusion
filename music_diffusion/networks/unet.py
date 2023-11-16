@@ -4,39 +4,45 @@ from typing import List, Tuple
 import torch as th
 from torch import nn
 
-from .convolutions import DoubleConvBlock, EndConvBlock, StrideConvBlock
-from .time import SinusoidTimeEmbedding, TimeBypass
+from .convolutions import ConvBlock, OutChannelProj, StrideConvBlock
+from .time import SequentialTimeWrapper, SinusoidTimeEmbedding, TimeBypass
 
 
 class TimeUNet(nn.Module):
     def __init__(
         self,
-        in_channels: int,
-        out_channels: int,
-        hidden_channels: List[Tuple[int, int]],
+        channels: List[Tuple[int, int]],
         time_size: int,
         steps: int,
     ) -> None:
         super().__init__()
 
         assert all(
-            hidden_channels[i][1] == hidden_channels[i + 1][0]
-            for i in range(len(hidden_channels) - 1)
+            channels[i][1] == channels[i + 1][0]
+            for i in range(len(channels) - 1)
         )
 
-        encoding_channels = hidden_channels.copy()
-        decoding_channels = [
-            (c_o, c_i) for c_i, c_o in reversed(hidden_channels)
-        ]
+        encoding_channels = channels.copy()
+        decoding_channels = [(c_o, c_i) for c_i, c_o in reversed(channels)]
+        decoding_channels[-1] = (
+            decoding_channels[-1][0],
+            decoding_channels[-1][0],
+        )
 
         self.__time_embedder = SinusoidTimeEmbedding(steps, time_size)
 
         # Encoder stuff
-        c_i = encoding_channels[0][0]
-        self.__start_conv = DoubleConvBlock(in_channels, c_i, c_i, time_size)
 
         self.__encoder = nn.ModuleList(
-            DoubleConvBlock(c_i, c_o, c_o, time_size)
+            # DoubleConvBlock(c_i, c_o, c_o, time_size)
+            SequentialTimeWrapper(
+                [
+                    ConvBlock(c_i, c_o),
+                    ConvBlock(c_o, c_o),
+                ],
+                [c_o, c_o],
+                time_size,
+            )
             for c_i, c_o in encoding_channels
         )
 
@@ -47,7 +53,14 @@ class TimeUNet(nn.Module):
 
         # Middle stuff
         c_m = encoding_channels[-1][1]
-        self.__middle_block = DoubleConvBlock(c_m, c_m, c_m, time_size)
+        self.__middle_block = SequentialTimeWrapper(
+            [
+                ConvBlock(c_m, c_m),
+                ConvBlock(c_m, c_m),
+            ],
+            [c_m, c_m],
+            time_size,
+        )
 
         # Decoder stuff
         self.__decoder_up = nn.ModuleList(
@@ -56,17 +69,22 @@ class TimeUNet(nn.Module):
         )
 
         self.__decoder = nn.ModuleList(
-            DoubleConvBlock(c_i * 2, c_i, c_o, time_size)
+            SequentialTimeWrapper(
+                [ConvBlock(c_i * 2, c_o), ConvBlock(c_o, c_o)],
+                [c_o, c_o],
+                time_size,
+            )
             for c_i, c_o in decoding_channels
         )
 
         c_o = decoding_channels[-1][1]
+        out_channels = encoding_channels[0][0]
         self.__eps_end_conv = TimeBypass(
-            EndConvBlock(c_o, out_channels),
+            OutChannelProj(c_o, out_channels),
         )
 
         self.__v_end_conv = TimeBypass(
-            EndConvBlock(c_o, out_channels),
+            OutChannelProj(c_o, out_channels),
         )
 
     def forward(
@@ -76,7 +94,7 @@ class TimeUNet(nn.Module):
 
         bypasses = []
 
-        out: th.Tensor = self.__start_conv(img, time_vec)
+        out = img
 
         for block, down in zip(
             self.__encoder,

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import math
+from typing import Iterable
 
 import torch as th
 from torch import nn
@@ -92,4 +93,23 @@ class TimeWrapper(nn.Module):
 
         out = out * (scale + 1.0) + shift
 
+        return out
+
+
+class SequentialTimeWrapper(nn.ModuleList):
+    def __init__(
+        self,
+        modules: Iterable[nn.Module],
+        out_channels: Iterable[int],
+        time_size: int,
+    ):
+        super().__init__(
+            TimeWrapper(time_size, c_o, m)
+            for m, c_o in zip(modules, out_channels)
+        )
+
+    def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
+        out = x
+        for m in self:
+            out = m(out, time_emb)
         return out

@@ -192,14 +192,13 @@ class Noiser(Diffuser):
 class Denoiser(Diffuser):
     def __init__(
         self,
-        channels: int,
         steps: int,
         time_size: int,
         unet_channels: List[Tuple[int, int]],
     ) -> None:
         super().__init__(steps)
 
-        self.__channels = channels
+        self.__channels = unet_channels[0][0]
 
         self._sqrt_alpha: th.Tensor
         self._sqrt_betas: th.Tensor
@@ -215,8 +214,6 @@ class Denoiser(Diffuser):
         )
 
         self.__unet = TimeUNet(
-            channels,
-            channels,
             unet_channels,
             time_size,
             self._steps,

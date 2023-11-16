@@ -24,7 +24,7 @@ from .networks import Denoiser, Noiser
 class Saver:
     def __init__(
         self,
-        channels: int,
+        in_channels: int,
         noiser: Noiser,
         denoiser: Denoiser,
         denoiser_optim: Optimizer,
@@ -43,7 +43,7 @@ class Saver:
         self.__save_every = save_every
         self.__nb_sample = nb_sample
 
-        self.__channels = channels
+        self.__in_channels = in_channels
         self.__noiser = noiser
         self.__denoiser = denoiser
         self.__denoiser_optim = denoiser_optim
@@ -93,7 +93,7 @@ class Saver:
 
                 x_t = th.randn(
                     self.__nb_sample,
-                    self.__channels,
+                    self.__in_channels,
                     *OUTPUT_SIZES,
                     device=device,
                 )
