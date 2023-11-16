@@ -138,6 +138,7 @@ def main() -> None:
                 nb_samples=args.nb_samples,
                 noiser_state_dict=args.noiser_state_dict,
                 denoiser_state_dict=args.denoiser_state_dict,
+                ema_state_dict=args.ema_state_dict,
                 optim_state_dict=args.optim_state_dict,
             )
 
