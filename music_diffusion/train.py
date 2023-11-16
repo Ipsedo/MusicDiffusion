@@ -44,6 +44,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             denoiser.load_state_dict(
                 th.load(train_options.denoiser_state_dict)
             )
+        if train_options.ema_state_dict is not None:
+            denoiser_ema.load_state_dict(th.load(train_options.ema_state_dict))
         if train_options.optim_state_dict is not None:
             optim.load_state_dict(th.load(train_options.optim_state_dict))
 

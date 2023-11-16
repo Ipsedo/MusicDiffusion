@@ -36,6 +36,7 @@ class TrainOptions(NamedTuple):
     nb_samples: int
     noiser_state_dict: Optional[str]
     denoiser_state_dict: Optional[str]
+    ema_state_dict: Optional[str]
     optim_state_dict: Optional[str]
 
 
