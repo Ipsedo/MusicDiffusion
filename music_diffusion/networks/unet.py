@@ -34,7 +34,6 @@ class TimeUNet(nn.Module):
         # Encoder stuff
 
         self.__encoder = nn.ModuleList(
-            # DoubleConvBlock(c_i, c_o, c_o, time_size)
             SequentialTimeWrapper(
                 [
                     ConvBlock(c_i, c_o),
@@ -70,7 +69,10 @@ class TimeUNet(nn.Module):
 
         self.__decoder = nn.ModuleList(
             SequentialTimeWrapper(
-                [ConvBlock(c_i * 2, c_o), ConvBlock(c_o, c_o)],
+                [
+                    ConvBlock(c_i * 2, c_o),
+                    ConvBlock(c_o, c_o),
+                ],
                 [c_o, c_o],
                 time_size,
             )

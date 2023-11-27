@@ -2,8 +2,7 @@
 from typing import Literal
 
 from torch import nn
-
-from .normalization import PixelNorm
+from torch.nn.utils.parametrizations import weight_norm
 
 
 class ChannelProjBlock(nn.Sequential):
@@ -13,15 +12,16 @@ class ChannelProjBlock(nn.Sequential):
         out_channels: int,
     ) -> None:
         super().__init__(
-            nn.Conv2d(
-                in_channels,
-                out_channels,
-                kernel_size=(1, 1),
-                stride=(1, 1),
-                padding=(0, 0),
+            weight_norm(
+                nn.Conv2d(
+                    in_channels,
+                    out_channels,
+                    kernel_size=(1, 1),
+                    stride=(1, 1),
+                    padding=(0, 0),
+                )
             ),
             nn.Mish(),
-            PixelNorm(),
         )
 
 
@@ -32,12 +32,14 @@ class OutChannelProj(nn.Sequential):
         out_channels: int,
     ) -> None:
         super().__init__(
-            nn.Conv2d(
-                in_channels,
-                out_channels,
-                kernel_size=(1, 1),
-                stride=(1, 1),
-                padding=(0, 0),
+            weight_norm(
+                nn.Conv2d(
+                    in_channels,
+                    out_channels,
+                    kernel_size=(1, 1),
+                    stride=(1, 1),
+                    padding=(0, 0),
+                )
             ),
         )
 
@@ -49,12 +51,14 @@ class EndConvBlock(nn.Sequential):
         out_channels: int,
     ) -> None:
         super().__init__(
-            nn.Conv2d(
-                in_channels,
-                out_channels,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
+            weight_norm(
+                nn.Conv2d(
+                    in_channels,
+                    out_channels,
+                    kernel_size=(3, 3),
+                    stride=(1, 1),
+                    padding=(1, 1),
+                )
             ),
         )
 
@@ -72,15 +76,16 @@ class StrideConvBlock(nn.Sequential):
         }
 
         super().__init__(
-            conv_constructor[scale](
-                in_channels,
-                out_channels,
-                kernel_size=(4, 4),
-                stride=(2, 2),
-                padding=(1, 1),
+            weight_norm(
+                conv_constructor[scale](
+                    in_channels,
+                    out_channels,
+                    kernel_size=(4, 4),
+                    stride=(2, 2),
+                    padding=(1, 1),
+                )
             ),
             nn.Mish(),
-            PixelNorm(),
         )
 
 
@@ -91,13 +96,14 @@ class ConvBlock(nn.Sequential):
         out_channels: int,
     ) -> None:
         super().__init__(
-            nn.Conv2d(
-                in_channels,
-                out_channels,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
+            weight_norm(
+                nn.Conv2d(
+                    in_channels,
+                    out_channels,
+                    kernel_size=(3, 3),
+                    stride=(1, 1),
+                    padding=(1, 1),
+                )
             ),
             nn.Mish(),
-            PixelNorm(),
         )
