@@ -4,6 +4,7 @@ from typing import Iterable
 
 import torch as th
 from torch import nn
+from torch.nn.utils.parametrizations import weight_norm
 
 
 class SinusoidTimeEmbedding(nn.Module):
@@ -76,9 +77,9 @@ class TimeWrapper(nn.Module):
         self.__block = block
 
         self.__to_channels = nn.Sequential(
-            nn.Linear(time_size, channels * 2),
+            weight_norm(nn.Linear(time_size, channels * 2)),
             nn.Mish(),
-            nn.Linear(channels * 2, channels * 2),
+            weight_norm(nn.Linear(channels * 2, channels * 2)),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:

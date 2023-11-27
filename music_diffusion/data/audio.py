@@ -185,7 +185,7 @@ def stft_to_magnitude_phase(
     magnitude = th.abs(complex_values)
     phase = th.angle(complex_values)
 
-    # magnitude = bark_scale(magnitude, "scale")
+    magnitude = bark_scale(magnitude, "scale")
     magnitude = th_f.pad(magnitude, (1, 0, 0, 0), "constant", 0.0)
 
     phase = unwrap(phase)
@@ -243,8 +243,8 @@ def magnitude_phase_to_wav(
 
     magnitude = (magnitude + 1.0) / 2.0
     magnitude[magnitude < threshold] = 0.0
+    magnitude = bark_scale(magnitude, "unscale")
     magnitude = magnitude * magn_scale
-    # magnitude = bark_scale(magnitude, "unscale")
 
     phase = (phase + 1.0) / 2.0 * 2.0 * th.pi - th.pi
     phase = simpson(th.zeros(phase.size()[0], 1), phase, 1, 1.0)

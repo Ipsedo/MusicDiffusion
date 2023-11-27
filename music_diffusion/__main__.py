@@ -67,12 +67,13 @@ def main() -> None:
         default=[
             (2, 16),
             (16, 32),
-            (32, 48),
-            (48, 64),
-            (64, 80),
+            (32, 64),
+            (64, 128),
+            (128, 256),
+            (256, 512),
         ],
     )
-    model_parser.add_argument("--time-size", type=int, default=48)
+    model_parser.add_argument("--time-size", type=int, default=16)
     model_parser.add_argument("--cuda", action="store_true")
 
     # Sub command run {train, generate}
