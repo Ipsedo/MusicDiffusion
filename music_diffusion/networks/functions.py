@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
-from math import sqrt
+from math import log, sqrt
+from typing import Tuple
 
 import torch as th
 from torch.distributions import Normal
+
+from music_diffusion.data import BIN_SIZE
 
 
 def select_time_scheduler(factor: th.Tensor, t: th.Tensor) -> th.Tensor:
@@ -57,17 +60,19 @@ def normal_kl_div(
     mu_2: th.Tensor,
     var_2: th.Tensor,
 ) -> th.Tensor:
-    return th.sum(
+    return (
         th.log(var_2) / 2.0
         - th.log(var_1) / 2.0
         + (var_1 + th.pow(mu_1 - mu_2, 2.0)) / (2 * var_2)
-        - 0.5,
-        dim=[2, 3, 4],
+        - 0.5
+        # .sum(dim=[2, 3, 4])
+        # .clamp_max(clip_max)
+        # .div(div_factor)
     )
 
 
 def mse(p: th.Tensor, q: th.Tensor) -> th.Tensor:
-    return th.pow(p - q, 2.0).sum(dim=[2, 3, 4])
+    return th.pow(p - q, 2.0)  # .mean(dim=[2, 3, 4])
 
 
 def normal_bhattacharyya(
@@ -98,4 +103,54 @@ def normal_wasserstein(
         th.pow(mu_1 - mu_2, 2.0)
         + th.pow(th.sqrt(var_1) - th.sqrt(var_2), 2.0),
         dim=[2, 3, 4],
+    )
+
+
+def negative_log_likelihood(
+    x: th.Tensor,
+    mu: th.Tensor,
+    var: th.Tensor,
+    epsilon: float = 1e-10,
+    clip_max: float = 128.0,
+) -> th.Tensor:
+    return (
+        (
+            0.5
+            * (th.log(2 * th.pi * var) + th.pow(x - mu, 2.0) / (var + epsilon))
+        )
+        .clamp(0, clip_max)
+        .mean(dim=[2, 3, 4])
+    )
+
+
+def discretized_nll(
+    x: th.Tensor,
+    mu: th.Tensor,
+    var: th.Tensor,
+    precision: float = BIN_SIZE,
+    cut_off: Tuple[float, float] = (-0.999, 0.999),
+    epsilon: float = 1e-20,
+) -> th.Tensor:
+    div_factor = -log(epsilon)
+
+    min_cut_off, max_cut_off = cut_off
+    sigma = th.sqrt(var)
+
+    cdf_plus = th.where(
+        th.lt(x, max_cut_off),
+        normal_cdf(x + precision, mu, sigma),
+        th.tensor(1.0, device=x.device),
+    )
+
+    cdf_min = th.where(
+        th.gt(x, min_cut_off),
+        normal_cdf(x - precision, mu, sigma),
+        th.tensor(0.0, device=x.device),
+    )
+
+    return (
+        th.log(th.clamp_min(cdf_plus - cdf_min, epsilon))
+        .mul(-1)
+        .mean(dim=[2, 3, 4])
+        .div(div_factor)
     )

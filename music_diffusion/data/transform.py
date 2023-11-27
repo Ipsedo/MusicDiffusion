@@ -3,6 +3,8 @@ from abc import ABCMeta, abstractmethod
 
 import torch as th
 
+# pylint: disable=too-few-public-methods
+
 
 class ImgTransform(metaclass=ABCMeta):
     @abstractmethod
@@ -55,3 +57,6 @@ class ChangeType(ImgTransform):
 
     def __call__(self, img_data: th.Tensor) -> th.Tensor:
         return img_data.to(self.__dtype)
+
+
+# pylint: enable=too-few-public-methods

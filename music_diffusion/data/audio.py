@@ -49,6 +49,95 @@ def bark_scale(
     return res
 
 
+# copied code from
+# https://github.com/magenta/magenta/blob/main/magenta/models/gansynth/lib/spectral_ops.py
+_MEL_BREAK_FREQUENCY_HERTZ = 700.0
+_MEL_HIGH_FREQUENCY_Q = 1127.0
+
+
+def mel_to_hertz(mel_values: th.Tensor) -> th.Tensor:
+    return _MEL_BREAK_FREQUENCY_HERTZ * (
+        th.exp(mel_values / _MEL_HIGH_FREQUENCY_Q) - 1.0
+    )
+
+
+def hertz_to_mel(frequencies_hertz: th.Tensor) -> th.Tensor:
+    return _MEL_HIGH_FREQUENCY_Q * th.log(
+        1.0 + (frequencies_hertz / _MEL_BREAK_FREQUENCY_HERTZ)
+    )
+
+
+def linear_to_mel_weight_matrix(
+    num_mel_bins: int = constants.N_FFT // 2,
+    num_spectrogram_bins: int = constants.N_FFT // 2,
+    sample_rate: int = constants.SAMPLE_RATE,
+    lower_edge_hertz: float = 125.0,
+    upper_edge_hertz: float = 3800.0,
+) -> th.Tensor:
+
+    # HTK excludes the spectrogram DC bin.
+    bands_to_zero = 1
+    nyquist_hertz = sample_rate / 2.0
+    linear_frequencies = th.linspace(0.0, nyquist_hertz, num_spectrogram_bins)[
+        bands_to_zero:, None
+    ]
+    # spectrogram_bins_mel = hertz_to_mel(linear_frequencies)
+
+    # Compute num_mel_bins triples of (lower_edge, center, upper_edge). The
+    # center of each band is the lower and upper edge of the adjacent bands.
+    # Accordingly, we divide [lower_edge_hertz, upper_edge_hertz] into
+    # num_mel_bins + 2 pieces.
+    band_edges_mel = th.linspace(
+        hertz_to_mel(th.tensor(lower_edge_hertz)).item(),
+        hertz_to_mel(th.tensor(upper_edge_hertz)).item(),
+        num_mel_bins + 2,
+    )
+
+    lower_edge_mel = band_edges_mel[0:-2]
+    center_mel = band_edges_mel[1:-1]
+    upper_edge_mel = band_edges_mel[2:]
+
+    freq_res = nyquist_hertz / float(num_spectrogram_bins)
+    freq_th = 1.5 * freq_res
+    for i in range(0, num_mel_bins):
+        center_hz = mel_to_hertz(center_mel[i])
+        lower_hz = mel_to_hertz(lower_edge_mel[i])
+        upper_hz = mel_to_hertz(upper_edge_mel[i])
+        if upper_hz - lower_hz < freq_th:
+            rhs = 0.5 * freq_th / (center_hz + _MEL_BREAK_FREQUENCY_HERTZ)
+            dm = _MEL_HIGH_FREQUENCY_Q * th.log(rhs + th.sqrt(1.0 + rhs**2))
+            lower_edge_mel[i] = center_mel[i] - dm
+            upper_edge_mel[i] = center_mel[i] + dm
+
+    lower_edge_hz = mel_to_hertz(lower_edge_mel)[None, :]
+    center_hz = mel_to_hertz(center_mel)[None, :]
+    upper_edge_hz = mel_to_hertz(upper_edge_mel)[None, :]
+
+    # Calculate lower and upper slopes for every spectrogram bin.
+    # Line segments are linear in the mel domain, not Hertz.
+    lower_slopes = (linear_frequencies - lower_edge_hz) / (
+        center_hz - lower_edge_hz
+    )
+    upper_slopes = (upper_edge_hz - linear_frequencies) / (
+        upper_edge_hz - center_hz
+    )
+
+    # Intersect the line segments with each other and zero.
+    mel_weights_matrix = th.maximum(
+        th.tensor(0.0), th.minimum(lower_slopes, upper_slopes)
+    )
+
+    # Re-add the zeroed lower bins we sliced out above.
+    # [freq, mel]
+    mel_weights_matrix = th_f.pad(
+        mel_weights_matrix, [bands_to_zero, 0, 0, 0], "constant"
+    )
+    return mel_weights_matrix
+
+
+# end of copied code
+
+
 def wav_to_stft(
     wav_p: str,
     n_per_seg: int = constants.N_FFT,
@@ -130,6 +219,8 @@ def magnitude_phase_to_wav(
     sample_rate: int,
     n_fft: int = constants.N_FFT,
     stft_stride: int = constants.STFT_STRIDE,
+    threshold: float = 1.0 / 2**8,
+    magn_scale: float = 1.0,
 ) -> None:
     assert (
         len(magnitude_phase.size()) == 4
@@ -151,7 +242,9 @@ def magnitude_phase_to_wav(
     phase = magnitude_phase_flattened[1, :, :]
 
     magnitude = (magnitude + 1.0) / 2.0
+    magnitude[magnitude < threshold] = 0.0
     magnitude = bark_scale(magnitude, "unscale")
+    magnitude = magnitude * magn_scale
 
     phase = (phase + 1.0) / 2.0 * 2.0 * th.pi - th.pi
     phase = simpson(th.zeros(phase.size()[0], 1), phase, 1, 1.0)
@@ -191,34 +284,30 @@ def create_dataset(
     elif not isdir(dataset_output_dir):
         raise NotADirectoryError(dataset_output_dir)
 
-    n_per_seg = constants.N_FFT
-    stride = constants.STFT_STRIDE
-
-    nb_vec = constants.N_VEC
-
     idx = 0
 
     for wav_p in tqdm(w_p):
-        complex_values = wav_to_stft(wav_p, n_per_seg=n_per_seg, stride=stride)
+        complex_values = wav_to_stft(
+            wav_p, n_per_seg=constants.N_FFT, stride=constants.STFT_STRIDE
+        )
 
-        if complex_values.size()[1] < nb_vec:
+        if complex_values.size()[1] < constants.N_VEC:
             continue
 
         magnitude, phase = stft_to_magnitude_phase(
-            complex_values, nb_vec=nb_vec
+            complex_values, nb_vec=constants.N_VEC
         )
 
         nb_sample = magnitude.size()[0]
 
         for s_idx in range(nb_sample):
-            s_magnitude = magnitude[s_idx, :, :]
-            s_phase = phase[s_idx, :, :]
-
             magnitude_phase_path = join(
                 dataset_output_dir, f"magn_phase_{idx}.pt"
             )
 
-            magnitude_phase = th.stack([s_magnitude, s_phase], dim=0)
+            magnitude_phase = th.stack(
+                [magnitude[s_idx, :, :], phase[s_idx, :, :]], dim=0
+            )
             magnitude_phase = magnitude_phase.to(th.float)
 
             th.save(magnitude_phase, magnitude_phase_path)

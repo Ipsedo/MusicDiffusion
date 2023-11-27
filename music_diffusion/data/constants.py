@@ -8,3 +8,5 @@ STFT_STRIDE: Final[int] = 128
 SAMPLE_RATE: Final[int] = 16000
 
 OUTPUT_SIZES: Final[Tuple[int, int]] = (N_FFT // 2, N_VEC)
+
+BIN_SIZE: Final[float] = 1.0 / 2.0**16.0

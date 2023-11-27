@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import math
+from typing import Iterable
 
 import torch as th
 from torch import nn
-from torch.nn import functional as th_f
+from torch.nn.utils.parametrizations import weight_norm
 
 
 class SinusoidTimeEmbedding(nn.Module):
@@ -64,33 +65,11 @@ class TimeBypass(nn.Module):
         return out
 
 
-class TimeEmbWrapper(nn.Module):
-    def __init__(self, steps: int, channels: int, block: nn.Module):
-        super().__init__()
-
-        self.__block = block
-        self.__time_emb = SinusoidTimeEmbedding(steps, channels)
-
-    def forward(self, x: th.Tensor, t: th.Tensor) -> th.Tensor:
-        b, b_t = x.size()[:2]
-
-        time_emb = self.__time_emb(t)[:, :, :, None, None]
-
-        x_time = x + time_emb
-
-        x_time = x_time.flatten(0, 1)
-        out: th.Tensor = self.__block(x_time)
-        out = th.unflatten(out, 0, (b, b_t))
-
-        return out
-
-
 class TimeWrapper(nn.Module):
     def __init__(
         self,
         time_size: int,
         channels: int,
-        norm_groups: int,
         block: nn.Module,
     ) -> None:
         super().__init__()
@@ -98,10 +77,9 @@ class TimeWrapper(nn.Module):
         self.__block = block
 
         self.__to_channels = nn.Sequential(
-            nn.Linear(time_size, channels * 2),
+            weight_norm(nn.Linear(time_size, channels * 2)),
             nn.Mish(),
-            TimeBypass(nn.GroupNorm(norm_groups, channels * 2)),
-            nn.Linear(channels * 2, channels * 2),
+            weight_norm(nn.Linear(channels * 2, channels * 2)),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
@@ -111,10 +89,28 @@ class TimeWrapper(nn.Module):
         proj_time_emb = proj_time_emb[:, :, :, None, None]
         scale, shift = th.chunk(proj_time_emb, chunks=2, dim=2)
 
-        x_time = x * th_f.softplus(scale) + shift
-
-        x_time = x_time.flatten(0, 1)
-        out: th.Tensor = self.__block(x_time)
+        out: th.Tensor = self.__block(x.flatten(0, 1))
         out = th.unflatten(out, 0, (b, t))
 
+        out = out * (scale + 1.0) + shift
+
+        return out
+
+
+class SequentialTimeWrapper(nn.ModuleList):
+    def __init__(
+        self,
+        modules: Iterable[nn.Module],
+        out_channels: Iterable[int],
+        time_size: int,
+    ):
+        super().__init__(
+            TimeWrapper(time_size, c_o, m)
+            for m, c_o in zip(modules, out_channels)
+        )
+
+    def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
+        out = x
+        for m in self:
+            out = m(out, time_emb)
         return out

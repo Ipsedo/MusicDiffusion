@@ -12,7 +12,6 @@ from .data import (
     STFT_STRIDE,
     magnitude_phase_to_wav,
 )
-from .networks import Denoiser
 from .options import GenerateOptions, ModelOptions
 
 
@@ -27,23 +26,27 @@ def generate(
 
     print("Load model...")
 
-    # pylint: disable=duplicate-code
-    denoiser = Denoiser(
-        model_options.input_channels,
-        model_options.steps,
-        model_options.time_size,
-        model_options.beta_1,
-        model_options.beta_t,
-        model_options.unet_channels,
-        model_options.norm_groups,
-    )
-    # pylint: enable=duplicate-code
+    denoiser = model_options.new_denoiser()
 
     device = "cuda" if model_options.cuda else "cpu"
 
-    denoiser.load_state_dict(
-        th.load(generate_options.denoiser_dict_state, map_location=device)
+    loaded_state_dict = th.load(
+        generate_options.denoiser_dict_state, map_location=device
     )
+
+    ema_prefix = "ema_model."
+
+    state_dict = (
+        {
+            k[len(ema_prefix) :]: p
+            for k, p in loaded_state_dict.items()
+            if k.startswith(ema_prefix)
+        }
+        if generate_options.ema_denoiser
+        else loaded_state_dict
+    )
+
+    denoiser.load_state_dict(state_dict)
 
     denoiser.eval()
 
@@ -58,7 +61,7 @@ def generate(
 
         x_t = th.randn(
             generate_options.musics,
-            model_options.input_channels,
+            model_options.unet_channels[0][0],
             height,
             width * generate_options.frames,
             device=device,
@@ -85,4 +88,5 @@ def generate(
                 SAMPLE_RATE,
                 N_FFT,
                 STFT_STRIDE,
+                magn_scale=generate_options.magn_scale,
             )
