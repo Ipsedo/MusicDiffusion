@@ -108,10 +108,10 @@ class TimeUNet(nn.Module):
 
         out = self.__middle_block(out, time_vec)
 
-        for block, up, bypass in zip(
-            self.__decoder,
+        for up, bypass, block in zip(
             self.__decoder_up,
             reversed(bypasses),
+            self.__decoder,
         ):
             out = up(out)
             out = th.cat([out, bypass], dim=2)
