@@ -286,7 +286,9 @@ def create_dataset(
 
     idx = 0
 
-    for wav_p in tqdm(w_p):
+    tqdm_bar = tqdm(w_p)
+
+    for wav_p in tqdm_bar:
         complex_values = wav_to_stft(
             wav_p, n_per_seg=constants.N_FFT, stride=constants.STFT_STRIDE
         )
@@ -313,3 +315,5 @@ def create_dataset(
             th.save(magnitude_phase, magnitude_phase_path)
 
             idx += 1
+
+        tqdm_bar.set_description(f"total : {idx}")
