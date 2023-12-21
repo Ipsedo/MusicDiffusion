@@ -50,6 +50,8 @@ def generate(
 
     denoiser.eval()
 
+    print(f"Parameters : {denoiser.count_parameters()}")
+
     if model_options.cuda:
         denoiser.cuda()
 

@@ -5,13 +5,25 @@ from torch import nn
 from torch.nn.utils.parametrizations import weight_norm
 
 
-class ChannelProjBlock(nn.Sequential):
+class _BaseConv(nn.Sequential):
+    def __init__(self, out_channels: int, *modules: nn.Module):
+        super().__init__(*modules)
+
+        self.__out_channels = out_channels
+
+    @property
+    def out_channels(self) -> int:
+        return self.__out_channels
+
+
+class ChannelProjBlock(_BaseConv):
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
     ) -> None:
         super().__init__(
+            out_channels,
             weight_norm(
                 nn.Conv2d(
                     in_channels,
@@ -25,13 +37,14 @@ class ChannelProjBlock(nn.Sequential):
         )
 
 
-class OutChannelProj(nn.Sequential):
+class OutChannelProj(_BaseConv):
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
     ) -> None:
         super().__init__(
+            out_channels,
             weight_norm(
                 nn.Conv2d(
                     in_channels,
@@ -44,13 +57,14 @@ class OutChannelProj(nn.Sequential):
         )
 
 
-class EndConvBlock(nn.Sequential):
+class EndConvBlock(_BaseConv):
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
     ) -> None:
         super().__init__(
+            out_channels,
             weight_norm(
                 nn.Conv2d(
                     in_channels,
@@ -63,7 +77,7 @@ class EndConvBlock(nn.Sequential):
         )
 
 
-class StrideConvBlock(nn.Sequential):
+class StrideConvBlock(_BaseConv):
     def __init__(
         self,
         in_channels: int,
@@ -76,6 +90,7 @@ class StrideConvBlock(nn.Sequential):
         }
 
         super().__init__(
+            out_channels,
             weight_norm(
                 conv_constructor[scale](
                     in_channels,
@@ -89,13 +104,14 @@ class StrideConvBlock(nn.Sequential):
         )
 
 
-class ConvBlock(nn.Sequential):
+class ConvBlock(_BaseConv):
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
     ) -> None:
         super().__init__(
+            out_channels,
             weight_norm(
                 nn.Conv2d(
                     in_channels,
