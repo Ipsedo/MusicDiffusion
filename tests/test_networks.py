@@ -101,6 +101,9 @@ def test_denoiser(
         time_size,
         [(in_channels, 8), (8, 16)],
         condition_dim,
+        8,
+        1,
+        1,
         kv_dim,
         kv_length,
     )
@@ -217,6 +220,9 @@ def test_unet(
         time_size,
         steps,
         condition_dim,
+        8,
+        1,
+        1,
         kv_dim,
         kv_length,
     )

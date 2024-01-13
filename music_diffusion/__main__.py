@@ -84,6 +84,9 @@ def main() -> None:
         ],
     )
     model_parser.add_argument("--time-size", type=int, default=16)
+    model_parser.add_argument("--trf-hidden-dim", type=int, default=64)
+    model_parser.add_argument("--trf-num-heads", type=int, default=4)
+    model_parser.add_argument("--trf-layers", type=int, default=3)
     model_parser.add_argument("--kv-dim", type=int, default=32)
     model_parser.add_argument("--kv-length", type=int, default=16)
     model_parser.add_argument("--cuda", action="store_true")
@@ -159,6 +162,9 @@ def main() -> None:
             condition_dim=len(key_to_idx)
             + len(genre_to_idx)
             + len(scoring_to_idx),
+            trf_hidden_dim=args.trf_hidden_dim,
+            trf_num_heads=args.trf_num_heads,
+            trf_layers=args.trf_layers,
             kv_dim=args.kv_dim,
             kv_length=args.kv_length,
             cuda=args.cuda,

@@ -21,6 +21,9 @@ class TimeUNet(nn.Module):
         time_size: int,
         steps: int,
         condition_dim: int,
+        trf_hidden_dim: int,
+        trf_num_heads: int,
+        trf_layers: int,
         kv_dim: int,
         kv_length: int,
     ) -> None:
@@ -68,14 +71,19 @@ class TimeUNet(nn.Module):
             ],
         )
 
+        # pylint: disable=duplicate-code
         self.__cross_attention = ConditionTimeBypass(
             CrossAttention(
                 c_m,
                 condition_dim,
+                trf_hidden_dim,
+                trf_num_heads,
+                trf_layers,
                 kv_dim,
                 kv_length,
             )
         )
+        # pylint: enable=duplicate-code
 
         # Decoder stuff
         self.__decoder_up = nn.ModuleList(
