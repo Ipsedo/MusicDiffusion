@@ -7,6 +7,9 @@ mlflow
 tqdm
 numpy==1.26.1
 matplotlib
+bs4
+requests
+pandas
 
 # pre-commit
 pre-commit
