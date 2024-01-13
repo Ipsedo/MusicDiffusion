@@ -10,6 +10,8 @@ matplotlib
 bs4
 requests
 pandas
+html5lib
+lxml
 
 # pre-commit
 pre-commit

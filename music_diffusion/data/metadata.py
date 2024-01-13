@@ -58,9 +58,7 @@ def __read_scoring_legend(scoring_df: pd.DataFrame) -> Dict[str, str]:
 def __extract_flac_bvw(
     bach_complete_works_path: str, bach_works_df: pd.DataFrame
 ) -> pd.DataFrame:
-    musics = glob(
-        join(bach_complete_works_path, "**", "*.flac"), recursive=True
-    )
+    musics = glob(join(bach_complete_works_path, "*.flac"), recursive=True)
 
     regex_music = re.compile(r"^.* BWV (\d+[a-z]?).*\.flac$")
 
