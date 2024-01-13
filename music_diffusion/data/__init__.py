@@ -14,7 +14,7 @@ from .constants import (
     SAMPLE_RATE,
     STFT_STRIDE,
 )
-from .datasets import AudioDataset
+from .datasets import AudioDataset, ConditionAudioDataset
 from .metadata import create_metadata_csv
 from .primitive import simpson, trapezoid
 from .transform import (

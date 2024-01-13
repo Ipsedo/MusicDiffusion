@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-import glob
+import json
 from os import mkdir
 from os.path import exists, isdir, join
 from typing import Literal, Tuple
 
+import pandas as pd
 import torch as th
 import torch.nn.functional as th_f
 import torchaudio as th_audio
@@ -11,6 +12,13 @@ import torchaudio.functional as th_audio_f
 from tqdm import tqdm
 
 from . import constants
+from .metadata import (
+    create_genre_to_idx_dict,
+    create_key_to_idx_dict,
+    create_scoring_to_idx_dict,
+    multi_label_one_hot_encode,
+    one_hot_encode,
+)
 from .primitive import simpson
 
 
@@ -184,22 +192,77 @@ def magnitude_phase_to_wav(
 
 
 def create_dataset(
-    audio_path: str,
+    metadata_csv_path: str,
     dataset_output_dir: str,
 ) -> None:
-
-    w_p = glob.glob(audio_path)
 
     if not exists(dataset_output_dir):
         mkdir(dataset_output_dir)
     elif not isdir(dataset_output_dir):
         raise NotADirectoryError(dataset_output_dir)
 
+    metadata_df = pd.read_csv(metadata_csv_path, sep=";")
+    metadata_df["scoring"] = (
+        metadata_df["scoring"]
+        .str.replace(r"([\[\]'])", "", regex=True)
+        .apply(lambda s: s.split(", "))
+    )
+
+    key_to_idx = create_key_to_idx_dict(metadata_df)
+    genre_to_idx = create_genre_to_idx_dict(metadata_df)
+    scoring_to_idx = create_scoring_to_idx_dict(metadata_df)
+
+    with open(
+        join(dataset_output_dir, "key_to_idx.json"),
+        "w",
+        encoding="utf-8",
+    ) as f:
+        json.dump(key_to_idx, f)
+
+    with open(
+        join(dataset_output_dir, "genre_to_idx.json"),
+        "w",
+        encoding="utf-8",
+    ) as f:
+        json.dump(genre_to_idx, f)
+
+    with open(
+        join(dataset_output_dir, "scoring_to_idx.json"),
+        "w",
+        encoding="utf-8",
+    ) as f:
+        json.dump(scoring_to_idx, f)
+
+    metadata_df["key_ohe"] = metadata_df["key"].apply(
+        lambda k: one_hot_encode(k, key_to_idx)
+    )
+    metadata_df["genre_ohe"] = metadata_df["genre"].apply(
+        lambda g: one_hot_encode(g, genre_to_idx)
+    )
+    metadata_df["scoring_ohe"] = metadata_df["scoring"].apply(
+        lambda s: multi_label_one_hot_encode(s, scoring_to_idx)
+    )
+
     idx = 0
 
-    tqdm_bar = tqdm(w_p)
+    idx_to_bwv = {}
 
-    for wav_p in tqdm_bar:
+    tqdm_bar = tqdm(metadata_df.iterrows())
+
+    for _, row in tqdm_bar:
+        wav_p = row["wav_path"]
+        bwv = row["bwv"]
+
+        # save metadata
+        key = row["key_ohe"]
+        genre = row["genre_ohe"]
+        scoring = row["scoring_ohe"]
+
+        th.save(key, join(dataset_output_dir, f"key_{bwv}.pt"))
+        th.save(genre, join(dataset_output_dir, f"genre_{bwv}.pt"))
+        th.save(scoring, join(dataset_output_dir, f"scoring_{bwv}.pt"))
+
+        # convert audio
         complex_values = wav_to_stft(
             wav_p, n_per_seg=constants.N_FFT, stride=constants.STFT_STRIDE
         )
@@ -225,6 +288,16 @@ def create_dataset(
 
             th.save(magnitude_phase, magnitude_phase_path)
 
+            idx_to_bwv[idx] = bwv
+
             idx += 1
 
         tqdm_bar.set_description(f"total : {idx}")
+
+    # save idx_to_bwv to CSV
+    idx_to_bwv_df = pd.DataFrame(
+        [[idx, bwv] for idx, bwv in idx_to_bwv.items()], columns=["idx", "bwv"]
+    )
+    idx_to_bwv_df.to_csv(
+        join(dataset_output_dir, "idx_to_bwv.csv"), sep=";", index=False
+    )

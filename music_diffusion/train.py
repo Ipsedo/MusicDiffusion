@@ -6,7 +6,7 @@ from ema_pytorch import EMA
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from .data import AudioDataset
+from .data import ConditionAudioDataset
 from .metrics import Metric
 from .networks import mse, normal_kl_div
 from .options import ModelOptions, TrainOptions
@@ -58,9 +58,10 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             train_options.output_directory,
             train_options.save_every,
             train_options.nb_samples,
+            train_options.dataset_path,
         )
 
-        dataset = AudioDataset(train_options.dataset_path)
+        dataset = ConditionAudioDataset(train_options.dataset_path)
 
         dataloader = DataLoader(
             dataset,
@@ -99,10 +100,11 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
             tqdm_bar = tqdm(dataloader)
 
-            for x_0 in tqdm_bar:
+            for x_0, y in tqdm_bar:
 
                 if model_options.cuda:
                     x_0 = x_0.cuda()
+                    y = y.cuda()
 
                 t = th.randint(
                     0,
@@ -115,7 +117,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 )
 
                 x_t, eps = noiser(x_0, t)
-                eps_theta, v_theta = denoiser(x_t, t)
+                eps_theta, v_theta = denoiser(x_t, t, y)
 
                 loss_mse = mse(eps, eps_theta)
 

@@ -68,13 +68,14 @@ def generate(
             width * generate_options.frames,
             device=device,
         )
+        y = th.zeros(generate_options.musics, device=device, dtype=th.float)
 
         x_0 = (
             denoiser.fast_sample(
-                x_t, generate_options.fast_sample, verbose=True
+                x_t, y, generate_options.fast_sample, verbose=True
             )
             if generate_options.fast_sample is not None
-            else denoiser.sample(x_t, verbose=True)
+            else denoiser.sample(x_t, y, verbose=True)
         )
 
         print("Saving sound...")

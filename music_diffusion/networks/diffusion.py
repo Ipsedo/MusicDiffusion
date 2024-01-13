@@ -195,6 +195,9 @@ class Denoiser(Diffuser):
         steps: int,
         time_size: int,
         unet_channels: List[Tuple[int, int]],
+        condition_dim: int,
+        kv_dim: int,
+        kv_length: int,
     ) -> None:
         super().__init__(steps)
 
@@ -217,19 +220,27 @@ class Denoiser(Diffuser):
             unet_channels,
             time_size,
             self._steps,
+            condition_dim,
+            kv_dim,
+            kv_length,
         )
 
         self.apply(weights_init)
 
     def forward(
-        self, x_t: th.Tensor, t: th.Tensor
+        self,
+        x_t: th.Tensor,
+        t: th.Tensor,
+        y: th.Tensor,
     ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x_t.size()) == 5
         assert len(t.size()) == 2
+        assert len(y.size()) == 2
         assert x_t.size(0) == t.size(0)
         assert x_t.size(1) == t.size(1)
+        assert x_t.size(0) == y.size(0)
 
-        eps_theta, v_theta = self.__unet(x_t, t)
+        eps_theta, v_theta = self.__unet(x_t, t, y)
 
         return eps_theta, v_theta
 
@@ -319,8 +330,12 @@ class Denoiser(Diffuser):
         return self.__mu(x_t, eps_theta, t), self.__var(v_theta, t)
 
     @th.no_grad()
-    def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
+    def sample(
+        self, x_t: th.Tensor, y: th.Tensor, verbose: bool = False
+    ) -> th.Tensor:
         assert len(x_t.size()) == 4
+        assert len(y.size()) == 2
+        assert x_t.size(0) == y.size(0)
         assert x_t.size(1) == self.__channels
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
@@ -340,6 +355,7 @@ class Denoiser(Diffuser):
             eps, v = self.__unet(
                 x_t.unsqueeze(1),
                 t_tensor.repeat(x_t.size(0), 1),
+                y,
             )
 
             # original sampling method
@@ -358,7 +374,7 @@ class Denoiser(Diffuser):
 
     @th.no_grad()
     def fast_sample(
-        self, x_t: th.Tensor, n_steps: int, verbose: bool = False
+        self, x_t: th.Tensor, y: th.Tensor, n_steps: int, verbose: bool = False
     ) -> th.Tensor:
         assert len(x_t.size()) == 4
         assert x_t.size(1) == self.__channels
@@ -402,6 +418,7 @@ class Denoiser(Diffuser):
             eps, v = self.__unet(
                 x_t.unsqueeze(1),
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
+                y,
             )
 
             mu = self.__mu_clipped(

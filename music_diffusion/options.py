@@ -15,6 +15,9 @@ class ModelOptions(NamedTuple):
             self.steps,
             self.time_size,
             self.unet_channels,
+            20,
+            16,
+            16,
         )
 
     def new_noiser(self) -> Noiser:

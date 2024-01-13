@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+import json
 from os import mkdir
 from os.path import exists, isdir, join
+from random import choices, randint, sample
 
 import matplotlib.pyplot as plt
+import pandas as pd
 import torch as th
 from ema_pytorch import EMA
 from torch.optim.optimizer import Optimizer
@@ -18,6 +21,7 @@ from .data import (
     RangeChange,
     magnitude_phase_to_wav,
 )
+from .data.metadata import multi_label_one_hot_encode, one_hot_encode
 from .networks import Denoiser, Noiser
 
 
@@ -32,6 +36,7 @@ class Saver:
         output_dir: str,
         save_every: int,
         nb_sample: int,
+        dataset_path: str,
     ) -> None:
 
         if not exists(output_dir):
@@ -59,6 +64,19 @@ class Saver:
                 ChangeType(th.uint8),
             ]
         )
+
+        with open(
+            join(dataset_path, "key_to_idx.json"), "r", encoding="utf-8"
+        ) as f:
+            self.__key_to_idx = json.load(f)
+        with open(
+            join(dataset_path, "genre_to_idx.json"), "r", encoding="utf-8"
+        ) as f:
+            self.__genre_to_idx = json.load(f)
+        with open(
+            join(dataset_path, "scoring_to_idx.json"), "r", encoding="utf-8"
+        ) as f:
+            self.__scoring_to_idx = json.load(f)
 
     def save(self) -> None:
         if self.__curr_idx % self.__save_every == self.__save_every - 1:
@@ -98,8 +116,69 @@ class Saver:
                     device=device,
                 )
 
+                # random condition
+                y = th.zeros(
+                    self.__nb_sample,
+                    len(self.__key_to_idx)
+                    + len(self.__genre_to_idx)
+                    + len(self.__scoring_to_idx),
+                    device=device,
+                    dtype=th.float,
+                )
+
+                key = choices(
+                    list(self.__key_to_idx.keys()), k=self.__nb_sample
+                )
+                genre = choices(
+                    list(self.__genre_to_idx.keys()), k=self.__nb_sample
+                )
+                scoring = [
+                    sample(
+                        list(self.__scoring_to_idx.keys()),
+                        k=randint(1, len(self.__scoring_to_idx)),
+                    )
+                    for _ in range(self.__nb_sample)
+                ]
+
+                condition_df = pd.DataFrame(
+                    [
+                        [i, k, g, s]
+                        for i, (k, g, s) in enumerate(zip(key, genre, scoring))
+                    ],
+                    columns=["id", "key", "genre", "scoring"],
+                )
+                condition_df.to_csv(
+                    join(
+                        self.__output_dir, f"condition_{self.__curr_save}.csv"
+                    ),
+                    sep=";",
+                    index=False,
+                )
+
+                key_tensor = th.stack(
+                    [one_hot_encode(k, self.__key_to_idx) for k in key], dim=0
+                )
+                genre_tensor = th.stack(
+                    [one_hot_encode(g, self.__genre_to_idx) for g in genre],
+                    dim=0,
+                )
+                scoring_tensor = th.stack(
+                    [
+                        multi_label_one_hot_encode(s, self.__scoring_to_idx)
+                        for s in scoring
+                    ]
+                )
+
+                y = th.cat(
+                    [key_tensor, genre_tensor, scoring_tensor], dim=1
+                ).to(device)
+
+                # generate
+
                 self.__ema_denoiser.eval()
-                x_0 = self.__ema_denoiser.ema_model.sample(x_t, verbose=True)
+                x_0 = self.__ema_denoiser.ema_model.sample(
+                    x_t, y, verbose=True
+                )
                 self.__ema_denoiser.train()
 
                 th.save(

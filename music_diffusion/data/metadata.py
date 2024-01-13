@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 import requests
+import torch as th
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
@@ -210,6 +211,11 @@ def create_metadata_csv(
 
     # Read all flac
     music_path_df = __extract_flac_bvw(bach_complete_works_path, bach_works_df)
+    bwv_set = set(music_path_df["bwv"].unique().tolist())
+    # filter metadata
+    bach_works_df = bach_works_df[
+        bach_works_df["BWV_without_version"].apply(lambda bwv: bwv in bwv_set)
+    ]
 
     # read scoring legend
     # scoring_legend_dict = __read_scoring_legend(html_dfs[6].copy())
@@ -236,7 +242,51 @@ def create_metadata_csv(
     bach_works_df["key"] = bach_works_df["key"].str.replace("\xa0", " ")
     bach_works_df["name"] = bach_works_df["name"].str.replace("\xa0", " ")
 
+    # remove empty key and scoring
+    bach_works_df = bach_works_df[~bach_works_df["key"].isna()]
+    bach_works_df = bach_works_df[
+        bach_works_df["scoring"].apply(lambda s_l: len(s_l) > 0)
+    ]
+
     # join with music flac paths
     final_df = music_path_df.merge(bach_works_df, on=["bwv"], how="inner")
 
     final_df.to_csv(output_metadata_csv_path, sep=";", index=False)
+
+
+def __create_metadata_mapping(
+    bach_works_df: pd.DataFrame, column: str
+) -> Dict[str, int]:
+    return {
+        k: i
+        for i, k in enumerate(sorted(bach_works_df[column].unique().tolist()))
+    }
+
+
+def create_key_to_idx_dict(bach_works_df: pd.DataFrame) -> Dict[str, int]:
+    return __create_metadata_mapping(bach_works_df, "key")
+
+
+def create_genre_to_idx_dict(bach_works_df: pd.DataFrame) -> Dict[str, int]:
+    return __create_metadata_mapping(bach_works_df, "genre")
+
+
+def create_scoring_to_idx_dict(bach_works_df: pd.DataFrame) -> Dict[str, int]:
+    all_scoring = {s for s_l in bach_works_df["scoring"].tolist() for s in s_l}
+    sorted_scoring = sorted(list(all_scoring))
+    return {s: i for i, s in enumerate(sorted_scoring)}
+
+
+def one_hot_encode(value: str, vocabulary: Dict[str, int]) -> th.Tensor:
+    t = th.zeros(len(vocabulary))
+    t[vocabulary[value]] = 1
+    return t
+
+
+def multi_label_one_hot_encode(
+    values: List[str], vocabulary: Dict[str, int]
+) -> th.Tensor:
+    t = th.zeros(len(vocabulary))
+    for v in values:
+        t[vocabulary[v]] = 1
+    return t

@@ -59,7 +59,7 @@ def main() -> None:
 
     dataset_parser = sub_command.add_parser("create_data")
 
-    dataset_parser.add_argument("music_glob_path", type=str)
+    dataset_parser.add_argument("metadata_csv_path", type=str)
     dataset_parser.add_argument("output_dir", type=str)
 
     #####################
@@ -172,7 +172,7 @@ def main() -> None:
 
     elif args.mode == "create_data":
         create_dataset(
-            args.music_glob_path,
+            args.metadata_csv_path,
             args.output_dir,
         )
 

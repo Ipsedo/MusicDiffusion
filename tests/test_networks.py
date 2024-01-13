@@ -81,12 +81,18 @@ def test_noiser(
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("img_sizes", [(32, 32), (16, 32)])
 @pytest.mark.parametrize("time_size", [2, 4])
+@pytest.mark.parametrize("condition_dim", [2, 4])
+@pytest.mark.parametrize("kv_length", [2, 4])
+@pytest.mark.parametrize("kv_dim", [2, 4])
 def test_denoiser(
     steps: int,
     step_batch_size: int,
     batch_size: int,
     img_sizes: Tuple[int, int],
     time_size: int,
+    condition_dim: int,
+    kv_dim: int,
+    kv_length: int,
     use_cuda: bool,
 ) -> None:
     in_channels = 2
@@ -94,6 +100,9 @@ def test_denoiser(
         steps,
         time_size,
         [(in_channels, 8), (8, 16)],
+        condition_dim,
+        kv_dim,
+        kv_length,
     )
 
     denoiser.eval()
@@ -118,8 +127,11 @@ def test_denoiser(
         (batch_size, step_batch_size),
         device=device,
     )
+    y = th.randint(
+        0, 2, (batch_size, condition_dim), device=device, dtype=th.float
+    )
 
-    eps, v = denoiser(x_t, t)
+    eps, v = denoiser(x_t, t, y)
 
     assert len(eps.size()) == 5
     assert eps.size(0) == batch_size
@@ -159,7 +171,7 @@ def test_denoiser(
         device=device,
     )
 
-    x_0 = denoiser.sample(x_t)
+    x_0 = denoiser.sample(x_t, y)
 
     assert len(x_0.size()) == 4
     assert x_0.size(0) == batch_size
@@ -167,36 +179,10 @@ def test_denoiser(
     assert x_0.size(2) == img_sizes[0]
     assert x_0.size(3) == img_sizes[1]
 
-    x_0 = denoiser.fast_sample(x_t, steps // 2)
+    x_0 = denoiser.fast_sample(x_t, y, steps // 2)
 
     assert len(x_0.size()) == 4
     assert x_0.size(0) == batch_size
-    assert x_0.size(1) == in_channels
-    assert x_0.size(2) == img_sizes[0]
-    assert x_0.size(3) == img_sizes[1]
-
-    # test with batch size == 1
-    denoiser.eval()
-
-    x_t = th.randn(
-        1,
-        in_channels,
-        *img_sizes,
-        device=device,
-    )
-
-    x_0 = denoiser.sample(x_t)
-
-    assert len(x_0.size()) == 4
-    assert x_0.size(0) == 1
-    assert x_0.size(1) == in_channels
-    assert x_0.size(2) == img_sizes[0]
-    assert x_0.size(3) == img_sizes[1]
-
-    x_0 = denoiser.fast_sample(x_t, steps // 2)
-
-    assert len(x_0.size()) == 4
-    assert x_0.size(0) == 1
     assert x_0.size(1) == in_channels
     assert x_0.size(2) == img_sizes[0]
     assert x_0.size(3) == img_sizes[1]
@@ -211,6 +197,9 @@ def test_denoiser(
 @pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("nb_steps", [1, 2])
+@pytest.mark.parametrize("condition_dim", [2, 4])
+@pytest.mark.parametrize("kv_length", [2, 4])
+@pytest.mark.parametrize("kv_dim", [2, 4])
 def test_unet(
     batch_size: int,
     size: Tuple[int, int],
@@ -218,12 +207,18 @@ def test_unet(
     steps: int,
     time_size: int,
     nb_steps: int,
+    condition_dim: int,
+    kv_dim: int,
+    kv_length: int,
     use_cuda: bool,
 ) -> None:
     unet = TimeUNet(
         channels,
         time_size,
         steps,
+        condition_dim,
+        kv_dim,
+        kv_length,
     )
 
     unet.eval()
@@ -247,8 +242,11 @@ def test_unet(
         (batch_size, nb_steps),
         device=device,
     )
+    y = th.randint(
+        0, 2, (batch_size, condition_dim), device=device, dtype=th.float
+    )
 
-    eps, v = unet(x_t, t)
+    eps, v = unet(x_t, t, y)
 
     assert len(eps.size()) == 5
     assert eps.size(0) == batch_size

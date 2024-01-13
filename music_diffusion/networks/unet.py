@@ -4,8 +4,14 @@ from typing import List, Tuple
 import torch as th
 from torch import nn
 
+from .attention import CrossAttention
 from .convolutions import ConvBlock, OutChannelProj, StrideConvBlock
-from .time import SequentialTimeWrapper, SinusoidTimeEmbedding, TimeBypass
+from .time import (
+    ConditionTimeBypass,
+    SequentialTimeWrapper,
+    SinusoidTimeEmbedding,
+    TimeBypass,
+)
 
 
 class TimeUNet(nn.Module):
@@ -14,6 +20,9 @@ class TimeUNet(nn.Module):
         channels: List[Tuple[int, int]],
         time_size: int,
         steps: int,
+        condition_dim: int,
+        kv_dim: int,
+        kv_length: int,
     ) -> None:
         super().__init__()
 
@@ -59,6 +68,15 @@ class TimeUNet(nn.Module):
             ],
         )
 
+        self.__cross_attention = ConditionTimeBypass(
+            CrossAttention(
+                c_m,
+                condition_dim,
+                kv_dim,
+                kv_length,
+            )
+        )
+
         # Decoder stuff
         self.__decoder_up = nn.ModuleList(
             TimeBypass(StrideConvBlock(c_i, c_i, "up"))
@@ -87,7 +105,10 @@ class TimeUNet(nn.Module):
         )
 
     def forward(
-        self, img: th.Tensor, t: th.Tensor
+        self,
+        img: th.Tensor,
+        t: th.Tensor,
+        y: th.Tensor,
     ) -> Tuple[th.Tensor, th.Tensor]:
         time_vec = self.__time_embedder(t)
 
@@ -104,6 +125,7 @@ class TimeUNet(nn.Module):
             out = down(out)
 
         out = self.__middle_block(out, time_vec)
+        out = self.__cross_attention(out, y)
 
         for up, bypass, block in zip(
             self.__decoder_up,

@@ -67,6 +67,23 @@ class TimeBypass(nn.Module):
         return out
 
 
+class ConditionTimeBypass(nn.Module):
+    def __init__(self, module: nn.Module) -> None:
+        super().__init__()
+        self.__module = module
+
+    def forward(self, x: th.Tensor, y: th.Tensor) -> th.Tensor:
+        b, t = x.size()[:2]
+
+        x = x.flatten(0, 1)
+        y = y.unsqueeze(1).repeat(1, t, 1).flatten(0, 1)
+
+        out: th.Tensor = self.__module(x, y)
+        out = th.unflatten(out, 0, (b, t))
+
+        return out
+
+
 class TimeWrapper(nn.Module):
     def __init__(
         self,
