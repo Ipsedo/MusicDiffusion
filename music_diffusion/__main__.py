@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import argparse
+import json
 import re
 from typing import List, Tuple
 
@@ -74,16 +75,22 @@ def main() -> None:
         "--unet-channels",
         type=_channels,
         default=[
-            (2, 16),
+            (2, 8),
+            (8, 16),
             (16, 32),
             (32, 64),
             (64, 128),
             (128, 256),
-            (256, 512),
         ],
     )
     model_parser.add_argument("--time-size", type=int, default=16)
+    model_parser.add_argument("--kv-dim", type=int, default=32)
+    model_parser.add_argument("--kv-length", type=int, default=16)
     model_parser.add_argument("--cuda", action="store_true")
+
+    model_parser.add_argument("--key2idx-json", type=str, required=True)
+    model_parser.add_argument("--genre2idx-json", type=str, required=True)
+    model_parser.add_argument("--scoring2idx-json", type=str, required=True)
 
     # Sub command run {train, generate}
     model_sub_command = model_parser.add_subparsers(
@@ -120,6 +127,14 @@ def main() -> None:
     generate_parser.add_argument("--ema", action="store_true")
     generate_parser.add_argument("--magn-scale", type=float, default=1.0)
 
+    generate_parser.add_argument("--keys", type=str, nargs="+", required=True)
+    generate_parser.add_argument(
+        "--genres", type=str, nargs="+", required=True
+    )
+    generate_parser.add_argument(
+        "--scoring", type=str, nargs="+", required=True
+    )
+
     #######
     # Main
     #######
@@ -127,10 +142,25 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.mode == "model":
+
+        with (
+            open(args.key2idx_json, "r", encoding="utf-8") as k_f,
+            open(args.genre2idx_json, "r", encoding="utf-8") as g_f,
+            open(args.scoring2idx_json, "r", encoding="utf-8") as s_f,
+        ):
+            key_to_idx = json.load(k_f)
+            genre_to_idx = json.load(g_f)
+            scoring_to_idx = json.load(s_f)
+
         model_options = ModelOptions(
             steps=args.steps,
             unet_channels=args.unet_channels,
             time_size=args.time_size,
+            condition_dim=len(key_to_idx)
+            + len(genre_to_idx)
+            + len(scoring_to_idx),
+            kv_dim=args.kv_dim,
+            kv_length=args.kv_length,
             cuda=args.cuda,
         )
 
@@ -155,6 +185,28 @@ def main() -> None:
             train(model_options, train_options)
 
         elif args.run == "generate":
+            keys = args.keys
+            genres = args.genres
+
+            assert all(k in key_to_idx for k in keys)
+            assert all(g in genre_to_idx for g in genres)
+
+            regex_scoring = re.compile(r"^(([^ ]+ )+)?[^ ]+$")
+
+            scoring_list = []
+            for s_l in args.scoring:
+                assert regex_scoring.match(
+                    s_l
+                ), f'Invalid scoring list : "{s_l}"'
+
+                scoring = []
+                for s in s_l.split(" "):
+                    s = s.strip()
+                    assert s in scoring_to_idx, f'Invalid scoring : "{s}"'
+                    scoring.append(s)
+
+                scoring_list.append(scoring)
+
             generate_options = GenerateOptions(
                 fast_sample=args.fast_sample,
                 denoiser_dict_state=args.denoiser_dict_state,
@@ -163,6 +215,12 @@ def main() -> None:
                 frames=args.frames,
                 musics=args.musics,
                 magn_scale=args.magn_scale,
+                keys=keys,
+                genres=genres,
+                scoring_list=scoring_list,
+                key_to_idx=key_to_idx,
+                genres_to_idx=genre_to_idx,
+                scoring_to_idx=scoring_to_idx,
             )
 
             generate(model_options, generate_options)

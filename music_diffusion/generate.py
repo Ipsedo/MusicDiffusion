@@ -68,7 +68,7 @@ def generate(
             width * generate_options.frames,
             device=device,
         )
-        y = th.zeros(generate_options.musics, device=device, dtype=th.float)
+        y = generate_options.get_y().to(device)
 
         x_0 = (
             denoiser.fast_sample(

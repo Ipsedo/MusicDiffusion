@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
-from typing import List, NamedTuple, Optional, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
+import torch as th
+
+from .data.metadata import multi_label_one_hot_encode, one_hot_encode
 from .networks import Denoiser, Noiser
 
 
@@ -8,6 +11,9 @@ class ModelOptions(NamedTuple):
     steps: int
     unet_channels: List[Tuple[int, int]]
     time_size: int
+    condition_dim: int
+    kv_dim: int
+    kv_length: int
     cuda: bool
 
     def new_denoiser(self) -> Denoiser:
@@ -15,9 +21,9 @@ class ModelOptions(NamedTuple):
             self.steps,
             self.time_size,
             self.unet_channels,
-            20,
-            16,
-            16,
+            self.condition_dim,
+            self.kv_dim,
+            self.kv_length,
         )
 
     def new_noiser(self) -> Noiser:
@@ -49,3 +55,29 @@ class GenerateOptions(NamedTuple):
     frames: int
     musics: int
     magn_scale: float
+    keys: List[str]
+    genres: List[str]
+    scoring_list: List[List[str]]
+    key_to_idx: Dict[str, int]
+    genres_to_idx: Dict[str, int]
+    scoring_to_idx: Dict[str, int]
+
+    def get_y(self) -> th.Tensor:
+        assert len(self.genres) == len(self.keys)
+        assert len(self.keys) == len(self.scoring_list)
+
+        key = th.stack(
+            [one_hot_encode(k, self.key_to_idx) for k in self.keys], dim=0
+        )
+        genre = th.stack(
+            [one_hot_encode(g, self.genres_to_idx) for g in self.genres], dim=0
+        )
+        scoring = th.stack(
+            [
+                multi_label_one_hot_encode(s_l, self.scoring_to_idx)
+                for s_l in self.scoring_list
+            ],
+            dim=0,
+        )
+
+        return th.cat([key, genre, scoring], dim=-1)
