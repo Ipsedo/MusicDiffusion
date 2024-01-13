@@ -15,6 +15,7 @@ from .constants import (
     STFT_STRIDE,
 )
 from .datasets import AudioDataset
+from .metadata import create_metadata_csv
 from .primitive import simpson, trapezoid
 from .transform import (
     ChangeType,

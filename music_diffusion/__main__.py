@@ -3,7 +3,7 @@ import argparse
 import re
 from typing import List, Tuple
 
-from .data import create_dataset
+from .data import create_dataset, create_metadata_csv
 from .generate import generate
 from .options import GenerateOptions, ModelOptions, TrainOptions
 from .train import train
@@ -43,6 +43,15 @@ def main() -> None:
     sub_command = parser.add_subparsers(
         title="mode", dest="mode", required=True
     )
+
+    #######################
+    # Create Bach metadata
+    #######################
+
+    metadata_parser = sub_command.add_parser("metadata")
+
+    metadata_parser.add_argument("bach_flac_folder", type=str)
+    metadata_parser.add_argument("output_csv_path", type=str)
 
     #################
     # Create dataset
@@ -165,6 +174,12 @@ def main() -> None:
         create_dataset(
             args.music_glob_path,
             args.output_dir,
+        )
+
+    elif args.mode == "metadata":
+        create_metadata_csv(
+            args.bach_flac_folder,
+            args.output_csv_path,
         )
 
     else:

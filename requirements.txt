@@ -17,5 +17,6 @@ black[d]
 pycln
 isort
 mypy
+types-requests
 pytest
 pylint
