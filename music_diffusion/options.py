@@ -12,6 +12,9 @@ class ModelOptions(NamedTuple):
     unet_channels: List[Tuple[int, int]]
     time_size: int
     condition_dim: int
+    trf_hidden_dim: int
+    trf_num_heads: int
+    trf_layers: int
     kv_dim: int
     kv_length: int
     cuda: bool
@@ -22,6 +25,9 @@ class ModelOptions(NamedTuple):
             self.time_size,
             self.unet_channels,
             self.condition_dim,
+            self.trf_hidden_dim,
+            self.trf_num_heads,
+            self.trf_layers,
             self.kv_dim,
             self.kv_length,
         )

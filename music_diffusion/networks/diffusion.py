@@ -196,6 +196,9 @@ class Denoiser(Diffuser):
         time_size: int,
         unet_channels: List[Tuple[int, int]],
         condition_dim: int,
+        trf_hidden_dim: int,
+        trf_num_heads: int,
+        trf_layers: int,
         kv_dim: int,
         kv_length: int,
     ) -> None:
@@ -221,6 +224,9 @@ class Denoiser(Diffuser):
             time_size,
             self._steps,
             condition_dim,
+            trf_hidden_dim,
+            trf_num_heads,
+            trf_layers,
             kv_dim,
             kv_length,
         )
