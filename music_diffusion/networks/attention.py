@@ -139,21 +139,25 @@ class CrossAttention(nn.Module):
         self.__to_channels = nn.Sequential(
             weight_norm(nn.Linear(condition_dim, kv_dim * 2)),
             nn.Mish(),
-            weight_norm(nn.Linear(kv_dim * 2, kv_dim)),
+            weight_norm(nn.Linear(kv_dim * 2, kv_dim * 2)),
         )
+        # pylint: disable=unused-private-member
         self.__tau = _AutoregTransformer(
             kv_dim, trf_hidden_dim, trf_num_heads, trf_layers, kv_length
         )
+        # pylint: enable=unused-private-member
 
     def forward(self, x: th.Tensor, y: th.Tensor) -> th.Tensor:
         _, _, w, h = x.size()
 
         proj_query = _image_to_seq(self.__query_conv(x))
 
-        y = self.__to_channels(y)
-        proj_kv = self.__tau(y)
+        proj_key, proj_value = (
+            self.__to_channels(y).unsqueeze(1).chunk(dim=-1, chunks=2)
+        )
+        # proj_kv = self.__tau(y)
 
-        out: th.Tensor = self.__cross_att(proj_query, proj_kv, proj_kv)[0]
+        out: th.Tensor = self.__cross_att(proj_query, proj_key, proj_value)[0]
         out = out.permute(0, 2, 1)
         out = th.unflatten(out, 2, (w, h))
 
