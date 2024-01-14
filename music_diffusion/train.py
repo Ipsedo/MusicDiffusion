@@ -81,6 +81,12 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 "steps": model_options.steps,
                 "time_size": model_options.time_size,
                 "unet_channels": model_options.unet_channels,
+                "condition_dim": model_options.condition_dim,
+                "trf_hidden_dim": model_options.trf_hidden_dim,
+                "trf_num_heads": model_options.trf_num_heads,
+                "trf_layers": model_options.trf_layers,
+                "kv_dim": model_options.kv_dim,
+                "kv_length": model_options.kv_length,
                 "input_dataset": train_options.dataset_path,
             }
         )
