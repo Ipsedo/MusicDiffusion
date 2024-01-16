@@ -59,7 +59,6 @@ class GenerateOptions(NamedTuple):
     genres: List[str]
     scoring_list: List[List[str]]
     key_to_idx: Dict[str, int]
-    genres_to_idx: Dict[str, int]
     scoring_to_idx: Dict[str, int]
 
     def get_y(self) -> th.Tensor:
@@ -69,9 +68,6 @@ class GenerateOptions(NamedTuple):
         key = th.stack(
             [one_hot_encode(k, self.key_to_idx) for k in self.keys], dim=0
         )
-        genre = th.stack(
-            [one_hot_encode(g, self.genres_to_idx) for g in self.genres], dim=0
-        )
         scoring = th.stack(
             [
                 multi_label_one_hot_encode(s_l, self.scoring_to_idx)
@@ -80,4 +76,4 @@ class GenerateOptions(NamedTuple):
             dim=0,
         )
 
-        return th.cat([key, genre, scoring], dim=-1)
+        return th.cat([key, scoring], dim=-1)

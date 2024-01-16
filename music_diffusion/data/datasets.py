@@ -62,14 +62,11 @@ class ConditionAudioDataset(Dataset):
         key = th.load(
             join(self.__dataset_path, f"key_{self.__idx_to_bwv[index]}.pt")
         )
-        genre = th.load(
-            join(self.__dataset_path, f"genre_{self.__idx_to_bwv[index]}.pt")
-        )
         scoring = th.load(
             join(self.__dataset_path, f"scoring_{self.__idx_to_bwv[index]}.pt")
         )
 
-        y = th.cat([key, genre, scoring], dim=-1)
+        y = th.cat([key, scoring], dim=-1)
 
         return magn_phase, y
 

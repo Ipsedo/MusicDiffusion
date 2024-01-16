@@ -89,7 +89,6 @@ def main() -> None:
     model_parser.add_argument("--cuda", action="store_true")
 
     model_parser.add_argument("--key2idx-json", type=str, required=True)
-    model_parser.add_argument("--genre2idx-json", type=str, required=True)
     model_parser.add_argument("--scoring2idx-json", type=str, required=True)
 
     # Sub command run {train, generate}
@@ -145,18 +144,16 @@ def main() -> None:
 
         with (
             open(args.key2idx_json, "r", encoding="utf-8") as k_f,
-            open(args.genre2idx_json, "r", encoding="utf-8") as g_f,
             open(args.scoring2idx_json, "r", encoding="utf-8") as s_f,
         ):
             key_to_idx = json.load(k_f)
-            genre_to_idx = json.load(g_f)
             scoring_to_idx = json.load(s_f)
 
         model_options = ModelOptions(
             steps=args.steps,
             unet_channels=args.unet_channels,
             time_size=args.time_size,
-            tau_dim=len(key_to_idx) + len(genre_to_idx) + len(scoring_to_idx),
+            tau_dim=len(key_to_idx) + len(scoring_to_idx),
             tau_hidden_dim=args.tau_hidden_dim,
             tau_layers=args.tau_layers,
             cuda=args.cuda,
@@ -187,7 +184,6 @@ def main() -> None:
             genres = args.genres
 
             assert all(k in key_to_idx for k in keys)
-            assert all(g in genre_to_idx for g in genres)
 
             regex_scoring = re.compile(r"^(([^ ]+ )+)?[^ ]+$")
 
@@ -217,7 +213,6 @@ def main() -> None:
                 genres=genres,
                 scoring_list=scoring_list,
                 key_to_idx=key_to_idx,
-                genres_to_idx=genre_to_idx,
                 scoring_to_idx=scoring_to_idx,
             )
 
