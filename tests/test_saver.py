@@ -18,7 +18,7 @@ def test_saver(save_every: int, nb_samples: int, resources_path: str) -> None:
     channels = 2
 
     noiser = Noiser(steps)
-    denoiser = Denoiser(steps, 1, [(channels, 4)], 6, 2, 1, 1, 2, 2)
+    denoiser = Denoiser(steps, 1, [(channels, 4)], 6, 2, 1)
     optim = th.optim.Adam(denoiser.parameters())
     ema = EMA(denoiser)
 

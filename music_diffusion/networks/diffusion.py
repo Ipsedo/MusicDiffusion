@@ -195,12 +195,9 @@ class Denoiser(Diffuser):
         steps: int,
         time_size: int,
         unet_channels: List[Tuple[int, int]],
-        condition_dim: int,
-        trf_hidden_dim: int,
-        trf_num_heads: int,
-        trf_layers: int,
-        kv_dim: int,
-        kv_length: int,
+        tau_dim: int,
+        tau_hidden_dim: int,
+        tau_layers: int,
     ) -> None:
         super().__init__(steps)
 
@@ -223,12 +220,9 @@ class Denoiser(Diffuser):
             unet_channels,
             time_size,
             self._steps,
-            condition_dim,
-            trf_hidden_dim,
-            trf_num_heads,
-            trf_layers,
-            kv_dim,
-            kv_length,
+            tau_dim,
+            tau_hidden_dim,
+            tau_layers,
         )
 
         self.apply(weights_init)

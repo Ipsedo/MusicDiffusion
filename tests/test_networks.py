@@ -82,8 +82,6 @@ def test_noiser(
 @pytest.mark.parametrize("img_sizes", [(32, 32), (16, 32)])
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("condition_dim", [2, 4])
-@pytest.mark.parametrize("kv_length", [2, 4])
-@pytest.mark.parametrize("kv_dim", [2, 4])
 def test_denoiser(
     steps: int,
     step_batch_size: int,
@@ -91,8 +89,6 @@ def test_denoiser(
     img_sizes: Tuple[int, int],
     time_size: int,
     condition_dim: int,
-    kv_dim: int,
-    kv_length: int,
     use_cuda: bool,
 ) -> None:
     in_channels = 2
@@ -103,9 +99,6 @@ def test_denoiser(
         condition_dim,
         8,
         1,
-        1,
-        kv_dim,
-        kv_length,
     )
 
     denoiser.eval()
@@ -200,9 +193,9 @@ def test_denoiser(
 @pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("nb_steps", [1, 2])
-@pytest.mark.parametrize("condition_dim", [2, 4])
-@pytest.mark.parametrize("kv_length", [2, 4])
-@pytest.mark.parametrize("kv_dim", [2, 4])
+@pytest.mark.parametrize("tau_dim", [2, 4])
+@pytest.mark.parametrize("tau_hidden_dim", [2, 4])
+@pytest.mark.parametrize("tau_layers", [1, 2])
 def test_unet(
     batch_size: int,
     size: Tuple[int, int],
@@ -210,21 +203,18 @@ def test_unet(
     steps: int,
     time_size: int,
     nb_steps: int,
-    condition_dim: int,
-    kv_dim: int,
-    kv_length: int,
+    tau_dim: int,
+    tau_hidden_dim: int,
+    tau_layers: int,
     use_cuda: bool,
 ) -> None:
     unet = TimeUNet(
         channels,
         time_size,
         steps,
-        condition_dim,
-        8,
-        1,
-        1,
-        kv_dim,
-        kv_length,
+        tau_dim,
+        tau_hidden_dim,
+        tau_layers,
     )
 
     unet.eval()
@@ -248,9 +238,7 @@ def test_unet(
         (batch_size, nb_steps),
         device=device,
     )
-    y = th.randint(
-        0, 2, (batch_size, condition_dim), device=device, dtype=th.float
-    )
+    y = th.randint(0, 2, (batch_size, tau_dim), device=device, dtype=th.float)
 
     eps, v = unet(x_t, t, y)
 

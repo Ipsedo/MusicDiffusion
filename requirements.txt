@@ -12,6 +12,7 @@ requests
 pandas
 html5lib
 lxml
+selenium
 
 # pre-commit
 pre-commit
