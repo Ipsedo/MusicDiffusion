@@ -87,14 +87,4 @@ class CrossAttention(nn.Module):
         out = out.permute(0, 2, 1)
         out = th.unflatten(out, 2, (w, h))
 
-        out = out + x
-
         return out
-
-
-class TakeFirstIdentity(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-
-    def forward(self, *args: th.Tensor) -> th.Tensor:
-        return args[0]
