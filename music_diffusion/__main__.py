@@ -128,9 +128,6 @@ def main() -> None:
 
     generate_parser.add_argument("--keys", type=str, nargs="+", required=True)
     generate_parser.add_argument(
-        "--genres", type=str, nargs="+", required=True
-    )
-    generate_parser.add_argument(
         "--scoring", type=str, nargs="+", required=True
     )
 
@@ -181,7 +178,6 @@ def main() -> None:
 
         elif args.run == "generate":
             keys = args.keys
-            genres = args.genres
 
             assert all(k in key_to_idx for k in keys)
 
@@ -210,7 +206,6 @@ def main() -> None:
                 musics=args.musics,
                 magn_scale=args.magn_scale,
                 keys=keys,
-                genres=genres,
                 scoring_list=scoring_list,
                 key_to_idx=key_to_idx,
                 scoring_to_idx=scoring_to_idx,

@@ -56,13 +56,11 @@ class GenerateOptions(NamedTuple):
     musics: int
     magn_scale: float
     keys: List[str]
-    genres: List[str]
     scoring_list: List[List[str]]
     key_to_idx: Dict[str, int]
     scoring_to_idx: Dict[str, int]
 
     def get_y(self) -> th.Tensor:
-        assert len(self.genres) == len(self.keys)
         assert len(self.keys) == len(self.scoring_list)
 
         key = th.stack(
