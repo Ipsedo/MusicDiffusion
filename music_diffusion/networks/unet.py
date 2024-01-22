@@ -66,14 +66,6 @@ class TimeUNet(nn.Module):
         middle_layers = 3
         c_m = encoding_channels[-1][1]
 
-        self.__first_middle_block = SequentialTimeWrapper(
-            time_size,
-            [
-                ConvBlock(c_m, c_m),
-                ConvBlock(c_m, c_m),
-            ],
-        )
-
         self.__middle_blocks = nn.ModuleList(
             SequentialTimeWrapper(
                 time_size,
@@ -139,15 +131,11 @@ class TimeUNet(nn.Module):
             bypasses.append(out)
             out = down(out)
 
-        out = self.__first_middle_block(out, time_vec)
-
         for block, cross_att in zip(
             self.__middle_blocks, self.__cross_attentions
         ):
-            out_middle = block(out, time_vec)
-            out_middle = cross_att(out_middle, y_encoded)
-            # residual
-            out = out_middle + out
+            out = block(out, time_vec)
+            out = cross_att(out, y_encoded)
 
         for up, bypass, block in zip(
             self.__decoder_up,
