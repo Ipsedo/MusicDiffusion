@@ -74,15 +74,17 @@ class ConditionEncoder(nn.Sequential):
         self, condition_dim: int, hidden_dim: int, nb_layers: int
     ) -> None:
         assert nb_layers > 0
+        layers_dim = [
+            (condition_dim if i == 0 else hidden_dim, hidden_dim)
+            for i in range(nb_layers)
+        ]
+
         super().__init__(
             *[
                 nn.Sequential(
                     weight_norm(nn.Linear(d_i, d_o)),
                     nn.Mish(),
                 )
-                for d_i, d_o in [
-                    (condition_dim if i == 0 else hidden_dim, hidden_dim)
-                    for i in range(nb_layers)
-                ]
+                for d_i, d_o in layers_dim
             ]
         )
