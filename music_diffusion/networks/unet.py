@@ -21,6 +21,7 @@ class TimeUNet(nn.Module):
         channels: List[Tuple[int, int]],
         time_size: int,
         steps: int,
+        num_heads: int,
         tau_dim: int,
         tau_hidden_dim: int,
         tau_layers: int,
@@ -78,7 +79,9 @@ class TimeUNet(nn.Module):
         )
 
         self.__cross_attentions = nn.ModuleList(
-            ConditionTimeBypass(CrossAttention(c_m, tau_hidden_dim, c_m // 4))
+            ConditionTimeBypass(
+                CrossAttention(c_m, num_heads, tau_hidden_dim, c_m // 2)
+            )
             for _ in range(middle_layers)
         )
 
@@ -111,7 +114,7 @@ class TimeUNet(nn.Module):
 
     def forward(
         self,
-        img: th.Tensor,
+        x_t: th.Tensor,
         t: th.Tensor,
         y: th.Tensor,
     ) -> Tuple[th.Tensor, th.Tensor]:
@@ -121,7 +124,7 @@ class TimeUNet(nn.Module):
 
         y_encoded = self.__tau(y)
 
-        out = img
+        out = x_t
 
         for block, down in zip(
             self.__encoder,

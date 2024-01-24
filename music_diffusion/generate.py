@@ -2,6 +2,7 @@
 from os import mkdir
 from os.path import exists, isdir, join
 
+import pandas as pd
 import torch as th
 from tqdm import tqdm
 
@@ -18,6 +19,9 @@ from .options import GenerateOptions, ModelOptions
 def generate(
     model_options: ModelOptions, generate_options: GenerateOptions
 ) -> None:
+
+    assert generate_options.musics == len(generate_options.keys)
+    assert generate_options.musics == len(generate_options.scoring_list)
 
     if not exists(generate_options.output_dir):
         mkdir(generate_options.output_dir)
@@ -93,3 +97,15 @@ def generate(
                 STFT_STRIDE,
                 magn_scale=generate_options.magn_scale,
             )
+
+        condition_df = pd.DataFrame(
+            [
+                [i, generate_options.keys[i], generate_options.scoring_list[i]]
+                for i in range(len(generate_options.keys))
+            ],
+            columns=["id", "key", "scoring"],
+        )
+
+        condition_df.to_csv(
+            join(generate_options.output_dir, "conditions.csv"), index=False
+        )

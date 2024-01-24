@@ -87,6 +87,12 @@ def __extract_flac_bvw(
     return music_path_df
 
 
+# def __parse_scoring_sentence(bach_works_df: pd.DataFrame) -> pd.Series:
+#     regex_extract_voices = re.compile(
+#       r"^((?:(?:\.?\d)?[satbSATBvV])+)(?: .+)?$"
+#     )
+
+
 def __parse_scoring(bach_works_df: pd.DataFrame) -> pd.Series:
     regex_voices = re.compile(
         r"^((?:[satbSATBvV\d?()]|(?:[vV]\.[12]))+)(?: .+)?$"

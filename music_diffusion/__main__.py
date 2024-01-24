@@ -75,16 +75,17 @@ def main() -> None:
         "--unet-channels",
         type=_channels,
         default=[
-            (2, 8),
-            (8, 16),
-            (16, 32),
+            (2, 32),
             (32, 64),
             (64, 128),
+            (128, 128),
             (128, 256),
+            (256, 256),
         ],
     )
     model_parser.add_argument("--time-size", type=int, default=16)
-    model_parser.add_argument("--tau-hidden-dim", type=int, default=64)
+    model_parser.add_argument("--num-heads", type=int, default=4)
+    model_parser.add_argument("--tau-hidden-dim", type=int, default=128)
     model_parser.add_argument("--tau-layers", type=int, default=3)
     model_parser.add_argument("--cuda", action="store_true")
 
@@ -150,6 +151,7 @@ def main() -> None:
             steps=args.steps,
             unet_channels=args.unet_channels,
             time_size=args.time_size,
+            num_heads=args.num_heads,
             tau_dim=len(key_to_idx) + len(scoring_to_idx),
             tau_hidden_dim=args.tau_hidden_dim,
             tau_layers=args.tau_layers,

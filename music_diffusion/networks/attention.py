@@ -54,6 +54,7 @@ class CrossAttention(nn.Module):
     def __init__(
         self,
         channels: int,
+        num_heads: int,
         tau_hidden_dim: int,
         kv_dim: int,
     ) -> None:
@@ -63,7 +64,7 @@ class CrossAttention(nn.Module):
 
         self.__cross_att = nn.MultiheadAttention(
             channels,
-            1,
+            num_heads,
             kdim=kv_dim,
             vdim=kv_dim,
             batch_first=True,
@@ -73,6 +74,7 @@ class CrossAttention(nn.Module):
             weight_norm(nn.Linear(tau_hidden_dim, kv_dim * 2)),
             nn.Mish(),
             weight_norm(nn.Linear(kv_dim * 2, kv_dim * 2)),
+            nn.Mish(),
         )
 
     def forward(self, x: th.Tensor, y: th.Tensor) -> th.Tensor:

@@ -96,6 +96,7 @@ def test_denoiser(
         steps,
         time_size,
         [(in_channels, 8), (8, 16)],
+        1,
         condition_dim,
         8,
         1,
@@ -193,6 +194,7 @@ def test_denoiser(
 @pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("nb_steps", [1, 2])
+@pytest.mark.parametrize("num_heads", [1, 2])
 @pytest.mark.parametrize("tau_dim", [2, 4])
 @pytest.mark.parametrize("tau_hidden_dim", [2, 4])
 @pytest.mark.parametrize("tau_layers", [1, 2])
@@ -203,6 +205,7 @@ def test_unet(
     steps: int,
     time_size: int,
     nb_steps: int,
+    num_heads: int,
     tau_dim: int,
     tau_hidden_dim: int,
     tau_layers: int,
@@ -212,6 +215,7 @@ def test_unet(
         channels,
         time_size,
         steps,
+        num_heads,
         tau_dim,
         tau_hidden_dim,
         tau_layers,
