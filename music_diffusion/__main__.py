@@ -85,12 +85,10 @@ def main() -> None:
     )
     model_parser.add_argument("--time-size", type=int, default=16)
     model_parser.add_argument("--num-heads", type=int, default=4)
+    model_parser.add_argument("--tau-dim", type=int, default=66)
     model_parser.add_argument("--tau-hidden-dim", type=int, default=128)
     model_parser.add_argument("--tau-layers", type=int, default=3)
     model_parser.add_argument("--cuda", action="store_true")
-
-    model_parser.add_argument("--key2idx-json", type=str, required=True)
-    model_parser.add_argument("--scoring2idx-json", type=str, required=True)
 
     # Sub command run {train, generate}
     model_sub_command = model_parser.add_subparsers(
@@ -127,6 +125,8 @@ def main() -> None:
     generate_parser.add_argument("--ema", action="store_true")
     generate_parser.add_argument("--magn-scale", type=float, default=1.0)
 
+    generate_parser.add_argument("--key2idx-json", type=str, required=True)
+    generate_parser.add_argument("--scoring2idx-json", type=str, required=True)
     generate_parser.add_argument("--keys", type=str, nargs="+", required=True)
     generate_parser.add_argument(
         "--scoring", type=str, nargs="+", required=True
@@ -140,19 +140,12 @@ def main() -> None:
 
     if args.mode == "model":
 
-        with (
-            open(args.key2idx_json, "r", encoding="utf-8") as k_f,
-            open(args.scoring2idx_json, "r", encoding="utf-8") as s_f,
-        ):
-            key_to_idx = json.load(k_f)
-            scoring_to_idx = json.load(s_f)
-
         model_options = ModelOptions(
             steps=args.steps,
             unet_channels=args.unet_channels,
             time_size=args.time_size,
             num_heads=args.num_heads,
-            tau_dim=len(key_to_idx) + len(scoring_to_idx),
+            tau_dim=args.tau_dim,
             tau_hidden_dim=args.tau_hidden_dim,
             tau_layers=args.tau_layers,
             cuda=args.cuda,
@@ -179,11 +172,19 @@ def main() -> None:
             train(model_options, train_options)
 
         elif args.run == "generate":
+
+            with (
+                open(args.key2idx_json, "r", encoding="utf-8") as k_f,
+                open(args.scoring2idx_json, "r", encoding="utf-8") as s_f,
+            ):
+                key_to_idx = json.load(k_f)
+                scoring_to_idx = json.load(s_f)
+
             keys = args.keys
 
             assert all(k in key_to_idx for k in keys)
 
-            regex_scoring = re.compile(r"^(([^ ]+ )+)?[^ ]+$")
+            regex_scoring = re.compile(r"^ *(([^ ]+ )+)?[^ ]+ *$")
 
             scoring_list = []
             for s_l in args.scoring:
