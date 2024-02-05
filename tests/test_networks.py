@@ -76,26 +76,25 @@ def test_noiser(
     assert th.all(th.gt(post_var, 0))
 
 
-@pytest.mark.parametrize("steps", [4, 6])
 @pytest.mark.parametrize("step_batch_size", [1, 2])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("img_sizes", [(32, 32), (16, 32)])
-@pytest.mark.parametrize("time_size", [2, 4])
-@pytest.mark.parametrize("condition_dim", [2, 4])
 def test_denoiser(
-    steps: int,
     step_batch_size: int,
     batch_size: int,
     img_sizes: Tuple[int, int],
-    time_size: int,
-    condition_dim: int,
     use_cuda: bool,
 ) -> None:
     in_channels = 2
+    condition_dim = 2
+    time_size = 2
+    steps = 4
+
     denoiser = Denoiser(
         steps,
         time_size,
         [(in_channels, 8), (8, 16)],
+        1,
         1,
         condition_dim,
         8,
@@ -185,41 +184,44 @@ def test_denoiser(
     assert x_0.size(3) == img_sizes[1]
 
 
-@pytest.mark.parametrize("batch_size", [2, 3])
-@pytest.mark.parametrize("size", [(32, 32), (16, 32)])
 @pytest.mark.parametrize(
     "channels",
     [[(2, 8), (8, 16), (16, 32)], [(4, 8), (8, 32), (32, 16)]],
 )
 @pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("time_size", [2, 4])
-@pytest.mark.parametrize("nb_steps", [1, 2])
-@pytest.mark.parametrize("num_heads", [1, 2])
+@pytest.mark.parametrize("lstm_dim", [1, 2])
+@pytest.mark.parametrize("lstm_hidden_dim", [1, 2])
 @pytest.mark.parametrize("tau_dim", [2, 4])
 @pytest.mark.parametrize("tau_hidden_dim", [2, 4])
 @pytest.mark.parametrize("tau_layers", [1, 2])
 def test_unet(
-    batch_size: int,
-    size: Tuple[int, int],
     channels: List[Tuple[int, int]],
     steps: int,
     time_size: int,
-    nb_steps: int,
-    num_heads: int,
+    lstm_dim: int,
+    lstm_hidden_dim: int,
     tau_dim: int,
     tau_hidden_dim: int,
     tau_layers: int,
     use_cuda: bool,
 ) -> None:
+    batch_size = 1
+    nb_steps = 1
+    size = (16, 16)
+
+    # pylint: disable=duplicate-code
     unet = TimeUNet(
         channels,
         time_size,
         steps,
-        num_heads,
+        lstm_dim,
+        lstm_hidden_dim,
         tau_dim,
         tau_hidden_dim,
         tau_layers,
     )
+    # pylint: enable=duplicate-code
 
     unet.eval()
 

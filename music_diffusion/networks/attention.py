@@ -70,10 +70,10 @@ class CrossAttention(nn.Module):
             batch_first=True,
         )
 
-        self.__to_channels = nn.Sequential(
+        self.__to_key_value = nn.Sequential(
             weight_norm(nn.Linear(tau_hidden_dim, kv_dim * 2)),
             nn.Mish(),
-            weight_norm(nn.Linear(kv_dim * 2, kv_dim * 2)),
+            weight_norm(nn.Linear(kv_dim * 2, kv_dim)),
             nn.Mish(),
         )
 
@@ -82,11 +82,11 @@ class CrossAttention(nn.Module):
 
         proj_query = _image_to_seq(self.__query_conv(x))
 
-        proj_key, proj_value = (
-            self.__to_channels(y).unsqueeze(1).chunk(dim=-1, chunks=2)
-        )
+        proj_key_value = self.__to_key_value(y).unsqueeze(1)
 
-        out: th.Tensor = self.__cross_att(proj_query, proj_key, proj_value)[0]
+        out: th.Tensor = self.__cross_att(
+            proj_query, proj_key_value, proj_key_value
+        )[0]
         out = out.permute(0, 2, 1)
         out = th.unflatten(out, 2, (w, h))
 

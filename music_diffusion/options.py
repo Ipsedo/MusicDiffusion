@@ -11,7 +11,8 @@ class ModelOptions(NamedTuple):
     steps: int
     unet_channels: List[Tuple[int, int]]
     time_size: int
-    num_heads: int
+    lstm_dim: int
+    lstm_hidden_dim: int
     tau_dim: int
     tau_hidden_dim: int
     tau_layers: int
@@ -22,7 +23,8 @@ class ModelOptions(NamedTuple):
             self.steps,
             self.time_size,
             self.unet_channels,
-            self.num_heads,
+            self.lstm_dim,
+            self.lstm_hidden_dim,
             self.tau_dim,
             self.tau_hidden_dim,
             self.tau_layers,

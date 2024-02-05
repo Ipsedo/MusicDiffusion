@@ -4,14 +4,15 @@ from typing import List, Tuple
 import torch as th
 from torch import nn
 
-from .attention import CrossAttention
 from .convolutions import ConvBlock, OutChannelProj, StrideConvBlock
+from .recurrent import MiddleRecurrent
 from .tau import ConditionEncoder
 from .time import (
     ConditionTimeBypass,
     SequentialTimeWrapper,
     SinusoidTimeEmbedding,
     TimeBypass,
+    TimeWrapper,
 )
 
 
@@ -21,7 +22,8 @@ class TimeUNet(nn.Module):
         channels: List[Tuple[int, int]],
         time_size: int,
         steps: int,
-        num_heads: int,
+        lstm_dim: int,
+        lstm_hidden_dim: int,
         tau_dim: int,
         tau_hidden_dim: int,
         tau_layers: int,
@@ -64,25 +66,25 @@ class TimeUNet(nn.Module):
         )
 
         # Middle stuff
-        middle_layers = 3
         c_m = encoding_channels[-1][1]
 
-        self.__middle_blocks = nn.ModuleList(
-            SequentialTimeWrapper(
-                time_size,
-                [
-                    ConvBlock(c_m, c_m),
-                    ConvBlock(c_m, c_m),
-                ],
-            )
-            for _ in range(middle_layers)
+        self.__middle_conv_1 = TimeWrapper(
+            time_size,
+            ConvBlock(c_m, c_m),
         )
 
-        self.__cross_attentions = nn.ModuleList(
-            ConditionTimeBypass(
-                CrossAttention(c_m, num_heads, tau_hidden_dim, c_m // 2)
+        self.__lstm = ConditionTimeBypass(
+            MiddleRecurrent(
+                c_m,
+                lstm_dim,
+                lstm_hidden_dim,
+                tau_hidden_dim,
             )
-            for _ in range(middle_layers)
+        )
+
+        self.__middle_conv_2 = TimeWrapper(
+            time_size,
+            ConvBlock(c_m, c_m),
         )
 
         # Decoder stuff
@@ -134,11 +136,9 @@ class TimeUNet(nn.Module):
             bypasses.append(out)
             out = down(out)
 
-        for block, cross_att in zip(
-            self.__middle_blocks, self.__cross_attentions
-        ):
-            out = block(out, time_vec)
-            out = cross_att(out, y_encoded)
+        out = self.__middle_conv_1(out, time_vec)
+        out = self.__lstm(out, y_encoded)
+        out = self.__middle_conv_2(out, time_vec)
 
         for up, bypass, block in zip(
             self.__decoder_up,
