@@ -24,7 +24,7 @@ class AggregateFrequencies(nn.Module):
         k = self.__key.repeat(b * h, 1, 1)
         v = self.__to_value(x)
 
-        weight = F.softmax(th.bmm(q, k), dim=-1).transpose(2, 1)
+        weight = F.softmax(th.bmm(q, k), dim=1).transpose(1, 2)
 
         out = th.bmm(weight, v).view(b, h, -1)
 
