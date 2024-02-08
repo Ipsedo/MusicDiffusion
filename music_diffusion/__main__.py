@@ -84,8 +84,9 @@ def main() -> None:
         ],
     )
     model_parser.add_argument("--time-size", type=int, default=16)
-    model_parser.add_argument("--lstm-dim", type=int, default=128)
-    model_parser.add_argument("--lstm-hidden-dim", type=int, default=256)
+    model_parser.add_argument("--trf-dim", type=int, default=128)
+    model_parser.add_argument("--trf-hidden-dim", type=int, default=256)
+    model_parser.add_argument("--trf-num-heads", type=int, default=4)
     model_parser.add_argument("--tau-dim", type=int, default=66)
     model_parser.add_argument("--tau-hidden-dim", type=int, default=128)
     model_parser.add_argument("--tau-layers", type=int, default=3)
@@ -145,8 +146,9 @@ def main() -> None:
             steps=args.steps,
             unet_channels=args.unet_channels,
             time_size=args.time_size,
-            lstm_dim=args.lstm_dim,
-            lstm_hidden_dim=args.lstm_hidden_dim,
+            trf_dim=args.trf_dim,
+            trf_hidden_dim=args.trf_hidden_dim,
+            trf_num_heads=args.trf_num_heads,
             tau_dim=args.tau_dim,
             tau_hidden_dim=args.tau_hidden_dim,
             tau_layers=args.tau_layers,

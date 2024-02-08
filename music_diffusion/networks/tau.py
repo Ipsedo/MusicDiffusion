@@ -6,7 +6,7 @@ from torch import nn
 from torch.nn.utils.parametrizations import weight_norm
 
 
-class _PositionalEncoding(nn.Module):
+class PositionalEncoding(nn.Module):
     def __init__(self, model_dim: int, length: int):
         super().__init__()
 
@@ -52,7 +52,7 @@ class AutoregTransformer(nn.Module):
 
         self.__start_vec = nn.Parameter(th.randn((1, 1, model_dim)))
 
-        self.__pe = _PositionalEncoding(model_dim, target_length)
+        self.__pe = PositionalEncoding(model_dim, target_length)
 
     def forward(self, y: th.Tensor) -> th.Tensor:
         assert len(y.size()) == 2

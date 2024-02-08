@@ -5,7 +5,7 @@ import torch as th
 from torch import nn
 
 from .convolutions import ConvBlock, OutChannelProj, StrideConvBlock
-from .recurrent import MiddleRecurrent
+from .recurrent import MiddleTransformer
 from .tau import ConditionEncoder
 from .time import (
     ConditionTimeBypass,
@@ -22,8 +22,9 @@ class TimeUNet(nn.Module):
         channels: List[Tuple[int, int]],
         time_size: int,
         steps: int,
-        lstm_dim: int,
-        lstm_hidden_dim: int,
+        trf_dim: int,
+        trf_hidden_dim: int,
+        trf_num_heads: int,
         tau_dim: int,
         tau_hidden_dim: int,
         tau_layers: int,
@@ -74,11 +75,13 @@ class TimeUNet(nn.Module):
         )
 
         self.__lstm = ConditionTimeBypass(
-            MiddleRecurrent(
+            MiddleTransformer(
                 c_m,
-                lstm_dim,
-                lstm_hidden_dim,
+                trf_dim,
+                trf_hidden_dim,
                 tau_hidden_dim,
+                trf_num_heads,
+                512,
             )
         )
 
