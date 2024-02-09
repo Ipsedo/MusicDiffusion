@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from typing import Callable, Dict, Literal
 
 import torch as th
 from torch import nn
 from torch.nn import functional as F
 from torch.nn.utils.parametrizations import weight_norm
+
+from .utils import Agg, Permute
 
 
 class AggregateFrequencies(nn.Module):
@@ -33,45 +34,20 @@ class AggregateFrequencies(nn.Module):
         return out
 
 
-class ToTimeSeries(nn.Module):
-    def __init__(
-        self,
-        channels: int,
-        output_dim: int,
-        agg_method: Literal["max", "sum", "mean"],
-    ) -> None:
-        super().__init__()
-
-        agg_method_to_fun: Dict[str, Callable[..., th.Tensor]] = {
-            "max": th.amax,
-            "sum": th.sum,
-            "mean": th.mean,
-        }
-
-        self.__to_output = nn.Sequential(
-            weight_norm(nn.Linear(channels, output_dim * 2)),
-            nn.Mish(),
-            weight_norm(nn.Linear(output_dim * 2, output_dim)),
-            nn.Mish(),
-        )
-
-        self.__agg_fun = agg_method_to_fun[agg_method]
-
-    def forward(self, x: th.Tensor) -> th.Tensor:
-        out = x.permute(0, 2, 3, 1)
-        out = self.__to_output(out)
-        out = self.__agg_fun(out, dim=1)
-
-        return out
-
-
 class MiddleRecurrent(nn.Module):
     def __init__(
         self, channels: int, lstm_dim: int, hidden_dim: int, tau_dim: int
     ) -> None:
         super().__init__()
 
-        self.__to_time_series = ToTimeSeries(channels, lstm_dim, "max")
+        self.__to_time_series = nn.Sequential(
+            Permute(0, 2, 3, 1),
+            weight_norm(nn.Linear(channels, lstm_dim * 2)),
+            nn.Mish(),
+            weight_norm(nn.Linear(lstm_dim * 2, lstm_dim)),
+            nn.Mish(),
+            Agg("max", 1),
+        )
 
         self.__to_h_and_c = nn.Sequential(
             weight_norm(nn.Linear(tau_dim, hidden_dim * 2)),
