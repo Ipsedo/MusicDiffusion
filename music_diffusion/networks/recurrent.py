@@ -5,8 +5,6 @@ from torch import nn
 from torch.nn import functional as F
 from torch.nn.utils.parametrizations import weight_norm
 
-from .utils import Agg, Permute
-
 
 class AggregateFrequencies(nn.Module):
     def __init__(
@@ -15,7 +13,7 @@ class AggregateFrequencies(nn.Module):
         super().__init__()
 
         self.__to_input = nn.Linear(input_dim, hidden_dim)
-        self.__key = nn.Parameter(th.rand(1, hidden_dim, 1))
+        self.__to_key = nn.Linear(input_dim, hidden_dim)
         self.__to_value = nn.Linear(input_dim, output_dim)
 
     def forward(self, x: th.Tensor) -> th.Tensor:
@@ -24,12 +22,12 @@ class AggregateFrequencies(nn.Module):
         x = x.permute(0, 3, 2, 1).contiguous().view(b * h, w, c)
 
         q = self.__to_input(x)
-        k = self.__key.repeat(b * h, 1, 1)
+        k = self.__to_key(x).transpose(1, 2)
         v = self.__to_value(x)
 
         weight = F.softmax(th.bmm(q, k), dim=1).transpose(1, 2)
 
-        out = th.bmm(weight, v).view(b, h, -1)
+        out = th.bmm(weight, v).sum(dim=1).view(b, h, -1)
 
         return out
 
@@ -40,13 +38,17 @@ class MiddleRecurrent(nn.Module):
     ) -> None:
         super().__init__()
 
-        self.__to_time_series = nn.Sequential(
-            Permute(0, 2, 3, 1),
-            weight_norm(nn.Linear(channels, lstm_dim * 2)),
-            nn.Mish(),
-            weight_norm(nn.Linear(lstm_dim * 2, lstm_dim)),
-            nn.Mish(),
-            Agg("max", 1),
+        # self.__to_time_series = nn.Sequential(
+        #     Permute(0, 2, 3, 1),
+        #     weight_norm(nn.Linear(channels, lstm_dim * 2)),
+        #     nn.Mish(),
+        #     weight_norm(nn.Linear(lstm_dim * 2, lstm_dim)),
+        #     nn.Mish(),
+        #     Agg("max", 1),
+        # )
+
+        self.__to_time_series = AggregateFrequencies(
+            channels, hidden_dim, lstm_dim
         )
 
         self.__to_h_and_c = nn.Sequential(
