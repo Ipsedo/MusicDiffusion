@@ -24,7 +24,8 @@ class TimeUNet(nn.Module):
         steps: int,
         lstm_dim: int,
         lstm_hidden_dim: int,
-        tau_dim: int,
+        tau_nb_key: int,
+        tau_nb_scoring: int,
         tau_hidden_dim: int,
         tau_layers: int,
     ) -> None:
@@ -46,7 +47,9 @@ class TimeUNet(nn.Module):
         self.__time_embedder = SinusoidTimeEmbedding(steps, time_size)
 
         # Tau - Input encoder
-        self.__tau = ConditionEncoder(tau_dim, tau_hidden_dim, tau_layers)
+        self.__tau = ConditionEncoder(
+            tau_nb_key, tau_nb_scoring, tau_hidden_dim, tau_layers
+        )
 
         # Encoder stuff
         self.__encoder = nn.ModuleList(
@@ -118,13 +121,14 @@ class TimeUNet(nn.Module):
         self,
         x_t: th.Tensor,
         t: th.Tensor,
-        y: th.Tensor,
+        y_key: th.Tensor,
+        y_sco: th.Tensor,
     ) -> Tuple[th.Tensor, th.Tensor]:
         time_vec = self.__time_embedder(t)
 
         bypasses = []
 
-        y_encoded = self.__tau(y)
+        y_encoded = self.__tau(y_key, y_sco)
 
         out = x_t
 

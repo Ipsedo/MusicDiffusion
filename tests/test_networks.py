@@ -97,6 +97,7 @@ def test_denoiser(
         1,
         1,
         condition_dim,
+        condition_dim,
         8,
         1,
     )
@@ -127,7 +128,7 @@ def test_denoiser(
         0, 2, (batch_size, condition_dim), device=device, dtype=th.float
     )
 
-    eps, v = denoiser(x_t, t, y)
+    eps, v = denoiser(x_t, t, y, y)
 
     assert len(eps.size()) == 5
     assert eps.size(0) == batch_size
@@ -167,7 +168,7 @@ def test_denoiser(
         device=device,
     )
 
-    x_0 = denoiser.sample(x_t, y)
+    x_0 = denoiser.sample(x_t, y, y)
 
     assert len(x_0.size()) == 4
     assert x_0.size(0) == batch_size
@@ -175,7 +176,7 @@ def test_denoiser(
     assert x_0.size(2) == img_sizes[0]
     assert x_0.size(3) == img_sizes[1]
 
-    x_0 = denoiser.fast_sample(x_t, y, steps // 2)
+    x_0 = denoiser.fast_sample(x_t, y, y, steps // 2)
 
     assert len(x_0.size()) == 4
     assert x_0.size(0) == batch_size
@@ -192,7 +193,8 @@ def test_denoiser(
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("lstm_dim", [1, 2])
 @pytest.mark.parametrize("lstm_hidden_dim", [1, 2])
-@pytest.mark.parametrize("tau_dim", [2, 4])
+@pytest.mark.parametrize("tau_nb_key", [2, 4])
+@pytest.mark.parametrize("tau_nb_scoring", [2, 4])
 @pytest.mark.parametrize("tau_hidden_dim", [2, 4])
 @pytest.mark.parametrize("tau_layers", [1, 2])
 def test_unet(
@@ -201,7 +203,8 @@ def test_unet(
     time_size: int,
     lstm_dim: int,
     lstm_hidden_dim: int,
-    tau_dim: int,
+    tau_nb_key: int,
+    tau_nb_scoring: int,
     tau_hidden_dim: int,
     tau_layers: int,
     use_cuda: bool,
@@ -217,7 +220,8 @@ def test_unet(
         steps,
         lstm_dim,
         lstm_hidden_dim,
-        tau_dim,
+        tau_nb_key,
+        tau_nb_scoring,
         tau_hidden_dim,
         tau_layers,
     )
@@ -244,9 +248,14 @@ def test_unet(
         (batch_size, nb_steps),
         device=device,
     )
-    y = th.randint(0, 2, (batch_size, tau_dim), device=device, dtype=th.float)
+    y_k = th.randint(
+        0, 2, (batch_size, tau_nb_key), device=device, dtype=th.float
+    )
+    y_s = th.randint(
+        0, 2, (batch_size, tau_nb_scoring), device=device, dtype=th.float
+    )
 
-    eps, v = unet(x_t, t, y)
+    eps, v = unet(x_t, t, y_k, y_s)
 
     assert len(eps.size()) == 5
     assert eps.size(0) == batch_size

@@ -81,7 +81,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 "steps": model_options.steps,
                 "time_size": model_options.time_size,
                 "unet_channels": model_options.unet_channels,
-                "tau_dim": model_options.tau_dim,
+                "tau_nb_key": model_options.tau_nb_key,
+                "tau_nb_scoring": model_options.tau_nb_scoring,
                 "tau_hidden_dim": model_options.tau_hidden_dim,
                 "tau_layers": model_options.tau_layers,
                 "input_dataset": train_options.dataset_path,
@@ -103,11 +104,12 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
             tqdm_bar = tqdm(dataloader)
 
-            for x_0, y in tqdm_bar:
+            for x_0, y_key, y_scoring in tqdm_bar:
 
                 if model_options.cuda:
                     x_0 = x_0.cuda()
-                    y = y.cuda()
+                    y_key = y_key.cuda()
+                    y_scoring = y_scoring.cuda()
 
                 t = th.randint(
                     0,
@@ -120,7 +122,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 )
 
                 x_t, eps = noiser(x_0, t)
-                eps_theta, v_theta = denoiser(x_t, t, y)
+                eps_theta, v_theta = denoiser(x_t, t, y_key, y_scoring)
 
                 loss_mse = mse(eps, eps_theta)
 

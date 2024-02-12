@@ -197,7 +197,8 @@ class Denoiser(Diffuser):
         unet_channels: List[Tuple[int, int]],
         lstm_dim: int,
         lstm_hidden_dim: int,
-        tau_dim: int,
+        tau_nb_key: int,
+        tau_nb_scoring: int,
         tau_hidden_dim: int,
         tau_layers: int,
     ) -> None:
@@ -224,7 +225,8 @@ class Denoiser(Diffuser):
             self._steps,
             lstm_dim,
             lstm_hidden_dim,
-            tau_dim,
+            tau_nb_key,
+            tau_nb_scoring,
             tau_hidden_dim,
             tau_layers,
         )
@@ -235,16 +237,19 @@ class Denoiser(Diffuser):
         self,
         x_t: th.Tensor,
         t: th.Tensor,
-        y: th.Tensor,
+        y_key: th.Tensor,
+        y_sco: th.Tensor,
     ) -> Tuple[th.Tensor, th.Tensor]:
         assert len(x_t.size()) == 5
         assert len(t.size()) == 2
-        assert len(y.size()) == 2
+        assert len(y_key.size()) == 2
+        assert len(y_sco.size()) == 2
         assert x_t.size(0) == t.size(0)
         assert x_t.size(1) == t.size(1)
-        assert x_t.size(0) == y.size(0)
+        assert x_t.size(0) == y_key.size(0)
+        assert x_t.size(0) == y_sco.size(0)
 
-        eps_theta, v_theta = self.__unet(x_t, t, y)
+        eps_theta, v_theta = self.__unet(x_t, t, y_key, y_sco)
 
         return eps_theta, v_theta
 
@@ -335,11 +340,17 @@ class Denoiser(Diffuser):
 
     @th.no_grad()
     def sample(
-        self, x_t: th.Tensor, y: th.Tensor, verbose: bool = False
+        self,
+        x_t: th.Tensor,
+        y_key: th.Tensor,
+        y_scoring: th.Tensor,
+        verbose: bool = False,
     ) -> th.Tensor:
         assert len(x_t.size()) == 4
-        assert len(y.size()) == 2
-        assert x_t.size(0) == y.size(0)
+        assert len(y_key.size()) == 2
+        assert len(y_scoring.size()) == 2
+        assert x_t.size(0) == y_key.size(0)
+        assert x_t.size(0) == y_scoring.size(0)
         assert x_t.size(1) == self.__channels
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
@@ -359,7 +370,8 @@ class Denoiser(Diffuser):
             eps, v = self.__unet(
                 x_t.unsqueeze(1),
                 t_tensor.repeat(x_t.size(0), 1),
-                y,
+                y_key,
+                y_scoring,
             )
 
             # original sampling method
@@ -378,7 +390,12 @@ class Denoiser(Diffuser):
 
     @th.no_grad()
     def fast_sample(
-        self, x_t: th.Tensor, y: th.Tensor, n_steps: int, verbose: bool = False
+        self,
+        x_t: th.Tensor,
+        y_key: th.Tensor,
+        y_scoring: th.Tensor,
+        n_steps: int,
+        verbose: bool = False,
     ) -> th.Tensor:
         assert len(x_t.size()) == 4
         assert x_t.size(1) == self.__channels
@@ -422,7 +439,8 @@ class Denoiser(Diffuser):
             eps, v = self.__unet(
                 x_t.unsqueeze(1),
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
-                y,
+                y_key,
+                y_scoring,
             )
 
             mu = self.__mu_clipped(

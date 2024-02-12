@@ -86,7 +86,8 @@ def main() -> None:
     model_parser.add_argument("--time-size", type=int, default=16)
     model_parser.add_argument("--lstm-dim", type=int, default=128)
     model_parser.add_argument("--lstm-hidden-dim", type=int, default=256)
-    model_parser.add_argument("--tau-dim", type=int, default=66)
+    model_parser.add_argument("--nb-key", type=int, default=33)
+    model_parser.add_argument("--nb-scoring", type=int, default=33)
     model_parser.add_argument("--tau-hidden-dim", type=int, default=128)
     model_parser.add_argument("--tau-layers", type=int, default=3)
     model_parser.add_argument("--cuda", action="store_true")
@@ -147,7 +148,8 @@ def main() -> None:
             time_size=args.time_size,
             lstm_dim=args.lstm_dim,
             lstm_hidden_dim=args.lstm_hidden_dim,
-            tau_dim=args.tau_dim,
+            tau_nb_key=args.nb_key,
+            tau_nb_scoring=args.nb_scoring,
             tau_hidden_dim=args.tau_hidden_dim,
             tau_layers=args.tau_layers,
             cuda=args.cuda,

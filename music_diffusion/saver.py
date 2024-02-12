@@ -146,13 +146,11 @@ class Saver:
                     ]
                 )
 
-                y = th.cat([key_tensor, scoring_tensor], dim=1).to(device)
-
                 # generate
 
                 self.__ema_denoiser.eval()
                 x_0 = self.__ema_denoiser.ema_model.sample(
-                    x_t, y, verbose=True
+                    x_t, key_tensor, scoring_tensor, verbose=True
                 )
                 self.__ema_denoiser.train()
 

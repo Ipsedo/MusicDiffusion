@@ -69,17 +69,28 @@ class AutoregTransformer(nn.Module):
         return tgt
 
 
-class ConditionEncoder(nn.Sequential):
+class ConditionEncoder(nn.Module):
     def __init__(
-        self, condition_dim: int, hidden_dim: int, nb_layers: int
+        self, nb_key: int, nb_scoring: int, hidden_dim: int, nb_layers: int
     ) -> None:
+        super().__init__()
         assert nb_layers > 0
         layers_dim = [
-            (condition_dim if i == 0 else hidden_dim, hidden_dim)
+            (hidden_dim * 2 if i == 0 else hidden_dim, hidden_dim)
             for i in range(nb_layers)
         ]
 
-        super().__init__(
+        self.__key_proj = nn.Sequential(
+            weight_norm(nn.Linear(nb_key, hidden_dim)),
+            nn.Mish(),
+        )
+
+        self.__scoring_emb = nn.Parameter(th.randn(1, nb_scoring, hidden_dim))
+        self.__scoring_att = nn.MultiheadAttention(
+            hidden_dim, 1, batch_first=True
+        )
+
+        self.__to_hidden = nn.Sequential(
             *[
                 nn.Sequential(
                     weight_norm(nn.Linear(d_i, d_o)),
@@ -88,3 +99,14 @@ class ConditionEncoder(nn.Sequential):
                 for d_i, d_o in layers_dim
             ]
         )
+
+    def forward(self, key: th.Tensor, scoring: th.Tensor) -> th.Tensor:
+        hidden_key = self.__key_proj(key)
+
+        sco_emb = scoring.unsqueeze(-1) * self.__scoring_emb
+        sco_att = self.__scoring_att(sco_emb, sco_emb, sco_emb)[0].sum(dim=1)
+
+        out = th.cat([hidden_key, sco_att], dim=1)
+        out = self.__to_hidden(out)
+
+        return out

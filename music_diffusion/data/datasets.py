@@ -56,7 +56,9 @@ class ConditionAudioDataset(Dataset):
             row["idx"]: row["bwv"] for _, row in idx_to_bwv_df.iterrows()
         }
 
-    def __getitem__(self, index: int) -> Tuple[th.Tensor, th.Tensor]:
+    def __getitem__(
+        self, index: int
+    ) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         magn_phase = self.__audio_dataset[index]
 
         key = th.load(
@@ -66,9 +68,9 @@ class ConditionAudioDataset(Dataset):
             join(self.__dataset_path, f"scoring_{self.__idx_to_bwv[index]}.pt")
         )
 
-        y = th.cat([key, scoring], dim=-1)
+        # y = th.cat([key, scoring], dim=-1)
 
-        return magn_phase, y
+        return magn_phase, key, scoring
 
     def __len__(self) -> int:
         return len(self.__idx_to_bwv)

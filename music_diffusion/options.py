@@ -13,7 +13,8 @@ class ModelOptions(NamedTuple):
     time_size: int
     lstm_dim: int
     lstm_hidden_dim: int
-    tau_dim: int
+    tau_nb_key: int
+    tau_nb_scoring: int
     tau_hidden_dim: int
     tau_layers: int
     cuda: bool
@@ -25,7 +26,8 @@ class ModelOptions(NamedTuple):
             self.unet_channels,
             self.lstm_dim,
             self.lstm_hidden_dim,
-            self.tau_dim,
+            self.tau_nb_key,
+            self.tau_nb_scoring,
             self.tau_hidden_dim,
             self.tau_layers,
         )
@@ -64,12 +66,14 @@ class GenerateOptions(NamedTuple):
     key_to_idx: Dict[str, int]
     scoring_to_idx: Dict[str, int]
 
-    def get_y(self) -> th.Tensor:
-        assert len(self.keys) == len(self.scoring_list)
-
+    def get_y_key(self) -> th.Tensor:
         key = th.stack(
             [one_hot_encode(k, self.key_to_idx) for k in self.keys], dim=0
         )
+
+        return key
+
+    def get_y_scoring(self) -> th.Tensor:
         scoring = th.stack(
             [
                 multi_label_one_hot_encode(s_l, self.scoring_to_idx)
@@ -78,4 +82,4 @@ class GenerateOptions(NamedTuple):
             dim=0,
         )
 
-        return th.cat([key, scoring], dim=-1)
+        return scoring

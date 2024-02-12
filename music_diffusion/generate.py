@@ -72,14 +72,19 @@ def generate(
             width * generate_options.frames,
             device=device,
         )
-        y = generate_options.get_y().to(device)
+        y_key = generate_options.get_y_key().to(device)
+        y_scoring = generate_options.get_y_scoring().to(device)
 
         x_0 = (
             denoiser.fast_sample(
-                x_t, y, generate_options.fast_sample, verbose=True
+                x_t,
+                y_key,
+                y_scoring,
+                generate_options.fast_sample,
+                verbose=True,
             )
             if generate_options.fast_sample is not None
-            else denoiser.sample(x_t, y, verbose=True)
+            else denoiser.sample(x_t, y_key, y_scoring, verbose=True)
         )
 
         print("Saving sound...")
