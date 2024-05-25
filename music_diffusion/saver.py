@@ -98,7 +98,7 @@ class Saver:
                             self.__output_dir,
                             f"sample_{self.__curr_save}_ID{i}.wav",
                         ),
-                        x_0[i].clone(),
+                        x_0[i].cpu().clone(),
                         SAMPLE_RATE,
                     )
 

@@ -41,6 +41,7 @@ class TimeUNet(nn.Module):
                     CausalConvBlock(c_i, c_o, 1),
                     CausalConvBlock(c_o, c_o, 2),
                     CausalConvBlock(c_o, c_o, 4),
+                    CausalConvBlock(c_o, c_o, 8),
                 ],
             )
             for c_i, c_o in encoding_channels
@@ -53,7 +54,14 @@ class TimeUNet(nn.Module):
 
         # Middle stuff
         c_m = encoding_channels[-1][1]
-        self.__middle_block = TimeBypass(LiquidRecurrent(c_m, c_m, 6))
+        self.__middle_block = TimeBypass(
+            nn.Sequential(
+                LiquidRecurrent(128, c_m, 6),
+                nn.Conv1d(
+                    128, c_m, bias=False, kernel_size=1, stride=1, padding=0
+                ),
+            )
+        )
 
         # Decoder stuff
         self.__decoder_up = nn.ModuleList(
@@ -65,7 +73,8 @@ class TimeUNet(nn.Module):
             SequentialTimeWrapper(
                 time_size,
                 [
-                    CausalConvBlock(c_i * 2, c_o, 4),
+                    CausalConvBlock(c_i * 2, c_o, 8),
+                    CausalConvBlock(c_o, c_o, 4),
                     CausalConvBlock(c_o, c_o, 2),
                     CausalConvBlock(c_o, c_o, 1),
                 ],
