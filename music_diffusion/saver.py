@@ -20,7 +20,8 @@ class Saver:
         ema_denoiser: EMA,
         output_dir: str,
         save_every: int,
-        nb_sample: int,
+        nb_audio: int,
+        nb_sample: int = N_SAMPLES,
     ) -> None:
 
         if not exists(output_dir):
@@ -30,6 +31,7 @@ class Saver:
 
         self.__output_dir = output_dir
         self.__save_every = save_every
+        self.__nb_audio = nb_audio
         self.__nb_sample = nb_sample
 
         self.__in_channels = in_channels
@@ -73,9 +75,9 @@ class Saver:
                 )
 
                 x_t = th.randn(
-                    self.__nb_sample,
+                    self.__nb_audio,
                     self.__in_channels,
-                    N_SAMPLES,
+                    self.__nb_sample,
                     device=device,
                 )
 
@@ -90,13 +92,13 @@ class Saver:
                     ),
                 )
 
-                for i in range(self.__nb_sample):
+                for i in range(self.__nb_audio):
                     tensor_to_wav(
                         join(
                             self.__output_dir,
                             f"sample_{self.__curr_save}_ID{i}.wav",
                         ),
-                        x_0[i],
+                        x_0[i].clone(),
                         SAMPLE_RATE,
                     )
 

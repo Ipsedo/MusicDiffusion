@@ -5,6 +5,7 @@ import torch as th
 from torch import nn
 
 from .convolutions import CausalConvBlock, OutChannelProj1d, StrideConv1dBlock
+from .liquid import LiquidRecurrent
 from .time import SequentialTimeWrapper, SinusoidTimeEmbedding, TimeBypass
 
 
@@ -52,13 +53,7 @@ class TimeUNet(nn.Module):
 
         # Middle stuff
         c_m = encoding_channels[-1][1]
-        self.__middle_block = SequentialTimeWrapper(
-            time_size,
-            [
-                CausalConvBlock(c_m, c_m, 1),
-                CausalConvBlock(c_m, c_m, 1),
-            ],
-        )
+        self.__middle_block = TimeBypass(LiquidRecurrent(c_m, c_m, 6))
 
         # Decoder stuff
         self.__decoder_up = nn.ModuleList(
@@ -105,7 +100,7 @@ class TimeUNet(nn.Module):
             bypasses.append(out)
             out = down(out)
 
-        out = self.__middle_block(out, time_vec)
+        out = self.__middle_block(out) + out
 
         for up, bypass, block in zip(
             self.__decoder_up,

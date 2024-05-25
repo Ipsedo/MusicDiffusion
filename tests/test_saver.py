@@ -12,8 +12,9 @@ from music_diffusion.saver import Saver
 
 
 @pytest.mark.parametrize("save_every", [2, 3])
-@pytest.mark.parametrize("nb_samples", [2, 3])
-def test_saver(save_every: int, nb_samples: int) -> None:
+@pytest.mark.parametrize("nb_samples", [128, 256])
+@pytest.mark.parametrize("nb_audios", [2, 3])
+def test_saver(save_every: int, nb_samples: int, nb_audios: int) -> None:
     steps = 2
     channels = 2
 
@@ -26,7 +27,15 @@ def test_saver(save_every: int, nb_samples: int) -> None:
     mkdir(tmp_dir)
 
     saver = Saver(
-        channels, noiser, denoiser, optim, ema, tmp_dir, save_every, nb_samples
+        channels,
+        noiser,
+        denoiser,
+        optim,
+        ema,
+        tmp_dir,
+        save_every,
+        nb_audios,
+        nb_samples,
     )
     try:
         for _ in range(save_every - 1):
@@ -38,7 +47,7 @@ def test_saver(save_every: int, nb_samples: int) -> None:
             assert not exists(join(tmp_dir, "noiser_0.pt"))
             assert not exists(join(tmp_dir, "raw_audio_0.pt"))
 
-            for i in range(nb_samples):
+            for i in range(nb_audios):
                 assert not exists(join(tmp_dir, f"sample_0_ID{i}.wav"))
 
         saver.save()
@@ -59,7 +68,7 @@ def test_saver(save_every: int, nb_samples: int) -> None:
             join(tmp_dir, "raw_audio_0.pt")
         )
 
-        for i in range(nb_samples):
+        for i in range(nb_audios):
             assert exists(join(tmp_dir, f"sample_0_ID{i}.wav")) and isfile(
                 join(tmp_dir, f"sample_0_ID{i}.wav")
             )
