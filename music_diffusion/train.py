@@ -6,7 +6,7 @@ from ema_pytorch import EMA
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from .data import AudioDataset
+from .data import WaveAudioDataset
 from .metrics import Metric
 from .networks import mse, normal_kl_div
 from .options import ModelOptions, TrainOptions
@@ -60,7 +60,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             train_options.nb_samples,
         )
 
-        dataset = AudioDataset(train_options.dataset_path)
+        dataset = WaveAudioDataset(train_options.dataset_path)
 
         dataloader = DataLoader(
             dataset,

@@ -36,10 +36,9 @@ def test_saver(save_every: int, nb_samples: int) -> None:
             assert not exists(join(tmp_dir, "denoiser_ema_0.pt"))
             assert not exists(join(tmp_dir, "denoiser_optim_0.pt"))
             assert not exists(join(tmp_dir, "noiser_0.pt"))
-            assert not exists(join(tmp_dir, "magn_phase_0.pt"))
+            assert not exists(join(tmp_dir, "raw_audio_0.pt"))
 
             for i in range(nb_samples):
-                assert not exists(join(tmp_dir, f"magn_phase_0_ID{i}.png"))
                 assert not exists(join(tmp_dir, f"sample_0_ID{i}.wav"))
 
         saver.save()
@@ -56,14 +55,11 @@ def test_saver(save_every: int, nb_samples: int) -> None:
         assert exists(join(tmp_dir, "noiser_0.pt")) and isfile(
             join(tmp_dir, "noiser_0.pt")
         )
-        assert exists(join(tmp_dir, "magn_phase_0.pt")) and isfile(
-            join(tmp_dir, "magn_phase_0.pt")
+        assert exists(join(tmp_dir, "raw_audio_0.pt")) and isfile(
+            join(tmp_dir, "raw_audio_0.pt")
         )
 
         for i in range(nb_samples):
-            assert exists(join(tmp_dir, f"magn_phase_0_ID{i}.png")) and isfile(
-                join(tmp_dir, f"magn_phase_0_ID{i}.png")
-            )
             assert exists(join(tmp_dir, f"sample_0_ID{i}.wav")) and isfile(
                 join(tmp_dir, f"sample_0_ID{i}.wav")
             )

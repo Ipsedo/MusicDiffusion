@@ -3,7 +3,7 @@ import argparse
 import re
 from typing import List, Tuple
 
-from .data import create_dataset
+from .data import create_dataset, create_waveform_dataset
 from .generate import generate
 from .options import GenerateOptions, ModelOptions, TrainOptions
 from .train import train
@@ -48,10 +48,16 @@ def main() -> None:
     # Create dataset
     #################
 
+    # STFT
     dataset_parser = sub_command.add_parser("create_data")
 
     dataset_parser.add_argument("music_glob_path", type=str)
     dataset_parser.add_argument("output_dir", type=str)
+
+    # Waveform
+    dataset_waveform_parser = sub_command.add_parser("create_waveform")
+    dataset_waveform_parser.add_argument("music_glob_path", type=str)
+    dataset_waveform_parser.add_argument("output_dir", type=str)
 
     #####################
     # Train and Generate
@@ -163,6 +169,12 @@ def main() -> None:
 
     elif args.mode == "create_data":
         create_dataset(
+            args.music_glob_path,
+            args.output_dir,
+        )
+
+    elif args.mode == "create_waveform":
+        create_waveform_dataset(
             args.music_glob_path,
             args.output_dir,
         )

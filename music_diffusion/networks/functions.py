@@ -10,7 +10,7 @@ from music_diffusion.data import BIN_SIZE
 
 def select_time_scheduler(factor: th.Tensor, t: th.Tensor) -> th.Tensor:
     b, s = t.size()
-    factor = factor[t.flatten(), None, None, None]
+    factor = factor[t.flatten(), None, None]
     return th.unflatten(factor, 0, (b, s))
 
 

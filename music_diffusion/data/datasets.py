@@ -9,13 +9,13 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 
 
-class AudioDataset(Dataset):
-    def __init__(self, dataset_path: str) -> None:
+class _AbstractAudioDataset(Dataset):
+    def __init__(self, dataset_path: str, regex: str) -> None:
         super().__init__()
 
         assert isdir(dataset_path)
 
-        re_files = re.compile(r"^magn_phase_\d+\.pt$")
+        re_files = re.compile(regex)
 
         all_files = [
             f
@@ -37,3 +37,13 @@ class AudioDataset(Dataset):
 
     def __len__(self) -> int:
         return len(self.__all_files)
+
+
+class AudioDataset(_AbstractAudioDataset):
+    def __init__(self, dataset_path: str) -> None:
+        super().__init__(dataset_path, r"^magn_phase_\d+\.pt$")
+
+
+class WaveAudioDataset(_AbstractAudioDataset):
+    def __init__(self, dataset_path: str) -> None:
+        super().__init__(dataset_path, r"^raw_audio_\d+\.pt$")

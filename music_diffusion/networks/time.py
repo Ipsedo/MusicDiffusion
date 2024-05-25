@@ -89,7 +89,7 @@ class TimeWrapper(nn.Module):
         b, t = x.size()[:2]
 
         proj_time_emb = self.__to_channels(time_emb)
-        proj_time_emb = proj_time_emb[:, :, :, None, None]
+        proj_time_emb = proj_time_emb[:, :, :, None]
         scale, shift = th.chunk(proj_time_emb, chunks=2, dim=2)
 
         out: th.Tensor = self.__block(x.flatten(0, 1))

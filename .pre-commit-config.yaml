@@ -1,7 +1,7 @@
 fail_fast: true
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+    rev: v4.6.0
     hooks:
       - id: end-of-file-fixer
         exclude: resources
@@ -16,16 +16,15 @@ repos:
       - id: mixed-line-ending
         exclude: resources
   - repo: https://github.com/psf/black
-    rev: 22.10.0
+    rev: 24.4.2
     hooks:
       - id: black
   - repo: https://github.com/hadialqattan/pycln
-    rev: v2.1.2
+    rev: v2.4.0
     hooks:
       - id: pycln
-        args: [ --config, pyproject.toml ]
   - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
+    rev: 5.13.2
     hooks:
       - id: isort
         files: "\\.(py)$"

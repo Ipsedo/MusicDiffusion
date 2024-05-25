@@ -136,17 +136,17 @@ class Noiser(Diffuser):
     def forward(
         self, x_0: th.Tensor, t: th.Tensor, eps: Optional[th.Tensor] = None
     ) -> Tuple[th.Tensor, th.Tensor]:
-        assert len(x_0.size()) == 4
+        assert len(x_0.size()) == 3
         assert len(t.size()) == 2
         assert x_0.size(0) == t.size(0)
 
-        b, c, w, h = x_0.size()
+        b, c, w = x_0.size()
         nb_steps = t.size(1)
 
         device = "cuda" if next(self.buffers()).is_cuda else "cpu"
 
         if eps is None:
-            eps = th.randn(b, nb_steps, c, w, h, device=device)
+            eps = th.randn(b, nb_steps, c, w, device=device)
 
         sqrt_alphas_cum_prod = select_time_scheduler(
             self._sqrt_alphas_cum_prod, t
@@ -177,8 +177,8 @@ class Noiser(Diffuser):
         x_0: th.Tensor,
         t: th.Tensor,
     ) -> Tuple[th.Tensor, th.Tensor]:
-        assert len(x_t.size()) == 5
-        assert len(x_0.size()) == 4
+        assert len(x_t.size()) == 4
+        assert len(x_0.size()) == 3
         assert len(t.size()) == 2
 
         return self.__mu(x_t, x_0, t), self.__var(t)
@@ -224,7 +224,7 @@ class Denoiser(Diffuser):
     def forward(
         self, x_t: th.Tensor, t: th.Tensor
     ) -> Tuple[th.Tensor, th.Tensor]:
-        assert len(x_t.size()) == 5
+        assert len(x_t.size()) == 4
         assert len(t.size()) == 2
         assert x_t.size(0) == t.size(0)
         assert x_t.size(1) == t.size(1)
@@ -312,15 +312,15 @@ class Denoiser(Diffuser):
         eps_theta: th.Tensor,
         v_theta: th.Tensor,
     ) -> Tuple[th.Tensor, th.Tensor]:
-        assert len(x_t.size()) == 5
+        assert len(x_t.size()) == 4
         assert len(t.size()) == 2
-        assert len(eps_theta.size()) == 5
+        assert len(eps_theta.size()) == 4
 
         return self.__mu(x_t, eps_theta, t), self.__var(v_theta, t)
 
     @th.no_grad()
     def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
-        assert len(x_t.size()) == 4
+        assert len(x_t.size()) == 3
         assert x_t.size(1) == self.__channels
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
@@ -360,7 +360,7 @@ class Denoiser(Diffuser):
     def fast_sample(
         self, x_t: th.Tensor, n_steps: int, verbose: bool = False
     ) -> th.Tensor:
-        assert len(x_t.size()) == 4
+        assert len(x_t.size()) == 3
         assert x_t.size(1) == self.__channels
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"

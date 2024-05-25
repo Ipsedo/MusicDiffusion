@@ -4,7 +4,7 @@ from typing import List, Tuple
 import torch as th
 from torch import nn
 
-from .convolutions import ConvBlock, OutChannelProj, StrideConvBlock
+from .convolutions import CausalConvBlock, OutChannelProj1d, StrideConv1dBlock
 from .time import SequentialTimeWrapper, SinusoidTimeEmbedding, TimeBypass
 
 
@@ -37,15 +37,16 @@ class TimeUNet(nn.Module):
             SequentialTimeWrapper(
                 time_size,
                 [
-                    ConvBlock(c_i, c_o),
-                    ConvBlock(c_o, c_o),
+                    CausalConvBlock(c_i, c_o, 1),
+                    CausalConvBlock(c_o, c_o, 2),
+                    CausalConvBlock(c_o, c_o, 4),
                 ],
             )
             for c_i, c_o in encoding_channels
         )
 
         self.__encoder_down = nn.ModuleList(
-            TimeBypass(StrideConvBlock(c_o, c_o, "down"))
+            TimeBypass(StrideConv1dBlock(c_o, c_o, "down"))
             for _, c_o in encoding_channels
         )
 
@@ -54,14 +55,14 @@ class TimeUNet(nn.Module):
         self.__middle_block = SequentialTimeWrapper(
             time_size,
             [
-                ConvBlock(c_m, c_m),
-                ConvBlock(c_m, c_m),
+                CausalConvBlock(c_m, c_m, 1),
+                CausalConvBlock(c_m, c_m, 1),
             ],
         )
 
         # Decoder stuff
         self.__decoder_up = nn.ModuleList(
-            TimeBypass(StrideConvBlock(c_i, c_i, "up"))
+            TimeBypass(StrideConv1dBlock(c_i, c_i, "up"))
             for c_i, _ in decoding_channels
         )
 
@@ -69,8 +70,9 @@ class TimeUNet(nn.Module):
             SequentialTimeWrapper(
                 time_size,
                 [
-                    ConvBlock(c_i * 2, c_o),
-                    ConvBlock(c_o, c_o),
+                    CausalConvBlock(c_i * 2, c_o, 4),
+                    CausalConvBlock(c_o, c_o, 2),
+                    CausalConvBlock(c_o, c_o, 1),
                 ],
             )
             for c_i, c_o in decoding_channels
@@ -79,11 +81,11 @@ class TimeUNet(nn.Module):
         c_o = decoding_channels[-1][1]
         out_channels = encoding_channels[0][0]
         self.__eps_end_conv = TimeBypass(
-            OutChannelProj(c_o, out_channels),
+            OutChannelProj1d(c_o, out_channels),
         )
 
         self.__v_end_conv = TimeBypass(
-            OutChannelProj(c_o, out_channels),
+            OutChannelProj1d(c_o, out_channels),
         )
 
     def forward(
