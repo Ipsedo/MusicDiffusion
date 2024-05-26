@@ -124,9 +124,7 @@ class TimeUNet(nn.Module):
             reversed(bypasses),
             self.__decoder,
         ):
-            print(out.size())
             out = up(out)
-            print(out.size())
             out = th.cat([out, bypass], dim=2)
             out = block(out, time_vec)
 
