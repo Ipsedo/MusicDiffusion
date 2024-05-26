@@ -6,7 +6,7 @@ import torch as th
 from torch import nn
 from torch.nn.utils.parametrizations import weight_norm
 
-from .utils import ChannelModule
+from .utils import ChannelsModule
 
 
 class SinusoidTimeEmbedding(nn.Module):
@@ -71,18 +71,21 @@ class TimeWrapper(nn.Module):
     def __init__(
         self,
         time_size: int,
-        module: ChannelModule,
+        module: ChannelsModule,
     ) -> None:
         super().__init__()
 
-        self.__block = module
-
-        channels = module.out_channels
+        self.__module = module
 
         self.__to_channels = nn.Sequential(
-            weight_norm(nn.Linear(time_size, channels * 2)),
+            weight_norm(nn.Linear(time_size, self.__module.out_channels * 2)),
             nn.Mish(),
-            weight_norm(nn.Linear(channels * 2, channels * 2)),
+            weight_norm(
+                nn.Linear(
+                    self.__module.out_channels * 2,
+                    self.__module.out_channels * 2,
+                )
+            ),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
@@ -92,7 +95,7 @@ class TimeWrapper(nn.Module):
         proj_time_emb = proj_time_emb[:, :, :, None]
         scale, shift = th.chunk(proj_time_emb, chunks=2, dim=2)
 
-        out: th.Tensor = self.__block(x.flatten(0, 1))
+        out: th.Tensor = self.__module(x.flatten(0, 1))
         out = th.unflatten(out, 0, (b, t))
 
         out = out * (scale + 1.0) + shift
@@ -104,9 +107,9 @@ class SequentialTimeWrapper(nn.ModuleList):
     def __init__(
         self,
         time_size: int,
-        conv_layers: Iterable[ChannelModule],
+        channels_modules: Iterable[ChannelsModule],
     ):
-        super().__init__(TimeWrapper(time_size, c) for c in conv_layers)
+        super().__init__(TimeWrapper(time_size, c) for c in channels_modules)
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
         out = x

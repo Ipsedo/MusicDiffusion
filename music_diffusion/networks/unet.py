@@ -11,12 +11,7 @@ from .convolutions import (
     StrideCausalConvBlock,
 )
 from .liquid import LiquidRecurrentOutput
-from .time import (
-    SequentialTimeWrapper,
-    SinusoidTimeEmbedding,
-    TimeBypass,
-    TimeWrapper,
-)
+from .time import SequentialTimeWrapper, SinusoidTimeEmbedding, TimeBypass
 
 
 class TimeUNet(nn.Module):
@@ -63,9 +58,8 @@ class TimeUNet(nn.Module):
 
         # Middle stuff
         c_m = encoding_channels[-1][1]
-        self.__middle_block = TimeWrapper(
-            time_size,
-            LiquidRecurrentOutput(neuron_number, c_m, 6),
+        self.__middle_block = TimeBypass(
+            LiquidRecurrentOutput(neuron_number, c_m, 6)
         )
 
         # Decoder stuff
@@ -112,7 +106,7 @@ class TimeUNet(nn.Module):
             bypasses.append(out)
             out = down(out)
 
-        out = self.__middle_block(out, time_vec) + out
+        out = self.__middle_block(out) + out
 
         for up, bypass, block in zip(
             self.__decoder_up,

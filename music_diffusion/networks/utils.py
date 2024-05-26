@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from torch import nn
 
 
-class ChannelModule(ABC, nn.Module):
+class ChannelsModule(ABC, nn.Module):
     @property
     @abstractmethod
     def out_channels(self) -> int:

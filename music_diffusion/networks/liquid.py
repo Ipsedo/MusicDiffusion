@@ -4,7 +4,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from .convolutions import OutChannelProj1d
-from .utils import ChannelModule
+from .utils import ChannelsModule
 
 
 class CellModel(nn.Module):
@@ -90,7 +90,7 @@ class LiquidRecurrent(nn.Module):
         return th.stack(outputs[1:], dim=-1)
 
 
-class LiquidRecurrentOutput(LiquidRecurrent, ChannelModule):
+class LiquidRecurrentOutput(LiquidRecurrent, ChannelsModule):
 
     def __init__(
         self, neuron_number: int, input_size: int, unfolding_steps: int

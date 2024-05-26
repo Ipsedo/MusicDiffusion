@@ -6,10 +6,10 @@ from torch import Tensor, nn
 from torch.nn import functional as F
 from torch.nn.utils.parametrizations import weight_norm
 
-from .utils import ChannelModule
+from .utils import ChannelsModule
 
 
-class _BaseConv(nn.Sequential, ChannelModule):
+class _BaseConv(nn.Sequential, ChannelsModule):
     def __init__(self, out_channels: int, *modules: nn.Module):
         super().__init__(*modules)
 

@@ -60,14 +60,11 @@ def main() -> None:
         "--unet-channels",
         type=_channels,
         default=[
-            (2, 16),
+            (2, 8),
+            (8, 16),
             (16, 32),
-            (32, 48),
-            (48, 64),
-            (64, 80),
-            (80, 96),
-            (96, 112),
-            (112, 128),
+            (32, 64),
+            (64, 128),
         ],
     )
     model_parser.add_argument("--time-size", type=int, default=16)
@@ -85,7 +82,7 @@ def main() -> None:
     train_parser.add_argument("run_name", type=str)
 
     train_parser.add_argument("-i", "--input-dataset", type=str, required=True)
-    train_parser.add_argument("--batch-size", type=int, default=16)
+    train_parser.add_argument("--batch-size", type=int, default=64)
     train_parser.add_argument("--step-batch-size", type=int, default=1)
     train_parser.add_argument("--epochs", type=int, default=1000)
     train_parser.add_argument("--learning-rate", type=float, default=1e-4)
