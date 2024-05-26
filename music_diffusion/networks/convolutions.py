@@ -233,7 +233,6 @@ class CausalConvBlock(_BaseConv):
                 dilation=dilation,
             ),
             nn.Mish(),
-            nn.InstanceNorm1d(out_channels, affine=False),
         )
 
 
@@ -259,5 +258,4 @@ class StrideCausalConvBlock(_BaseConv):
                 dilation=1,
             ),
             nn.Mish(),
-            nn.InstanceNorm1d(out_channels, affine=False),
         )
