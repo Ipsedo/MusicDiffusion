@@ -10,5 +10,6 @@ SAMPLE_RATE: Final[int] = 16000
 OUTPUT_SIZES: Final[Tuple[int, int]] = (N_FFT // 2, N_VEC)
 
 N_SAMPLES: Final[int] = 2**17
+N_SAMPLES_SHIFT: Final[int] = 2**15
 
 BIN_SIZE: Final[float] = 1.0 / 2.0**16.0

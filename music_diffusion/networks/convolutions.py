@@ -253,7 +253,7 @@ class CausalConvBlock(_BaseConv):
             CausalConv1d(
                 in_channels,
                 out_channels,
-                kernel_size=2,
+                kernel_size=3,
                 stride=1,
                 dilation=dilation,
             ),
@@ -270,9 +270,9 @@ class CausalConvTransposeBlock(_BaseConv):
             CausalConvTranspose1d(
                 in_channels,
                 out_channels,
-                kernel_size=2,
+                kernel_size=3,
                 stride=1,
-                padding=0,
+                padding=1,
                 output_padding=0,
                 dilation=dilation,
             ),
@@ -297,8 +297,8 @@ class StrideCausalConvBlock(_BaseConv):
             conv_constructor[scale](
                 in_channels,
                 out_channels,
-                kernel_size=4,
-                stride=2,
+                kernel_size=8,
+                stride=4,
                 dilation=1,
             ),
             nn.Mish(),

@@ -50,10 +50,7 @@ class TimeUNet(nn.Module):
                 time_size,
                 [
                     CausalConvBlock(c_i, c_o, 1),
-                    CausalConvBlock(c_o, c_o, 2),
-                    CausalConvBlock(c_o, c_o, 4),
-                    CausalConvBlock(c_o, c_o, 8),
-                    CausalConvBlock(c_o, c_o, 16),
+                    CausalConvBlock(c_o, c_o, 1),
                 ],
             )
             for c_i, c_o in encoding_channels
@@ -81,10 +78,7 @@ class TimeUNet(nn.Module):
             SequentialTimeWrapper(
                 time_size,
                 [
-                    CausalConvTransposeBlock(c_i, c_i, 16),
-                    CausalConvTransposeBlock(c_i, c_i, 8),
-                    CausalConvTransposeBlock(c_i, c_i, 4),
-                    CausalConvTransposeBlock(c_i, c_i, 2),
+                    CausalConvTransposeBlock(c_i, c_i, 1),
                     CausalConvTransposeBlock(c_i, c_o, 1),
                 ],
             )

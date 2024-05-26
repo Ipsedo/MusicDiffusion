@@ -31,16 +31,15 @@ def wav_to_tensor(wav_p: str, wanted_sr: int) -> th.Tensor:
 def split_raw_audio(
     raw_audio: th.Tensor,
     n_samples: int,
+    n_samples_shift: int,
 ) -> List[th.Tensor]:
-    return [
-        t.clone()
-        for t in th.split(
-            raw_audio,
-            n_samples,
-            dim=1,
-        )
-        if t.size(1) == n_samples
+    raw_audio = raw_audio[
+        :, : raw_audio.size(1) - raw_audio.size(1) % n_samples
     ]
+    raw_audio = th.unfold_copy(
+        raw_audio, dimension=1, size=n_samples, step=n_samples_shift
+    )
+    return [raw_audio[:, i, :].clone() for i in range(raw_audio.size(1))]
 
 
 def tensor_to_wav(
@@ -70,7 +69,9 @@ def create_waveform_dataset(
 
     for wav_p in tqdm_bar:
         raw_audio = split_raw_audio(
-            wav_to_tensor(wav_p, constants.SAMPLE_RATE), constants.N_SAMPLES
+            wav_to_tensor(wav_p, constants.SAMPLE_RATE),
+            constants.N_SAMPLES,
+            constants.N_SAMPLES_SHIFT,
         )
 
         for a in raw_audio:
