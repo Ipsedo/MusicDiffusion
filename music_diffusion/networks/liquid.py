@@ -3,6 +3,7 @@ import torch as th
 from torch import nn
 from torch.nn import functional as F
 
+from .convolutions import OutChannelProj1d
 from .utils import ChannelModule
 
 
@@ -96,9 +97,7 @@ class LiquidRecurrentOutput(LiquidRecurrent, ChannelModule):
     ) -> None:
         super().__init__(neuron_number, input_size, unfolding_steps)
 
-        self.__to_output = nn.Conv1d(
-            neuron_number, input_size, kernel_size=1, stride=1, padding=0
-        )
+        self.__to_output = OutChannelProj1d(neuron_number, input_size)
         self.__channels = input_size
 
     def forward(self, x: th.Tensor) -> th.Tensor:

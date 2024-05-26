@@ -132,6 +132,28 @@ class ConvBlock(_BaseConv):
 # Waveform
 
 
+class OutChannelProj1d(_BaseConv):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+    ) -> None:
+        super().__init__(
+            out_channels,
+            nn.Conv1d(
+                in_channels,
+                out_channels,
+                kernel_size=1,
+                stride=1,
+                padding=0,
+            ),
+        )
+
+        nn.init.kaiming_normal_(self[0].weight)
+        if self[0].bias is not None:
+            nn.init.normal_(self[0].bias, std=1e-1)
+
+
 class CausalConv1d(nn.Conv1d):
     def __init__(
         self,
@@ -188,7 +210,6 @@ class CausalConvTranspose1d(nn.Module):
         self.__padding = kernel_size - 1
 
         nn.init.kaiming_normal_(self.__conv.weight)
-
         if self.__conv.bias is not None:
             nn.init.normal_(self.__conv.bias, std=1e-1)
 
@@ -215,10 +236,8 @@ class CausalConvBlock(_BaseConv):
             nn.InstanceNorm1d(out_channels, affine=False),
         )
 
-        nn.init.kaiming_normal_(self[0].weight)
 
-
-class CausalStrideConv1dBlock(_BaseConv):
+class StrideCausalConvBlock(_BaseConv):
     def __init__(
         self,
         in_channels: int,
@@ -241,22 +260,4 @@ class CausalStrideConv1dBlock(_BaseConv):
             ),
             nn.Mish(),
             nn.InstanceNorm1d(out_channels, affine=False),
-        )
-
-
-class OutChannelProj1d(_BaseConv):
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-    ) -> None:
-        super().__init__(
-            out_channels,
-            nn.Conv1d(
-                in_channels,
-                out_channels,
-                kernel_size=1,
-                stride=1,
-                padding=0,
-            ),
         )

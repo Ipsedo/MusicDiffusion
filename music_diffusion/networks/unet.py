@@ -6,8 +6,8 @@ from torch import nn
 
 from .convolutions import (
     CausalConvBlock,
-    CausalStrideConv1dBlock,
     OutChannelProj1d,
+    StrideCausalConvBlock,
 )
 from .liquid import LiquidRecurrentOutput
 from .time import (
@@ -59,7 +59,7 @@ class TimeUNet(nn.Module):
         )
 
         self.__encoder_down = nn.ModuleList(
-            TimeBypass(CausalStrideConv1dBlock(c_o, c_o, "down"))
+            TimeBypass(StrideCausalConvBlock(c_o, c_o, "down"))
             for _, c_o in encoding_channels
         )
 
@@ -72,7 +72,7 @@ class TimeUNet(nn.Module):
 
         # Decoder stuff
         self.__decoder_up = nn.ModuleList(
-            TimeBypass(CausalStrideConv1dBlock(c_i, c_i, "up"))
+            TimeBypass(StrideCausalConvBlock(c_i, c_i, "up"))
             for c_i, _ in decoding_channels
         )
 
