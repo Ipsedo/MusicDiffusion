@@ -6,13 +6,13 @@ Create the dataset from audio files :
 $ cd /path/to/MusicDiffusionModel
 $ # here /path/to/music_folder contains flac music files
 $ # /path/to/music_dataset is the folder where the tensor pickle files will be saved
-$ python -m music_diffusion create_data "/path/to/music_folder/*.flac" "/path/to/music_dataset"
+$ python -m music_diffusion create_waveform "/path/to/music_folder/*.flac" "/path/to/music_dataset"
 ```
 
 Run training (adapt the hyper-parameters according to your choice) :
 ```bash
 $ cd /path/to/MusicDiffusionModel
-$ python -m music_diffusion model --cuda --unet-channels "[(8, 16), (16, 24), (24, 32), (32, 40), (40, 48), (48, 56), (56, 64)]" --time-size 32 --norm-groups 8 --steps 1024 --beta-1 1e-4 --beta-t 2e-2 train elec_gems_normal --batch-size 8 --step-batch-size 1 --input-dataset /path/to/music_dataset --output-dir /path/to/train_output --save-every 4096 --learning-rate 1e-4
+$ python -m music_diffusion model --cuda --unet-channels "[(2,16),(16,32),(32,48),(48,64),(64,80),(80,96),(96,112),(112,128)]" --time-size 16 --steps 4096 --liquid-neurons 64 train elec_gems_normal --batch-size 10 --step-batch-size 1 --input-dataset /path/to/music_dataset --output-dir /path/to/train_output --save-every 1024 --learning-rate 1e-4 --nb-sample 4
 ```
 
 # References

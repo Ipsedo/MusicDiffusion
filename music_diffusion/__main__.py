@@ -62,8 +62,12 @@ def main() -> None:
         default=[
             (2, 16),
             (16, 32),
-            (32, 64),
-            (64, 128),
+            (32, 48),
+            (48, 64),
+            (64, 80),
+            (80, 96),
+            (96, 112),
+            (112, 128),
         ],
     )
     model_parser.add_argument("--time-size", type=int, default=16)

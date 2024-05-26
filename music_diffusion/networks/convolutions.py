@@ -297,8 +297,8 @@ class StrideCausalConvBlock(_BaseConv):
             conv_constructor[scale](
                 in_channels,
                 out_channels,
-                kernel_size=8,
-                stride=4,
+                kernel_size=4,
+                stride=2,
                 dilation=1,
             ),
             nn.Mish(),
