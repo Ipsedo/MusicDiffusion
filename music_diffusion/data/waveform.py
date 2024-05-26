@@ -12,13 +12,11 @@ from tqdm import tqdm
 from . import constants
 
 
-def wav_to_tensor(
-    wav_p: str, wanted_sr: int, epsilon: float = 1e-8
-) -> th.Tensor:
-    raw_audio, sr = th_audio.load(wav_p)
-    raw_audio = th_audio_f.functional.resample(raw_audio, sr, wanted_sr).to(
-        th.float
-    )
+def wav_to_tensor(wav_p: str, wanted_sr: int) -> th.Tensor:
+    raw_audio_ori, sr = th_audio.load(wav_p)
+    raw_audio: th.Tensor = th_audio_f.functional.resample(
+        raw_audio_ori, sr, wanted_sr
+    ).to(th.float)
 
     if len(raw_audio.size()) == 1:
         raw_audio = raw_audio.unsqueeze(0)
@@ -27,13 +25,7 @@ def wav_to_tensor(
 
     assert raw_audio.size(0) == 2, f'Needs stereo : "{wav_p}"'
 
-    audio_min, audio_max = th.min(raw_audio), th.max(raw_audio)
-
-    raw_audio_normalized: th.Tensor = (raw_audio - audio_min) / (
-        audio_max - audio_min + epsilon
-    )
-
-    return raw_audio_normalized
+    return raw_audio
 
 
 def split_raw_audio(
