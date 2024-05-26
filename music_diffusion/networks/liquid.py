@@ -84,10 +84,10 @@ class LiquidRecurrent(nn.Module):
             )
         ]
 
-        for i_t in range(1, t):
-            outputs.append(self.__cell(outputs[i_t - 1], x[:, :, i_t]))
+        for i_t in range(0, t):
+            outputs.append(self.__cell(outputs[i_t], x[:, :, i_t]))
 
-        return th.stack(outputs, dim=-1)
+        return th.stack(outputs[1:], dim=-1)
 
 
 class LiquidRecurrentOutput(LiquidRecurrent, ChannelModule):
