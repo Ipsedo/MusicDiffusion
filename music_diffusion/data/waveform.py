@@ -36,6 +36,10 @@ def split_raw_audio(
     raw_audio = raw_audio[
         :, : raw_audio.size(1) - raw_audio.size(1) % n_samples
     ]
+
+    if raw_audio.size(1) < n_samples:
+        return []
+
     raw_audio = th.unfold_copy(
         raw_audio, dimension=1, size=n_samples, step=n_samples_shift
     )
