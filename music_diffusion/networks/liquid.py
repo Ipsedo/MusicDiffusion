@@ -3,6 +3,8 @@ import torch as th
 from torch import nn
 from torch.nn import functional as F
 
+from .utils import ChannelModule
+
 
 class CellModel(nn.Module):
     def __init__(
@@ -85,3 +87,24 @@ class LiquidRecurrent(nn.Module):
             outputs.append(self.__cell(outputs[i_t - 1], x[:, :, i_t]))
 
         return th.stack(outputs, dim=-1)
+
+
+class LiquidRecurrentOutput(LiquidRecurrent, ChannelModule):
+
+    def __init__(
+        self, neuron_number: int, input_size: int, unfolding_steps: int
+    ) -> None:
+        super().__init__(neuron_number, input_size, unfolding_steps)
+
+        self.__to_output = nn.Conv1d(
+            neuron_number, input_size, kernel_size=1, stride=1, padding=0
+        )
+        self.__channels = input_size
+
+    def forward(self, x: th.Tensor) -> th.Tensor:
+        out: th.Tensor = self.__to_output(super().forward(x))
+        return out
+
+    @property
+    def out_channels(self) -> int:
+        return self.__channels

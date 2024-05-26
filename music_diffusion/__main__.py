@@ -26,17 +26,6 @@ def _channels(string: str) -> List[Tuple[int, int]]:
     return [_match_channels(layer) for layer in regex_layer.findall(string)]
 
 
-def _attentions(string: str) -> List[bool]:
-    regex_true_false = re.compile(r"(?:True)|(?:False)")
-    regex_match = re.compile(
-        r"^ *\[(?: *(?:(?:True)|(?:False)) *,)* *(?:(?:True)|(?:False)) *] *$"
-    )
-
-    assert regex_match.match(string), "usage : [True, False, True, ...]"
-
-    return [use_att == "True" for use_att in regex_true_false.findall(string)]
-
-
 def main() -> None:
     parser = argparse.ArgumentParser("music_diffusion")
 
@@ -75,11 +64,10 @@ def main() -> None:
             (16, 32),
             (32, 64),
             (64, 128),
-            (128, 256),
-            (256, 512),
         ],
     )
     model_parser.add_argument("--time-size", type=int, default=16)
+    model_parser.add_argument("--liquid-neurons", type=int, default=64)
     model_parser.add_argument("--cuda", action="store_true")
 
     # Sub command run {train, generate}
@@ -93,14 +81,14 @@ def main() -> None:
     train_parser.add_argument("run_name", type=str)
 
     train_parser.add_argument("-i", "--input-dataset", type=str, required=True)
-    train_parser.add_argument("--batch-size", type=int, default=6)
+    train_parser.add_argument("--batch-size", type=int, default=24)
     train_parser.add_argument("--step-batch-size", type=int, default=1)
     train_parser.add_argument("--epochs", type=int, default=1000)
-    train_parser.add_argument("--learning-rate", type=float, default=2e-4)
+    train_parser.add_argument("--learning-rate", type=float, default=1e-3)
     train_parser.add_argument("--metric-window", type=int, default=64)
     train_parser.add_argument("--save-every", type=int, default=4096)
     train_parser.add_argument("-o", "--output-dir", type=str, required=True)
-    train_parser.add_argument("--nb-samples", type=int, default=5)
+    train_parser.add_argument("--nb-samples", type=int, default=4)
     train_parser.add_argument("--denoiser-state-dict", type=str)
     train_parser.add_argument("--ema-state-dict", type=str)
     train_parser.add_argument("--noiser-state-dict", type=str)
@@ -128,6 +116,7 @@ def main() -> None:
             steps=args.steps,
             unet_channels=args.unet_channels,
             time_size=args.time_size,
+            neuron_number=args.liquid_neurons,
             cuda=args.cuda,
         )
 

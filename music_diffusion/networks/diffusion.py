@@ -195,6 +195,7 @@ class Denoiser(Diffuser):
         steps: int,
         time_size: int,
         unet_channels: List[Tuple[int, int]],
+        neuron_number: int,
     ) -> None:
         super().__init__(steps)
 
@@ -217,6 +218,7 @@ class Denoiser(Diffuser):
             unet_channels,
             time_size,
             self._steps,
+            neuron_number,
         )
 
         self.apply(weights_init)

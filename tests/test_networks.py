@@ -76,12 +76,14 @@ def test_noiser(
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("size", [32, 16])
 @pytest.mark.parametrize("time_size", [2, 4])
+@pytest.mark.parametrize("neuron_number", [2, 4])
 def test_denoiser(
     steps: int,
     step_batch_size: int,
     batch_size: int,
     size: int,
     time_size: int,
+    neuron_number: int,
     use_cuda: bool,
 ) -> None:
     in_channels = 2
@@ -89,6 +91,7 @@ def test_denoiser(
         steps,
         time_size,
         [(in_channels, 8), (8, 16)],
+        neuron_number,
     )
 
     denoiser.eval()
@@ -189,7 +192,7 @@ def test_denoiser(
 
 
 @pytest.mark.parametrize("batch_size", [2, 3])
-@pytest.mark.parametrize("size", [32, 64])
+@pytest.mark.parametrize("size", [64, 128])
 @pytest.mark.parametrize(
     "channels",
     [[(2, 8), (8, 16), (16, 32)], [(4, 8), (8, 32), (32, 16)]],
@@ -197,6 +200,7 @@ def test_denoiser(
 @pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("nb_steps", [1, 2])
+@pytest.mark.parametrize("neuron_number", [2, 3])
 def test_unet(
     batch_size: int,
     size: int,
@@ -204,12 +208,14 @@ def test_unet(
     steps: int,
     time_size: int,
     nb_steps: int,
+    neuron_number: int,
     use_cuda: bool,
 ) -> None:
     unet = TimeUNet(
         channels,
         time_size,
         steps,
+        neuron_number,
     )
 
     unet.eval()

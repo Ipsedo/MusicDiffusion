@@ -9,7 +9,7 @@ $ # /path/to/music_dataset is the folder where the tensor pickle files will be s
 $ python -m music_diffusion create_data "/path/to/music_folder/*.flac" "/path/to/music_dataset"
 ```
 
-Run training (adapt your hyper-parameters according to your choice) :
+Run training (adapt the hyper-parameters according to your choice) :
 ```bash
 $ cd /path/to/MusicDiffusionModel
 $ python -m music_diffusion model --cuda --unet-channels "[(8, 16), (16, 24), (24, 32), (32, 40), (40, 48), (48, 56), (56, 64)]" --time-size 32 --norm-groups 8 --steps 1024 --beta-1 1e-4 --beta-t 2e-2 train elec_gems_normal --batch-size 8 --step-batch-size 1 --input-dataset /path/to/music_dataset --output-dir /path/to/train_output --save-every 4096 --learning-rate 1e-4

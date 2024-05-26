@@ -29,11 +29,11 @@ class _AbstractAudioDataset(Dataset):
         self.__dataset_path = dataset_path
 
     def __getitem__(self, index: int) -> th.Tensor:
-        magn_phase: th.Tensor = th.load(
-            join(self.__dataset_path, self.__all_files[index])
+        audio_tensor: th.Tensor = th.load(
+            join(self.__dataset_path, str(self.__all_files[index]))
         )
 
-        return magn_phase
+        return audio_tensor
 
     def __len__(self) -> int:
         return len(self.__all_files)

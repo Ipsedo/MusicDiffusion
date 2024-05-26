@@ -8,6 +8,7 @@ class ModelOptions(NamedTuple):
     steps: int
     unet_channels: List[Tuple[int, int]]
     time_size: int
+    neuron_number: int
     cuda: bool
 
     def new_denoiser(self) -> Denoiser:
@@ -15,6 +16,7 @@ class ModelOptions(NamedTuple):
             self.steps,
             self.time_size,
             self.unet_channels,
+            self.neuron_number,
         )
 
     def new_noiser(self) -> Noiser:

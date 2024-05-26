@@ -2,10 +2,8 @@
 from .audio import (
     bark_scale,
     create_dataset,
-    create_waveform_dataset,
     magnitude_phase_to_wav,
     stft_to_magnitude_phase,
-    tensor_to_wav,
     wav_to_stft,
 )
 from .constants import (
@@ -25,3 +23,4 @@ from .transform import (
     InverseRangeChange,
     RangeChange,
 )
+from .waveform import create_waveform_dataset, tensor_to_wav
