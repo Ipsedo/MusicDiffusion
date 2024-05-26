@@ -12,11 +12,13 @@ from tqdm import tqdm
 from . import constants
 
 
-def wav_to_tensor(wav_p: str, epsilon: float = 1e-8) -> th.Tensor:
+def wav_to_tensor(
+    wav_p: str, wanted_sr: int, epsilon: float = 1e-8
+) -> th.Tensor:
     raw_audio, sr = th_audio.load(wav_p)
-    raw_audio = th_audio_f.functional.resample(
-        raw_audio, sr, constants.SAMPLE_RATE
-    ).to(th.float)
+    raw_audio = th_audio_f.functional.resample(raw_audio, sr, wanted_sr).to(
+        th.float
+    )
 
     if len(raw_audio.size()) == 1:
         raw_audio = raw_audio.unsqueeze(0)
@@ -75,7 +77,9 @@ def create_waveform_dataset(
     tqdm_bar = tqdm(w_p)
 
     for wav_p in tqdm_bar:
-        raw_audio = split_raw_audio(wav_to_tensor(wav_p), constants.N_SAMPLES)
+        raw_audio = split_raw_audio(
+            wav_to_tensor(wav_p, constants.SAMPLE_RATE), constants.N_SAMPLES
+        )
 
         for a in raw_audio:
             raw_audio_path = join(dataset_output_dir, f"raw_audio_{idx}.pt")
