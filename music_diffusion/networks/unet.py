@@ -6,6 +6,7 @@ from torch import nn
 
 from .convolutions import (
     CausalConvBlock,
+    CausalConvTransposeBlock,
     OutChannelProj1d,
     StrideCausalConvBlock,
 )
@@ -80,11 +81,11 @@ class TimeUNet(nn.Module):
             SequentialTimeWrapper(
                 time_size,
                 [
-                    CausalConvBlock(c_i * 2, c_i, 16),
-                    CausalConvBlock(c_i, c_i, 8),
-                    CausalConvBlock(c_i, c_i, 4),
-                    CausalConvBlock(c_i, c_i, 2),
-                    CausalConvBlock(c_i, c_o, 1),
+                    CausalConvTransposeBlock(c_i * 2, c_i, 16),
+                    CausalConvTransposeBlock(c_i, c_i, 8),
+                    CausalConvTransposeBlock(c_i, c_i, 4),
+                    CausalConvTransposeBlock(c_i, c_i, 2),
+                    CausalConvTransposeBlock(c_i, c_o, 1),
                 ],
             )
             for c_i, c_o in decoding_channels

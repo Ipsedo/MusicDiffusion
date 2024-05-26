@@ -129,7 +129,11 @@ class ConvBlock(_BaseConv):
         )
 
 
-# Waveform
+############
+# Waveform #
+############
+
+# Unit modules
 
 
 class OutChannelProj1d(_BaseConv):
@@ -190,6 +194,8 @@ class CausalConvTranspose1d(nn.Module):
         out_channels: int,
         kernel_size: int,
         stride: int,
+        padding: int,
+        output_padding: int,
         dilation: int,
     ) -> None:
         super().__init__()
@@ -201,8 +207,8 @@ class CausalConvTranspose1d(nn.Module):
                 kernel_size=kernel_size,
                 stride=stride,
                 dilation=dilation,
-                padding=kernel_size // 4,
-                output_padding=0,
+                padding=padding,
+                output_padding=output_padding,
             )
         )
 
@@ -214,6 +220,30 @@ class CausalConvTranspose1d(nn.Module):
         return out
 
 
+class StrideCausalConvTranspose1d(CausalConvTranspose1d):
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int,
+        dilation: int,
+    ) -> None:
+        super().__init__(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            kernel_size // 4,
+            0,
+            dilation,
+        )
+
+
+# Blocks
+
+
 class CausalConvBlock(_BaseConv):
     def __init__(
         self, in_channels: int, out_channels: int, dilation: int
@@ -223,8 +253,27 @@ class CausalConvBlock(_BaseConv):
             CausalConv1d(
                 in_channels,
                 out_channels,
-                kernel_size=3,
+                kernel_size=2,
                 stride=1,
+                dilation=dilation,
+            ),
+            nn.Mish(),
+        )
+
+
+class CausalConvTransposeBlock(_BaseConv):
+    def __init__(
+        self, in_channels: int, out_channels: int, dilation: int
+    ) -> None:
+        super().__init__(
+            out_channels,
+            CausalConvTranspose1d(
+                in_channels,
+                out_channels,
+                kernel_size=2,
+                stride=1,
+                padding=0,
+                output_padding=0,
                 dilation=dilation,
             ),
             nn.Mish(),
@@ -239,7 +288,7 @@ class StrideCausalConvBlock(_BaseConv):
         scale: Literal["up", "down"],
     ) -> None:
         conv_constructor = {
-            "up": CausalConvTranspose1d,
+            "up": StrideCausalConvTranspose1d,
             "down": CausalConv1d,
         }
 
