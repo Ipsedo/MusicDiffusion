@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import List, Literal, Optional
+from typing import Literal
 
 import torch as th
 from torch import Tensor, nn
@@ -131,6 +131,7 @@ class ConvBlock(_BaseConv):
 
 # Waveform
 
+
 class CausalConv1d(nn.Conv1d):
     def __init__(
         self,
@@ -172,8 +173,7 @@ class CausalConvTranspose1d(nn.Module):
         stride: int,
         dilation: int,
     ) -> None:
-        super().__init__(
-        )
+        super().__init__()
 
         self.__conv = nn.ConvTranspose1d(
             in_channels,
@@ -194,7 +194,7 @@ class CausalConvTranspose1d(nn.Module):
 
     # pylint: disable=arguments-renamed
     def forward(self, x: Tensor) -> Tensor:
-        out = self.__conv(x)[..., :(x.size(2) * self.__padding)]
+        out: th.Tensor = self.__conv(x)[..., : (x.size(2) * self.__padding)]
         return out
 
 
@@ -240,7 +240,7 @@ class CausalStrideConv1dBlock(_BaseConv):
                 dilation=1,
             ),
             nn.Mish(),
-            nn.InstanceNorm1d(out_channels, affine=False)
+            nn.InstanceNorm1d(out_channels, affine=False),
         )
 
 

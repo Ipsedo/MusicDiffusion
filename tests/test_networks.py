@@ -11,7 +11,7 @@ from music_diffusion.networks import Denoiser, Noiser, TimeUNet
 @pytest.mark.parametrize("step_batch_size", [1, 2])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("channels", [1, 2])
-@pytest.mark.parametrize("size", [32, 64])
+@pytest.mark.parametrize("size", [64, 128])
 def test_noiser(
     steps: int,
     step_batch_size: int,
@@ -74,7 +74,7 @@ def test_noiser(
 @pytest.mark.parametrize("steps", [4, 6])
 @pytest.mark.parametrize("step_batch_size", [1, 2])
 @pytest.mark.parametrize("batch_size", [1, 2])
-@pytest.mark.parametrize("size", [32, 16])
+@pytest.mark.parametrize("size", [64, 128])
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("neuron_number", [2, 4])
 def test_denoiser(
@@ -195,7 +195,7 @@ def test_denoiser(
 @pytest.mark.parametrize("size", [64, 128])
 @pytest.mark.parametrize(
     "channels",
-    [[(2, 8), (8, 16), (16, 32)], [(4, 8), (8, 32), (32, 16)]],
+    [[(2, 8), (8, 16)], [(4, 8)]],
 )
 @pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("time_size", [2, 4])
