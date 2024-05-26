@@ -140,21 +140,19 @@ class OutChannelProj1d(_BaseConv):
     ) -> None:
         super().__init__(
             out_channels,
-            nn.Conv1d(
-                in_channels,
-                out_channels,
-                kernel_size=1,
-                stride=1,
-                padding=0,
+            weight_norm(
+                nn.Conv1d(
+                    in_channels,
+                    out_channels,
+                    kernel_size=1,
+                    stride=1,
+                    padding=0,
+                )
             ),
         )
 
-        nn.init.kaiming_normal_(self[0].weight)
-        if self[0].bias is not None:
-            nn.init.normal_(self[0].bias, std=1e-1)
 
-
-class CausalConv1d(nn.Conv1d):
+class CausalConv1d(nn.Module):
     def __init__(
         self,
         in_channels: int,
@@ -163,26 +161,25 @@ class CausalConv1d(nn.Conv1d):
         stride: int,
         dilation: int,
     ):
-        super().__init__(
-            in_channels,
-            out_channels,
-            kernel_size,
-            stride=stride,
-            dilation=dilation,
-            padding=0,
+        super().__init__()
+        self.__conv = weight_norm(
+            nn.Conv1d(
+                in_channels,
+                out_channels,
+                kernel_size,
+                stride=stride,
+                dilation=dilation,
+                padding=0,
+            )
         )
 
         self.__padding = dilation * (kernel_size - 1) + (1 - stride)
 
-        nn.init.kaiming_normal_(self.weight)
-        if self.bias is not None:
-            nn.init.normal_(self.bias, std=1e-1)
-
-    # pylint: disable=arguments-renamed
     def forward(self, x: th.Tensor) -> th.Tensor:
-        return super().forward(
+        out: th.Tensor = self.__conv(
             F.pad(x, (self.__padding, 0), mode="constant", value=0.0)
         )
+        return out
 
 
 # https://github.com/lucidrains/audiolm-pytorch/blob/main/audiolm_pytorch/soundstream.py
@@ -197,21 +194,19 @@ class CausalConvTranspose1d(nn.Module):
     ) -> None:
         super().__init__()
 
-        self.__conv = nn.ConvTranspose1d(
-            in_channels,
-            out_channels,
-            kernel_size=kernel_size,
-            stride=stride,
-            dilation=dilation,
-            padding=kernel_size // 4,
-            output_padding=0,
+        self.__conv = weight_norm(
+            nn.ConvTranspose1d(
+                in_channels,
+                out_channels,
+                kernel_size=kernel_size,
+                stride=stride,
+                dilation=dilation,
+                padding=kernel_size // 4,
+                output_padding=0,
+            )
         )
 
         self.__padding = kernel_size - 1
-
-        nn.init.kaiming_normal_(self.__conv.weight)
-        if self.__conv.bias is not None:
-            nn.init.normal_(self.__conv.bias, std=1e-1)
 
     # pylint: disable=arguments-renamed
     def forward(self, x: Tensor) -> Tensor:
