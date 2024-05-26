@@ -81,7 +81,7 @@ class TimeUNet(nn.Module):
             SequentialTimeWrapper(
                 time_size,
                 [
-                    CausalConvTransposeBlock(c_i * 2, c_i, 16),
+                    CausalConvTransposeBlock(c_i, c_i, 16),
                     CausalConvTransposeBlock(c_i, c_i, 8),
                     CausalConvTransposeBlock(c_i, c_i, 4),
                     CausalConvTransposeBlock(c_i, c_i, 2),
@@ -126,8 +126,7 @@ class TimeUNet(nn.Module):
             self.__decoder,
         ):
             out = up(out)
-            out = th.cat([out, bypass], dim=2)
-            out = block(out, time_vec)
+            out = block(out + bypass, time_vec)
 
         eps: th.Tensor = self.__eps_end_conv(out)
         v: th.Tensor = self.__v_end_conv(out)
