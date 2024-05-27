@@ -2,7 +2,7 @@
 import torch as th
 from torch import nn
 
-from .convolutions import ChannelProjBlock
+from .conv2d import ChannelProjBlock
 
 
 class SelfAttention2d(nn.Module):

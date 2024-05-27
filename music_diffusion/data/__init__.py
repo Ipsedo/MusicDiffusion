@@ -1,11 +1,4 @@
 # -*- coding: utf-8 -*-
-from .audio import (
-    bark_scale,
-    create_dataset,
-    magnitude_phase_to_wav,
-    stft_to_magnitude_phase,
-    wav_to_stft,
-)
 from .constants import (
     BIN_SIZE,
     N_FFT,
@@ -17,6 +10,13 @@ from .constants import (
 )
 from .datasets import AudioDataset, WaveAudioDataset
 from .primitive import simpson, trapezoid
+from .stft import (
+    bark_scale,
+    create_dataset,
+    magnitude_phase_to_wav,
+    stft_to_magnitude_phase,
+    wav_to_stft,
+)
 from .transform import (
     ChangeType,
     ChannelMinMaxNorm,

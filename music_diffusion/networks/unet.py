@@ -4,7 +4,7 @@ from typing import List, Tuple
 import torch as th
 from torch import nn
 
-from .convolutions import (
+from .conv1d import (
     CausalConvBlock,
     CausalConvTransposeBlock,
     OutChannelProj1d,

@@ -3,7 +3,7 @@ import torch as th
 from torch import nn
 from torch.nn import functional as F
 
-from .convolutions import OutChannelProj1d
+from .conv1d import OutChannelProj1d
 from .utils import ChannelsModule
 
 
