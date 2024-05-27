@@ -59,16 +59,10 @@ def main() -> None:
     model_parser.add_argument(
         "--unet-channels",
         type=_channels,
-        default=[
-            (2, 8),
-            (8, 16),
-            (16, 32),
-            (32, 64),
-            (64, 128),
-        ],
+        default=[(2, 32), (32, 64), (64, 128), (128, 256), (256, 512)],
     )
     model_parser.add_argument("--time-size", type=int, default=16)
-    model_parser.add_argument("--liquid-neurons", type=int, default=64)
+    model_parser.add_argument("--liquid-neurons", type=int, default=256)
     model_parser.add_argument("--cuda", action="store_true")
 
     # Sub command run {train, generate}
@@ -82,7 +76,7 @@ def main() -> None:
     train_parser.add_argument("run_name", type=str)
 
     train_parser.add_argument("-i", "--input-dataset", type=str, required=True)
-    train_parser.add_argument("--batch-size", type=int, default=64)
+    train_parser.add_argument("--batch-size", type=int, default=20)
     train_parser.add_argument("--step-batch-size", type=int, default=1)
     train_parser.add_argument("--epochs", type=int, default=1000)
     train_parser.add_argument("--learning-rate", type=float, default=1e-4)
