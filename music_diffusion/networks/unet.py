@@ -5,13 +5,13 @@ import torch as th
 from torch import nn
 
 from .conv1d import (
-    CausalConvBlock,
-    CausalConvTransposeBlock,
+    Conv1dDecoderBlock,
+    Conv1dEncoderBlock,
     OutChannelProj1d,
-    StrideCausalConvBlock,
+    StrideConv1dBlock,
 )
 from .liquid import LiquidRecurrentOutput
-from .time import SequentialTimeWrapper, SinusoidTimeEmbedding, TimeBypass
+from .time import SinusoidTimeEmbedding, TimeBypass, TimeWrapper
 
 
 class TimeUNet(nn.Module):
@@ -41,18 +41,12 @@ class TimeUNet(nn.Module):
         # Encoder stuff
 
         self.__encoder = nn.ModuleList(
-            SequentialTimeWrapper(
-                time_size,
-                [
-                    CausalConvBlock(c_i, c_o, 1),
-                    CausalConvBlock(c_o, c_o, 1),
-                ],
-            )
+            TimeWrapper(time_size, Conv1dEncoderBlock(c_i, c_o))
             for c_i, c_o in encoding_channels
         )
 
         self.__encoder_down = nn.ModuleList(
-            TimeBypass(StrideCausalConvBlock(c_o, c_o, "down"))
+            TimeBypass(StrideConv1dBlock(c_o, c_o, "down"))
             for _, c_o in encoding_channels
         )
 
@@ -64,18 +58,12 @@ class TimeUNet(nn.Module):
 
         # Decoder stuff
         self.__decoder_up = nn.ModuleList(
-            TimeBypass(StrideCausalConvBlock(c_i, c_i, "up"))
+            TimeBypass(StrideConv1dBlock(c_i, c_i, "up"))
             for c_i, _ in decoding_channels
         )
 
         self.__decoder = nn.ModuleList(
-            SequentialTimeWrapper(
-                time_size,
-                [
-                    CausalConvTransposeBlock(c_i, c_i, 1),
-                    CausalConvTransposeBlock(c_i, c_o, 1),
-                ],
-            )
+            TimeWrapper(time_size, Conv1dDecoderBlock(c_i, c_o))
             for c_i, c_o in decoding_channels
         )
 

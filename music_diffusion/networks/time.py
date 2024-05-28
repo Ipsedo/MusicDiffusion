@@ -4,7 +4,6 @@ from typing import Iterable
 
 import torch as th
 from torch import nn
-from torch.nn.utils.parametrizations import weight_norm
 
 from .utils import ChannelsModule
 
@@ -78,13 +77,11 @@ class TimeWrapper(nn.Module):
         self.__module = module
 
         self.__to_channels = nn.Sequential(
-            weight_norm(nn.Linear(time_size, self.__module.out_channels * 2)),
-            nn.Mish(),
-            weight_norm(
-                nn.Linear(
-                    self.__module.out_channels * 2,
-                    self.__module.out_channels * 2,
-                )
+            nn.Linear(time_size, self.__module.out_channels * 2),
+            nn.SiLU(),
+            nn.Linear(
+                self.__module.out_channels * 2,
+                self.__module.out_channels * 2,
             ),
         )
 

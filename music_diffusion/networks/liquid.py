@@ -31,7 +31,7 @@ class CellModel(nn.Module):
 
     def forward(self, x_t: th.Tensor, input_t: th.Tensor) -> th.Tensor:
         # x_t : (batch, input_size)
-        return F.mish(
+        return F.silu(
             self.__recurrent_weights(x_t)
             + self.__weights(input_t)
             + self.__biases

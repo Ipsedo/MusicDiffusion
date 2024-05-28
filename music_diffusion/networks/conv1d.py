@@ -17,14 +17,12 @@ class OutChannelProj1d(_BaseConv):
     ) -> None:
         super().__init__(
             out_channels,
-            weight_norm(
-                nn.Conv1d(
-                    in_channels,
-                    out_channels,
-                    kernel_size=1,
-                    stride=1,
-                    padding=0,
-                )
+            nn.Conv1d(
+                in_channels,
+                out_channels,
+                kernel_size=1,
+                stride=1,
+                padding=0,
             ),
         )
 
@@ -59,40 +57,7 @@ class CausalConv1d(nn.Module):
         return out
 
 
-# https://github.com/lucidrains/audiolm-pytorch/blob/main/audiolm_pytorch/soundstream.py
-class CausalConvTranspose1d(nn.Module):
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        kernel_size: int,
-        stride: int,
-        padding: int,
-        output_padding: int,
-        dilation: int,
-    ) -> None:
-        super().__init__()
-
-        self.__conv = weight_norm(
-            nn.ConvTranspose1d(
-                in_channels,
-                out_channels,
-                kernel_size=kernel_size,
-                stride=stride,
-                dilation=dilation,
-                padding=padding,
-                output_padding=output_padding,
-            )
-        )
-
-        self.__padding = kernel_size - 1
-
-    def forward(self, x: th.Tensor) -> th.Tensor:
-        out: th.Tensor = self.__conv(x)[..., : (x.size(2) * self.__padding)]
-        return out
-
-
-class StrideCausalConvTranspose1d(CausalConvTranspose1d):
+class StrideConvTranspose1d(nn.ConvTranspose1d):
 
     def __init__(
         self,
@@ -133,26 +98,53 @@ class CausalConvBlock(_BaseConv):
         )
 
 
-class CausalConvTransposeBlock(_BaseConv):
-    def __init__(
-        self, in_channels: int, out_channels: int, dilation: int
-    ) -> None:
+class Conv1dEncoderBlock(_BaseConv):
+    def __init__(self, in_channels: int, out_channels: int) -> None:
         super().__init__(
             out_channels,
-            CausalConvTranspose1d(
+            nn.Conv1d(
                 in_channels,
                 out_channels,
                 kernel_size=3,
                 stride=1,
                 padding=1,
-                output_padding=0,
-                dilation=dilation,
             ),
-            nn.Mish(),
+            nn.SiLU(),
+            nn.Conv1d(
+                out_channels,
+                out_channels * 2,
+                kernel_size=1,
+                stride=1,
+                padding=0,
+            ),
+            nn.GLU(dim=1),
         )
 
 
-class StrideCausalConvBlock(_BaseConv):
+class Conv1dDecoderBlock(_BaseConv):
+    def __init__(self, in_channels: int, out_channels: int) -> None:
+        super().__init__(
+            out_channels,
+            nn.Conv1d(
+                in_channels,
+                in_channels * 2,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            ),
+            nn.GLU(dim=1),
+            nn.Conv1d(
+                in_channels,
+                out_channels,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            ),
+            nn.SiLU(),
+        )
+
+
+class StrideConv1dBlock(_BaseConv):
     def __init__(
         self,
         in_channels: int,
@@ -160,8 +152,8 @@ class StrideCausalConvBlock(_BaseConv):
         scale: Literal["up", "down"],
     ) -> None:
         conv_constructor = {
-            "up": StrideCausalConvTranspose1d,
-            "down": CausalConv1d,
+            "up": nn.ConvTranspose1d,
+            "down": nn.Conv1d,
         }
 
         super().__init__(
@@ -171,7 +163,8 @@ class StrideCausalConvBlock(_BaseConv):
                 out_channels,
                 kernel_size=8,
                 stride=4,
+                padding=2,
                 dilation=1,
             ),
-            nn.Mish(),
+            nn.SiLU(),
         )
