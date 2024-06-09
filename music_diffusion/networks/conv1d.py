@@ -17,12 +17,14 @@ class OutChannelProj1d(_BaseConv):
     ) -> None:
         super().__init__(
             out_channels,
-            nn.Conv1d(
-                in_channels,
-                out_channels,
-                kernel_size=1,
-                stride=1,
-                padding=0,
+            weight_norm(
+                nn.Conv1d(
+                    in_channels,
+                    out_channels,
+                    kernel_size=1,
+                    stride=1,
+                    padding=0,
+                )
             ),
         )
 
@@ -57,8 +59,7 @@ class CausalConv1d(nn.Module):
         return out
 
 
-class StrideConvTranspose1d(nn.ConvTranspose1d):
-
+class CausalConvTr1d(nn.Module):
     def __init__(
         self,
         in_channels: int,
@@ -66,22 +67,31 @@ class StrideConvTranspose1d(nn.ConvTranspose1d):
         kernel_size: int,
         stride: int,
         dilation: int,
-    ) -> None:
-        super().__init__(
-            in_channels,
-            out_channels,
-            kernel_size,
-            stride,
-            kernel_size // 4,
-            0,
-            dilation,
+    ):
+        super().__init__()
+        self.__conv = weight_norm(
+            nn.ConvTranspose1d(
+                in_channels,
+                out_channels,
+                kernel_size,
+                stride=stride,
+                dilation=dilation,
+                padding=0,
+                output_padding=0,
+            )
         )
+
+        self.__padding = dilation * (kernel_size - 1) + (1 - stride)
+
+    def forward(self, x: th.Tensor) -> th.Tensor:
+        out: th.Tensor = self.__conv(x)
+        return out[:, :, self.__padding :]
 
 
 # Blocks
 
 
-class CausalConvBlock(_BaseConv):
+class Conv1dEncoderBlock(_BaseConv):
     def __init__(
         self, in_channels: int, out_channels: int, dilation: int
     ) -> None:
@@ -98,49 +108,37 @@ class CausalConvBlock(_BaseConv):
         )
 
 
-class Conv1dEncoderBlock(_BaseConv):
-    def __init__(self, in_channels: int, out_channels: int) -> None:
+class Conv1dDecoderBlock(_BaseConv):
+    def __init__(
+        self, in_channels: int, out_channels: int, dilation: int
+    ) -> None:
         super().__init__(
             out_channels,
-            nn.Conv1d(
+            CausalConvTr1d(
                 in_channels,
                 out_channels,
                 kernel_size=3,
                 stride=1,
-                padding=1,
+                dilation=dilation,
             ),
-            nn.SiLU(),
-            nn.Conv1d(
-                out_channels,
-                out_channels * 2,
-                kernel_size=1,
-                stride=1,
-                padding=0,
-            ),
-            nn.GLU(dim=1),
+            nn.Mish(),
         )
 
 
-class Conv1dDecoderBlock(_BaseConv):
+class Conv1dBlock(_BaseConv):
     def __init__(self, in_channels: int, out_channels: int) -> None:
         super().__init__(
             out_channels,
-            nn.Conv1d(
-                in_channels,
-                in_channels * 2,
-                kernel_size=3,
-                stride=1,
-                padding=1,
+            weight_norm(
+                nn.Conv1d(
+                    in_channels,
+                    out_channels,
+                    kernel_size=3,
+                    stride=1,
+                    padding=1,
+                )
             ),
-            nn.GLU(dim=1),
-            nn.Conv1d(
-                in_channels,
-                out_channels,
-                kernel_size=3,
-                stride=1,
-                padding=1,
-            ),
-            nn.SiLU(),
+            nn.Mish(),
         )
 
 
@@ -156,15 +154,19 @@ class StrideConv1dBlock(_BaseConv):
             "down": nn.Conv1d,
         }
 
+        # pylint: disable=duplicate-code
+
         super().__init__(
             out_channels,
-            conv_constructor[scale](
-                in_channels,
-                out_channels,
-                kernel_size=8,
-                stride=4,
-                padding=2,
-                dilation=1,
+            weight_norm(
+                conv_constructor[scale](
+                    in_channels,
+                    out_channels,
+                    kernel_size=16,
+                    stride=8,
+                    padding=4,
+                    dilation=1,
+                )
             ),
-            nn.SiLU(),
+            nn.Mish(),
         )

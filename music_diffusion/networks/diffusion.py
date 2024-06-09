@@ -443,17 +443,15 @@ class Denoiser(Diffuser):
         return scale[:, :, None, None, None]
 
     def count_parameters(self) -> int:
-        return int(
-            sum(
-                np.prod(p.size()) for p in self.parameters() if p.requires_grad
-            )
+        return sum(
+            int(np.prod(p.size()))
+            for p in self.parameters()
+            if p.requires_grad
         )
 
     def grad_norm(self) -> float:
-        return float(
-            mean(
-                p.grad.norm().item()
-                for p in self.parameters()
-                if p.grad is not None
-            )
+        return mean(
+            float(p.grad.norm().item())
+            for p in self.parameters()
+            if p.grad is not None
         )

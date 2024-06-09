@@ -12,12 +12,13 @@ class Metric:
 
     def add_result(self, res: Union[th.Tensor, float]) -> None:
         if isinstance(res, th.Tensor):
-            res = res.mean()
-            res_float = res.item()
+            if len(res.size()) >= 1:
+                for t in res:
+                    self.__result.append(th.mean(t).item())
+            else:
+                self.__result.append(res.item())
         else:
-            res_float = res
-
-        self.__result.append(res_float)
+            self.__result.append(res)
 
         while len(self.__result) > self.__window_size:
             self.__result.pop(0)

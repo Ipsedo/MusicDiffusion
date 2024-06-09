@@ -4,14 +4,9 @@ from typing import List, Tuple
 import torch as th
 from torch import nn
 
-from .conv1d import (
-    Conv1dDecoderBlock,
-    Conv1dEncoderBlock,
-    OutChannelProj1d,
-    StrideConv1dBlock,
-)
+from .conv1d import Conv1dBlock, OutChannelProj1d, StrideConv1dBlock
 from .liquid import LiquidRecurrentOutput
-from .time import SinusoidTimeEmbedding, TimeBypass, TimeWrapper
+from .time import SequentialTimeWrapper, SinusoidTimeEmbedding, TimeBypass
 
 
 class TimeUNet(nn.Module):
@@ -39,9 +34,14 @@ class TimeUNet(nn.Module):
         self.__time_embedder = SinusoidTimeEmbedding(steps, time_size)
 
         # Encoder stuff
-
         self.__encoder = nn.ModuleList(
-            TimeWrapper(time_size, Conv1dEncoderBlock(c_i, c_o))
+            SequentialTimeWrapper(
+                time_size,
+                [
+                    Conv1dBlock(c_i, c_o),
+                    Conv1dBlock(c_o, c_o),
+                ],
+            )
             for c_i, c_o in encoding_channels
         )
 
@@ -63,7 +63,13 @@ class TimeUNet(nn.Module):
         )
 
         self.__decoder = nn.ModuleList(
-            TimeWrapper(time_size, Conv1dDecoderBlock(c_i, c_o))
+            SequentialTimeWrapper(
+                time_size,
+                [
+                    Conv1dBlock(c_i, c_i),
+                    Conv1dBlock(c_i, c_o),
+                ],
+            )
             for c_i, c_o in decoding_channels
         )
 

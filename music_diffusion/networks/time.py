@@ -76,13 +76,12 @@ class TimeWrapper(nn.Module):
 
         self.__module = module
 
+        out_channels = self.__module.out_channels
+
         self.__to_channels = nn.Sequential(
-            nn.Linear(time_size, self.__module.out_channels * 2),
-            nn.SiLU(),
-            nn.Linear(
-                self.__module.out_channels * 2,
-                self.__module.out_channels * 2,
-            ),
+            nn.Linear(time_size, out_channels * 2),
+            nn.Mish(),
+            nn.Linear(out_channels * 2, out_channels * 2),
         )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
