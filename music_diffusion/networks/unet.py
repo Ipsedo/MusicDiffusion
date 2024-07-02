@@ -4,7 +4,7 @@ from typing import List, Tuple
 import torch as th
 from torch import nn
 
-from .convolutions import ConvBlock, OutChannelProj, StrideConvBlock
+from .kan import ConvBlock, OutChannelProj, StrideConvBlock
 from .time import SequentialTimeWrapper, SinusoidTimeEmbedding, TimeBypass
 
 

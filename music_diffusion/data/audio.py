@@ -55,12 +55,10 @@ def wav_to_stft(
     stride: int = constants.STFT_STRIDE,
     epsilon: float = 1e-8,
 ) -> th.Tensor:
-    raw_audio, sr = th_audio.load(wav_p)
-
-    assert sr == constants.SAMPLE_RATE, (
-        f"Audio sample rate must be {constants.SAMPLE_RATE}Hz, "
-        f'file "{wav_p}" is {sr}Hz'
-    )
+    raw_audio_ori, sr = th_audio.load(wav_p)
+    raw_audio: th.Tensor = th_audio_f.functional.resample(
+        raw_audio_ori, sr, constants.SAMPLE_RATE
+    ).to(th.float)
 
     raw_audio_mono = raw_audio.mean(0)
     raw_audio_mono = (
