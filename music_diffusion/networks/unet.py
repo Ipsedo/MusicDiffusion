@@ -5,7 +5,7 @@ import torch as th
 from torch import nn
 
 from .kan import ConvBlock, OutChannelProj, StrideConvBlock
-from .time import SequentialTimeWrapper, SinusoidTimeEmbedding, TimeBypass
+from .time import SinusoidTimeEmbedding, TimeBypass, TimeWrapper
 
 
 class TimeUNet(nn.Module):
@@ -33,46 +33,18 @@ class TimeUNet(nn.Module):
 
         # Encoder stuff
 
-        self.__encoder = nn.ModuleList(
-            SequentialTimeWrapper(
-                time_size,
-                [
-                    ConvBlock(c_i, c_o),
-                    ConvBlock(c_o, c_o),
-                ],
-            )
-            for c_i, c_o in encoding_channels
-        )
-
         self.__encoder_down = nn.ModuleList(
-            TimeBypass(StrideConvBlock(c_o, c_o, "down"))
-            for _, c_o in encoding_channels
+            TimeWrapper(time_size, StrideConvBlock(c_i, c_o, "down"))
+            for c_i, c_o in encoding_channels
         )
 
         # Middle stuff
         c_m = encoding_channels[-1][1]
-        self.__middle_block = SequentialTimeWrapper(
-            time_size,
-            [
-                ConvBlock(c_m, c_m),
-                ConvBlock(c_m, c_m),
-            ],
-        )
+        self.__middle_block = TimeWrapper(time_size, ConvBlock(c_m, c_m))
 
         # Decoder stuff
         self.__decoder_up = nn.ModuleList(
-            TimeBypass(StrideConvBlock(c_i, c_i, "up"))
-            for c_i, _ in decoding_channels
-        )
-
-        self.__decoder = nn.ModuleList(
-            SequentialTimeWrapper(
-                time_size,
-                [
-                    ConvBlock(c_i * 2, c_o),
-                    ConvBlock(c_o, c_o),
-                ],
-            )
+            TimeWrapper(time_size, StrideConvBlock(c_i, c_o, "up"))
             for c_i, c_o in decoding_channels
         )
 
@@ -95,24 +67,17 @@ class TimeUNet(nn.Module):
 
         out = img
 
-        for block, down in zip(
-            self.__encoder,
-            self.__encoder_down,
-        ):
-            out = block(out, time_vec)
+        for down in self.__encoder_down:
+            out = down(out, time_vec)
             bypasses.append(out)
-            out = down(out)
 
         out = self.__middle_block(out, time_vec)
 
-        for up, bypass, block in zip(
+        for up, bypass in zip(
             self.__decoder_up,
             reversed(bypasses),
-            self.__decoder,
         ):
-            out = up(out)
-            out = th.cat([out, bypass], dim=2)
-            out = block(out, time_vec)
+            out = up(out + bypass, time_vec)
 
         eps: th.Tensor = self.__eps_end_conv(out)
         v: th.Tensor = self.__v_end_conv(out)
