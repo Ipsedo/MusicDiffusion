@@ -31,7 +31,11 @@ class _AbstractConv2dKan(ABC, nn.Module):
         self._act_fun = act_fun
         self._res_act_fun = res_act_fun
 
-        self._w = nn.Parameter(
+        self._w_b = nn.Parameter(
+            th.ones(in_channels, out_channels, kernel_size * kernel_size, 1)
+        )
+
+        self._w_s = nn.Parameter(
             th.ones(in_channels, out_channels, kernel_size * kernel_size, 1)
         )
 
@@ -45,8 +49,9 @@ class _AbstractConv2dKan(ABC, nn.Module):
             )
         )
 
-        xavier_normal_(self._w, 1e-3)
-        normal_(self._c, 0, 1e-3)
+        xavier_normal_(self._w_b, 1)
+        normal_(self._w_s, 0, 1e-3)
+        normal_(self._c, 0, 1e-1)
 
         self._in_channels = in_channels
         self._kernel_size = kernel_size
@@ -55,8 +60,10 @@ class _AbstractConv2dKan(ABC, nn.Module):
 
     def _activation(self, flattened_x: th.Tensor) -> th.Tensor:
         # sum over function approximation
-        return self._res_act_fun(flattened_x) + th.sum(
-            self._c * self._act_fun(flattened_x), dim=-1
+        return th.sum(
+            self._w_b * self._res_act_fun(flattened_x)
+            + self._w_s * th.sum(self._c * self._act_fun(flattened_x), dim=-1),
+            dim=1,
         )
 
 
@@ -86,10 +93,9 @@ class Conv2dKan(_AbstractConv2dKan):
         output_height = self.__get_output_size(h)
         output_width = self.__get_output_size(w)
 
-        # sum over input space : dim=1
         # sum over window : dim=2
         return th.sum(
-            th.sum(self._w * self._activation(self.__unfold(x)), dim=1),
+            self._activation(self.__unfold(x)),
             dim=2,
         ).view(b, -1, output_height, output_width)
 
@@ -137,11 +143,9 @@ class ConvTr2dKan(_AbstractConv2dKan):
         output_width = self.__get_output_size(w)
 
         return F.fold(
-            th.sum(
-                self._w
-                * self._activation(x.view(b, self._in_channels, 1, 1, h * w)),
-                dim=1,
-            ).view(b, self.__out_channels * self._kernel_size**2, -1),
+            self._activation(x.view(b, self._in_channels, 1, 1, h * w)).view(
+                b, self.__out_channels * self._kernel_size**2, -1
+            ),
             (output_height, output_width),
             self._kernel_size,
             1,

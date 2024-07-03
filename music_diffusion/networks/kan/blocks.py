@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 from typing import Literal
 
-from torch import nn
 from torch.nn import functional as F
 
 from ..convolutions import _BaseConv
 from ..normalization import PixelNorm
 from .activations import Hermite
 from .convolutions import Conv2dKan, ConvTr2dKan
-from .linear import LinearKAN
 
 
 class OutChannelProj(_BaseConv):
@@ -54,7 +52,7 @@ class StrideConvBlock(_BaseConv):
                 act_fun=Hermite(5),
                 res_act_fun=F.mish,
             ),
-            PixelNorm(),
+            PixelNorm(dim=1, epsilon=1e-5),
         )
 
 
@@ -75,13 +73,5 @@ class ConvBlock(_BaseConv):
                 act_fun=Hermite(5),
                 res_act_fun=F.mish,
             ),
-            PixelNorm(),
-        )
-
-
-class Linear(nn.Sequential):
-    def __init__(self, in_channels: int, out_channels: int) -> None:
-        super().__init__(
-            LinearKAN(in_channels, out_channels, Hermite(5), F.mish),
-            PixelNorm(dim=-1),
+            PixelNorm(dim=1, epsilon=1e-5),
         )

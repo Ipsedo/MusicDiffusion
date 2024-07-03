@@ -23,13 +23,15 @@ class LinearKAN(nn.Module):
         self.__act_fun = act_fun
         self.__res_act_fun = res_act_fun
 
-        self._w = nn.Parameter(th.ones(in_features, out_features))
+        self._w_b = nn.Parameter(th.ones(in_features, out_features))
+        self._w_s = nn.Parameter(th.ones(in_features, out_features))
         self._c = nn.Parameter(
             th.ones(in_features, out_features, self.__act_fun.get_size())
         )
 
-        xavier_normal_(self._w, 1e-3)
-        normal_(self._c, 0, 1e-3)
+        xavier_normal_(self._w_b, 1)
+        normal_(self._w_s, 0, 1e-3)
+        normal_(self._c, 0, 1e-1)
 
     def forward(self, x: th.Tensor) -> th.Tensor:
         assert x.size(-1) == self.__in_features
@@ -38,10 +40,7 @@ class LinearKAN(nn.Module):
         x = x.unsqueeze(-1)
 
         return th.sum(
-            self._w
-            * (
-                self.__res_act_fun(x)
-                + th.sum(self._c * self.__act_fun(x), dim=-1)
-            ),
+            self._w_b * self.__res_act_fun(x)
+            + self._w_s * th.sum(self._c * self.__act_fun(x), dim=-1),
             -2,  # sum over input space
         )

@@ -4,9 +4,11 @@ from typing import Iterable
 
 import torch as th
 from torch import nn
+from torch.nn import functional as F
 
 from .convolutions import _BaseConv
-from .kan import Linear
+from .kan import Hermite, LinearKAN
+from .normalization import PixelNorm
 
 
 class SinusoidTimeEmbedding(nn.Module):
@@ -76,10 +78,13 @@ class TimeWrapper(nn.Module):
         super().__init__()
 
         self.__block = conv
-
         channels = conv.out_channels
 
-        self.__to_channels = Linear(time_size, channels * 2)
+        self.__to_channels = nn.Sequential(
+            LinearKAN(time_size, channels * 2, Hermite(5), F.mish),
+            PixelNorm(dim=2, epsilon=1e-5),
+            LinearKAN(channels * 2, channels * 2, Hermite(5), F.mish),
+        )
 
     def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
         b, t = x.size()[:2]
