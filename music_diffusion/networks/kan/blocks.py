@@ -5,10 +5,10 @@ from torch import nn
 from torch.nn import functional as F
 
 from ..convolutions import _BaseConv
+from ..normalization import PixelNorm
 from .activations import Hermite
 from .convolutions import Conv2dKan, ConvTr2dKan
 from .linear import LinearKAN
-from .parametrization import kan_weight_norm
 
 
 class OutChannelProj(_BaseConv):
@@ -19,16 +19,14 @@ class OutChannelProj(_BaseConv):
     ) -> None:
         super().__init__(
             out_channels,
-            kan_weight_norm(
-                Conv2dKan(
-                    in_channels,
-                    out_channels,
-                    kernel_size=1,
-                    stride=1,
-                    padding=0,
-                    act_fun=Hermite(5),
-                    res_act_fun=F.mish,
-                )
+            Conv2dKan(
+                in_channels,
+                out_channels,
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                act_fun=Hermite(5),
+                res_act_fun=F.mish,
             ),
         )
 
@@ -47,17 +45,16 @@ class StrideConvBlock(_BaseConv):
 
         super().__init__(
             out_channels,
-            kan_weight_norm(
-                conv_constructor[scale](
-                    in_channels,
-                    out_channels,
-                    kernel_size=4,
-                    stride=2,
-                    padding=1,
-                    act_fun=Hermite(5),
-                    res_act_fun=F.mish,
-                )
+            conv_constructor[scale](
+                in_channels,
+                out_channels,
+                kernel_size=4,
+                stride=2,
+                padding=1,
+                act_fun=Hermite(5),
+                res_act_fun=F.mish,
             ),
+            PixelNorm(),
         )
 
 
@@ -69,24 +66,22 @@ class ConvBlock(_BaseConv):
     ) -> None:
         super().__init__(
             out_channels,
-            kan_weight_norm(
-                Conv2dKan(
-                    in_channels,
-                    out_channels,
-                    kernel_size=3,
-                    stride=1,
-                    padding=1,
-                    act_fun=Hermite(5),
-                    res_act_fun=F.mish,
-                ),
+            Conv2dKan(
+                in_channels,
+                out_channels,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                act_fun=Hermite(5),
+                res_act_fun=F.mish,
             ),
+            PixelNorm(),
         )
 
 
 class Linear(nn.Sequential):
     def __init__(self, in_channels: int, out_channels: int) -> None:
         super().__init__(
-            kan_weight_norm(
-                LinearKAN(in_channels, out_channels, Hermite(5), F.mish)
-            ),
+            LinearKAN(in_channels, out_channels, Hermite(5), F.mish),
+            PixelNorm(dim=-1),
         )

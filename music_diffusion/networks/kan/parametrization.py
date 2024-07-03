@@ -8,7 +8,5 @@ M = TypeVar("M", bound=nn.Module)
 
 
 def kan_weight_norm(m: M) -> M:
-    parametrized_m: M = weight_norm(
-        weight_norm(m, name="_c", dim=1), name="_w", dim=1
-    )
+    parametrized_m: M = weight_norm(m, name="_w", dim=1)
     return parametrized_m

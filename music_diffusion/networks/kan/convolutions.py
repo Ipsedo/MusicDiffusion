@@ -45,8 +45,8 @@ class _AbstractConv2dKan(ABC, nn.Module):
             )
         )
 
-        xavier_normal_(self._w, 1e-1)
-        normal_(self._c, 0, 1e-1)
+        xavier_normal_(self._w, 1e-3)
+        normal_(self._c, 0, 1e-3)
 
         self._in_channels = in_channels
         self._kernel_size = kernel_size

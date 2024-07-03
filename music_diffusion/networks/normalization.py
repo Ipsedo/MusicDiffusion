@@ -4,14 +4,15 @@ from torch import nn
 
 
 class PixelNorm(nn.Module):
-    def __init__(self, epsilon: float = 1e-12) -> None:
+    def __init__(self, dim: int = 1, epsilon: float = 1e-12) -> None:
         super().__init__()
 
+        self.__dim = dim
         self.__epsilon = epsilon
 
     def forward(self, x: th.Tensor) -> th.Tensor:
         return x / th.sqrt(
-            x.pow(2.0).mean(dim=1, keepdim=True) + self.__epsilon
+            x.pow(2.0).mean(dim=self.__dim, keepdim=True) + self.__epsilon
         )
 
     def __repr__(self) -> str:
