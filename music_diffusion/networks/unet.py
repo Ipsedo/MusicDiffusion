@@ -5,7 +5,12 @@ import torch as th
 from torch import nn
 
 from .kan import ConvBlock, OutChannelProj, StrideConvBlock
-from .time import SinusoidTimeEmbedding, TimeBypass, TimeWrapper
+from .time import (
+    SequentialTimeWrapper,
+    SinusoidTimeEmbedding,
+    TimeBypass,
+    TimeWrapper,
+)
 
 
 class TimeUNet(nn.Module):
@@ -29,12 +34,18 @@ class TimeUNet(nn.Module):
             decoding_channels[-1][0],
         )
 
+        # Diffusion step embedding
         self.__time_embedder = SinusoidTimeEmbedding(steps, time_size)
 
         # Encoder stuff
-
         self.__encoder_down = nn.ModuleList(
-            TimeWrapper(time_size, StrideConvBlock(c_i, c_o, "down"))
+            SequentialTimeWrapper(
+                time_size,
+                [
+                    ConvBlock(c_i, c_o),
+                    StrideConvBlock(c_o, c_o, "down"),
+                ],
+            )
             for c_i, c_o in encoding_channels
         )
 
@@ -44,19 +55,21 @@ class TimeUNet(nn.Module):
 
         # Decoder stuff
         self.__decoder_up = nn.ModuleList(
-            TimeWrapper(time_size, StrideConvBlock(c_i, c_o, "up"))
+            SequentialTimeWrapper(
+                time_size,
+                [
+                    StrideConvBlock(c_i, c_i, "up"),
+                    ConvBlock(c_i, c_o),
+                ],
+            )
             for c_i, c_o in decoding_channels
         )
 
+        # Output stuff
         c_o = decoding_channels[-1][1]
         out_channels = encoding_channels[0][0]
-        self.__eps_end_conv = TimeBypass(
-            OutChannelProj(c_o, out_channels),
-        )
-
-        self.__v_end_conv = TimeBypass(
-            OutChannelProj(c_o, out_channels),
-        )
+        self.__eps_end_conv = TimeBypass(OutChannelProj(c_o, out_channels))
+        self.__v_end_conv = TimeBypass(OutChannelProj(c_o, out_channels))
 
     def forward(
         self, img: th.Tensor, t: th.Tensor

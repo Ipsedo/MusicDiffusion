@@ -3,8 +3,6 @@
 import mlflow
 import torch as th
 from ema_pytorch import EMA
-from torch import autocast
-from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -39,7 +37,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             denoiser.parameters(),
             lr=train_options.learning_rate,
         )
-        scaler = GradScaler()
 
         if train_options.noiser_state_dict is not None:
             noiser.load_state_dict(th.load(train_options.noiser_state_dict))
@@ -117,29 +114,27 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     device=device,
                 )
 
-                with autocast(device_type=device, dtype=th.float16):
-                    x_t, eps = noiser(x_0, t)
-                    eps_theta, v_theta = denoiser(x_t, t)
+                x_t, eps = noiser(x_0, t)
+                eps_theta, v_theta = denoiser(x_t, t)
 
-                    loss_mse = mse(eps, eps_theta)
+                loss_mse = mse(eps, eps_theta)
 
-                    q_mu, q_var = noiser.posterior(x_t, x_0, t)
-                    p_mu, p_var = denoiser.prior(
-                        x_t, t, eps_theta.detach(), v_theta
-                    )
+                q_mu, q_var = noiser.posterior(x_t, x_0, t)
+                p_mu, p_var = denoiser.prior(
+                    x_t, t, eps_theta.detach(), v_theta
+                )
 
-                    loss_kl = normal_kl_div(q_mu, q_var, p_mu, p_var)
-                    # loss_nll = negative_log_likelihood(x_0, p_mu, p_var)
-                    # loss_nll = discretized_nll(x_0.unsqueeze(1), p_mu, p_var)
-                    # loss_vlb = th.where(th.eq(t, 0), loss_nll, loss_kl)
+                loss_kl = normal_kl_div(q_mu, q_var, p_mu, p_var)
+                # loss_nll = negative_log_likelihood(x_0, p_mu, p_var)
+                # loss_nll = discretized_nll(x_0.unsqueeze(1), p_mu, p_var)
+                # loss_vlb = th.where(th.eq(t, 0), loss_nll, loss_kl)
 
-                    loss = loss_kl + loss_mse
-                    loss = loss.mean()
+                loss = loss_kl + loss_mse
+                loss = loss.mean()
 
                 optim.zero_grad(set_to_none=True)
-                scaler.scale(loss).backward()
-                scaler.step(optim)
-                scaler.update()
+                loss.backward()
+                optim.step()
 
                 denoiser_ema.update()
 
