@@ -2,7 +2,6 @@
 
 import mlflow
 import torch as th
-from ema_pytorch import EMA
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -24,14 +23,14 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
         noiser = model_options.new_noiser()
         denoiser = model_options.new_denoiser()
-        denoiser_ema = EMA(denoiser, include_online_model=True)
+        # denoiser_ema = EMA(denoiser, include_online_model=True)
 
         print(f"Parameters count = {denoiser.count_parameters()}")
 
         if model_options.cuda:
             noiser.cuda()
             denoiser.cuda()
-            denoiser_ema.cuda()
+            # denoiser_ema.cuda()
 
         optim = th.optim.Adam(
             denoiser.parameters(),
@@ -44,8 +43,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             denoiser.load_state_dict(
                 th.load(train_options.denoiser_state_dict)
             )
-        if train_options.ema_state_dict is not None:
-            denoiser_ema.load_state_dict(th.load(train_options.ema_state_dict))
+        # if train_options.ema_state_dict is not None:
+        #    denoiser_ema.load_state_dict(th.load(train_options.ema_state_dict))
         if train_options.optim_state_dict is not None:
             optim.load_state_dict(th.load(train_options.optim_state_dict))
 
@@ -54,7 +53,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             noiser,
             denoiser,
             optim,
-            denoiser_ema,
+            # denoiser_ema,
             train_options.output_directory,
             train_options.save_every,
             train_options.nb_samples,
@@ -136,7 +135,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 loss.backward()
                 optim.step()
 
-                denoiser_ema.update()
+                # denoiser_ema.update()
 
                 grad_norm = denoiser.grad_norm()
 

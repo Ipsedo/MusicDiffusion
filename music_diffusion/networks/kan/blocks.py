@@ -24,8 +24,9 @@ class OutChannelProj(_BaseConv):
                 stride=1,
                 padding=0,
                 act_fun=Hermite(5),
-                res_act_fun=F.mish,
+                res_act_fun=F.silu,
             ),
+            PixelNorm(dim=1, epsilon=1e-5),
         )
 
 
@@ -46,11 +47,11 @@ class StrideConvBlock(_BaseConv):
             conv_constructor[scale](
                 in_channels,
                 out_channels,
-                kernel_size=4,
-                stride=2,
-                padding=1,
+                kernel_size=8,
+                stride=4,
+                padding=2,
                 act_fun=Hermite(5),
-                res_act_fun=F.mish,
+                res_act_fun=F.silu,
             ),
             PixelNorm(dim=1, epsilon=1e-5),
         )
@@ -71,7 +72,7 @@ class ConvBlock(_BaseConv):
                 stride=1,
                 padding=1,
                 act_fun=Hermite(5),
-                res_act_fun=F.mish,
+                res_act_fun=F.silu,
             ),
             PixelNorm(dim=1, epsilon=1e-5),
         )

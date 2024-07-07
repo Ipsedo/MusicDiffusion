@@ -34,9 +34,11 @@ class Hermite(ActivationFunction):
     def __init__(self, n: int) -> None:
         super().__init__()
         self.__n = n
+        self._factor: th.Tensor
+        self.register_buffer("_factor", th.tensor(1e-1) ** th.arange(self.__n))
 
     def forward(self, x: th.Tensor) -> th.Tensor:
-        return hermite(x, self.__n)
+        return hermite(x, self.__n) * self._factor
 
     def get_size(self) -> int:
         return self.__n

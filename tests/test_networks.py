@@ -203,7 +203,7 @@ def test_denoiser(
 
 
 @pytest.mark.parametrize("batch_size", [2, 3])
-@pytest.mark.parametrize("size", [(32, 32), (16, 32)])
+@pytest.mark.parametrize("size", [(64, 64), (64, 128)])
 @pytest.mark.parametrize(
     "channels",
     [[(2, 8), (8, 16), (16, 32)], [(4, 8), (8, 32), (32, 16)]],

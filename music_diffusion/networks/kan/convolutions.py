@@ -31,15 +31,15 @@ class _AbstractConv2dKan(ABC, nn.Module):
         self.__act_fun = act_fun
         self.__res_act_fun = res_act_fun
 
-        self.__w_b = nn.Parameter(
+        self._w_b = nn.Parameter(
             th.ones(in_channels, out_channels, kernel_size * kernel_size, 1, 1)
         )
 
-        self.__w_s = nn.Parameter(
+        self._w_s = nn.Parameter(
             th.ones(in_channels, out_channels, kernel_size * kernel_size, 1, 1)
         )
 
-        self.__c = nn.Parameter(
+        self._c = nn.Parameter(
             th.ones(
                 in_channels,
                 out_channels,
@@ -49,8 +49,9 @@ class _AbstractConv2dKan(ABC, nn.Module):
             )
         )
 
-        xavier_normal_(self.__w_b, 1e-3)
-        normal_(self.__c, 0, 1e-3)
+        xavier_normal_(self._w_b)
+        # xavier_normal_(self._w_s, 1e-3)
+        normal_(self._c, 0, 1e-1)
 
         self._in_channels = in_channels
         self._kernel_size = kernel_size
@@ -59,8 +60,8 @@ class _AbstractConv2dKan(ABC, nn.Module):
 
     def _activation(self, flattened_x: th.Tensor) -> th.Tensor:
         return th.sum(
-            self.__w_b * self.__res_act_fun(flattened_x).unsqueeze(-1)
-            + self.__w_s * self.__c * self.__act_fun(flattened_x),
+            self._w_b * self.__res_act_fun(flattened_x).unsqueeze(-1)
+            + self._w_s * self._c * self.__act_fun(flattened_x),
             dim=[1, 5],  # sum over input and activation spaces
         )
 

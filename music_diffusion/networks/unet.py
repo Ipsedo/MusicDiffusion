@@ -42,8 +42,8 @@ class TimeUNet(nn.Module):
             SequentialTimeWrapper(
                 time_size,
                 [
-                    ConvBlock(c_i, c_o),
-                    StrideConvBlock(c_o, c_o, "down"),
+                    StrideConvBlock(c_i, c_o, "down"),
+                    ConvBlock(c_o, c_o),
                 ],
             )
             for c_i, c_o in encoding_channels
@@ -58,8 +58,8 @@ class TimeUNet(nn.Module):
             SequentialTimeWrapper(
                 time_size,
                 [
-                    StrideConvBlock(c_i, c_i, "up"),
-                    ConvBlock(c_i, c_o),
+                    ConvBlock(c_i, c_i),
+                    StrideConvBlock(c_i, c_o, "up"),
                 ],
             )
             for c_i, c_o in decoding_channels
