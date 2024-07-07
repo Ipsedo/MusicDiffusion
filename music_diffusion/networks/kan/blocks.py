@@ -9,6 +9,27 @@ from .activations import Hermite
 from .convolutions import Conv2dKan, ConvTr2dKan
 
 
+class InChannelProj(_BaseConv):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+    ) -> None:
+        super().__init__(
+            out_channels,
+            Conv2dKan(
+                in_channels,
+                out_channels,
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                act_fun=Hermite(5),
+                res_act_fun=F.mish,
+            ),
+            PixelNorm(dim=1, epsilon=1e-5),
+        )
+
+
 class OutChannelProj(_BaseConv):
     def __init__(
         self,
@@ -24,9 +45,8 @@ class OutChannelProj(_BaseConv):
                 stride=1,
                 padding=0,
                 act_fun=Hermite(5),
-                res_act_fun=F.silu,
+                res_act_fun=F.mish,
             ),
-            PixelNorm(dim=1, epsilon=1e-5),
         )
 
 
@@ -51,7 +71,7 @@ class StrideConvBlock(_BaseConv):
                 stride=4,
                 padding=2,
                 act_fun=Hermite(5),
-                res_act_fun=F.silu,
+                res_act_fun=F.mish,
             ),
             PixelNorm(dim=1, epsilon=1e-5),
         )
@@ -72,7 +92,7 @@ class ConvBlock(_BaseConv):
                 stride=1,
                 padding=1,
                 act_fun=Hermite(5),
-                res_act_fun=F.silu,
+                res_act_fun=F.mish,
             ),
             PixelNorm(dim=1, epsilon=1e-5),
         )

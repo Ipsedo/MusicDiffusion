@@ -4,7 +4,7 @@ from typing import List, Tuple
 import torch as th
 from torch import nn
 
-from .kan import ConvBlock, OutChannelProj, StrideConvBlock
+from .kan import ConvBlock, InChannelProj, OutChannelProj, StrideConvBlock
 from .time import (
     SequentialTimeWrapper,
     SinusoidTimeEmbedding,
@@ -27,22 +27,33 @@ class TimeUNet(nn.Module):
             for i in range(len(channels) - 1)
         )
 
+        out_channels = channels[0][0]
+
         encoding_channels = channels.copy()
-        decoding_channels = [(c_o, c_i) for c_i, c_o in reversed(channels)]
-        decoding_channels[-1] = (
-            decoding_channels[-1][0],
-            decoding_channels[-1][0],
+        encoding_channels[0] = (
+            encoding_channels[0][1],
+            encoding_channels[0][1],
         )
+
+        decoding_channels = [
+            (c_o, c_i) for c_i, c_o in reversed(encoding_channels)
+        ]
 
         # Diffusion step embedding
         self.__time_embedder = SinusoidTimeEmbedding(steps, time_size)
+
+        # Input stuff
+        self.__input_proj = TimeWrapper(
+            time_size, InChannelProj(out_channels, encoding_channels[0][0])
+        )
 
         # Encoder stuff
         self.__encoder_down = nn.ModuleList(
             SequentialTimeWrapper(
                 time_size,
                 [
-                    StrideConvBlock(c_i, c_o, "down"),
+                    StrideConvBlock(c_i, c_i, "down"),
+                    ConvBlock(c_i, c_o),
                     ConvBlock(c_o, c_o),
                 ],
             )
@@ -59,7 +70,8 @@ class TimeUNet(nn.Module):
                 time_size,
                 [
                     ConvBlock(c_i, c_i),
-                    StrideConvBlock(c_i, c_o, "up"),
+                    ConvBlock(c_i, c_o),
+                    StrideConvBlock(c_o, c_o, "up"),
                 ],
             )
             for c_i, c_o in decoding_channels
@@ -67,9 +79,10 @@ class TimeUNet(nn.Module):
 
         # Output stuff
         c_o = decoding_channels[-1][1]
-        out_channels = encoding_channels[0][0]
         self.__eps_end_conv = TimeBypass(OutChannelProj(c_o, out_channels))
-        self.__v_end_conv = TimeBypass(OutChannelProj(c_o, out_channels))
+        self.__v_end_conv = nn.Sequential(
+            TimeBypass(OutChannelProj(c_o, out_channels)), nn.Sigmoid()
+        )
 
     def forward(
         self, img: th.Tensor, t: th.Tensor
@@ -78,7 +91,7 @@ class TimeUNet(nn.Module):
 
         bypasses = []
 
-        out = img
+        out = self.__input_proj(img, time_vec)
 
         for down in self.__encoder_down:
             out = down(out, time_vec)
