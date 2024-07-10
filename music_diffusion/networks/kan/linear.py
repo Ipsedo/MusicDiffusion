@@ -21,21 +21,20 @@ class LinearKAN(nn.Module):
         self.__act_fun = act_fun
         self.__res_act_fun = res_act_fun
 
-        self.__w_b = nn.Parameter(th.ones(in_features, out_features, 1))
-        self.__w_s = nn.Parameter(th.ones(in_features, out_features, 1))
-        self.__c = nn.Parameter(
-            th.ones(in_features, out_features, self.__act_fun.get_size())
+        self._w_b = nn.Parameter(th.ones(out_features, in_features))
+        self._w_s = nn.Parameter(th.ones(out_features, in_features))
+        self._c = nn.Parameter(
+            th.ones(self.__act_fun.get_size(), out_features, in_features)
         )
 
-        xavier_normal_(self.__w_b)
-        normal_(self.__c, 0, 1e-1)
+        xavier_normal_(self._w_b)
+        normal_(self._c, 0, 1e-1)
 
     def forward(self, x: th.Tensor) -> th.Tensor:
-        # output dim
-        x = x.unsqueeze(-1)
+        assert len(x.size()) == 2
 
         return th.sum(
-            self.__w_b * self.__res_act_fun(x).unsqueeze(-1)
-            + self.__w_s * self.__c * self.__act_fun(x),
-            dim=[-3, -1],  # sum over input and activation spaces
+            self._w_s * th.einsum("bai,aoi->boi", self.__act_fun(x), self._c)
+            + self._w_b * self.__res_act_fun(x).unsqueeze(1),
+            dim=2,
         )

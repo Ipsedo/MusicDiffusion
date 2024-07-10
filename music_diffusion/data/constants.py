@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from typing import Final, Tuple
 
-N_FFT: Final[int] = 512
-N_VEC: Final[int] = 256
+N_FFT: Final[int] = 256
+N_VEC: Final[int] = 128
 STFT_STRIDE: Final[int] = 64
 
 SAMPLE_RATE: Final[int] = 16000

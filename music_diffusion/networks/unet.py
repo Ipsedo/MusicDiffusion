@@ -4,13 +4,8 @@ from typing import List, Tuple
 import torch as th
 from torch import nn
 
-from .kan import ConvBlock, InChannelProj, OutChannelProj, StrideConvBlock
-from .time import (
-    SequentialTimeWrapper,
-    SinusoidTimeEmbedding,
-    TimeBypass,
-    TimeWrapper,
-)
+from .kan import ConvBlock, OutChannelProj, StrideConvBlock
+from .time import SinusoidTimeEmbedding, TimeBypass, TimeWrapper
 
 
 class TimeUNet(nn.Module):
@@ -30,32 +25,22 @@ class TimeUNet(nn.Module):
         out_channels = channels[0][0]
 
         encoding_channels = channels.copy()
-        encoding_channels[0] = (
-            encoding_channels[0][1],
-            encoding_channels[0][1],
-        )
-
         decoding_channels = [
             (c_o, c_i) for c_i, c_o in reversed(encoding_channels)
         ]
+        decoding_channels[-1] = (
+            decoding_channels[-1][0],
+            decoding_channels[-1][0],
+        )
 
         # Diffusion step embedding
         self.__time_embedder = SinusoidTimeEmbedding(steps, time_size)
 
-        # Input stuff
-        self.__input_proj = TimeWrapper(
-            time_size, InChannelProj(out_channels, encoding_channels[0][0])
-        )
-
         # Encoder stuff
         self.__encoder_down = nn.ModuleList(
-            SequentialTimeWrapper(
+            TimeWrapper(
                 time_size,
-                [
-                    StrideConvBlock(c_i, c_i, "down"),
-                    ConvBlock(c_i, c_o),
-                    ConvBlock(c_o, c_o),
-                ],
+                StrideConvBlock(c_i, c_o, "down"),
             )
             for c_i, c_o in encoding_channels
         )
@@ -66,13 +51,9 @@ class TimeUNet(nn.Module):
 
         # Decoder stuff
         self.__decoder_up = nn.ModuleList(
-            SequentialTimeWrapper(
+            TimeWrapper(
                 time_size,
-                [
-                    ConvBlock(c_i, c_i),
-                    ConvBlock(c_i, c_o),
-                    StrideConvBlock(c_o, c_o, "up"),
-                ],
+                StrideConvBlock(c_i, c_o, "up"),
             )
             for c_i, c_o in decoding_channels
         )
@@ -91,7 +72,7 @@ class TimeUNet(nn.Module):
 
         bypasses = []
 
-        out = self.__input_proj(img, time_vec)
+        out = img
 
         for down in self.__encoder_down:
             out = down(out, time_vec)
