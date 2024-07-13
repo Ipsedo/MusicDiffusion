@@ -61,9 +61,7 @@ class TimeUNet(nn.Module):
         # Output stuff
         c_o = decoding_channels[-1][1]
         self.__eps_end_conv = TimeBypass(OutChannelProj(c_o, out_channels))
-        self.__v_end_conv = nn.Sequential(
-            TimeBypass(OutChannelProj(c_o, out_channels)), nn.Sigmoid()
-        )
+        self.__v_end_conv = TimeBypass(OutChannelProj(c_o, out_channels))
 
     def forward(
         self, img: th.Tensor, t: th.Tensor

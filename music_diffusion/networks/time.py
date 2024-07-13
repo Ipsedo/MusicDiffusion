@@ -7,7 +7,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from .convolutions import _BaseConv
-from .kan import LinearKAN, Tchebychev, kan_weight_norm
+from .kan import LinearKAN, Tchebychev
 
 
 class SinusoidTimeEmbedding(nn.Module):
@@ -81,16 +81,8 @@ class TimeWrapper(nn.Module):
 
         self.__to_channels = TimeBypass(
             nn.Sequential(
-                nn.Tanh(),
-                kan_weight_norm(
-                    LinearKAN(time_size, channels * 2, Tchebychev(5), F.silu)
-                ),
-                nn.Tanh(),
-                kan_weight_norm(
-                    LinearKAN(
-                        channels * 2, channels * 2, Tchebychev(5), F.silu
-                    )
-                ),
+                LinearKAN(time_size, channels * 2, Tchebychev(8), F.silu),
+                LinearKAN(channels * 2, channels * 2, Tchebychev(8), F.silu),
             )
         )
 

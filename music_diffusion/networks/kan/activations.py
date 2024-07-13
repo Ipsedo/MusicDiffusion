@@ -148,13 +148,13 @@ class Tchebychev(ActivationFunction):
 
     def forward(self, x: th.Tensor) -> th.Tensor:
         return th.einsum(
-            "...a,ab->...b",
+            "b...a,ac->bc...",
             th.pow(
-                th.tanh(x.unsqueeze(-1).expand(*x.size(), self.__n + 1)),
+                th.tanh(x.unsqueeze(-1)),
                 th.arange(0, self.__n + 1, device=x.device),
             ),
             self._coef,
-        ).movedim(-1, 1)
+        )
 
     def get_size(self) -> int:
         return self.__n

@@ -22,7 +22,7 @@ class InChannelProj(_BaseConv):
                 kernel_size=1,
                 stride=1,
                 padding=0,
-                act_fun=Tchebychev(5),
+                act_fun=Tchebychev(8),
                 res_act_fun=F.silu,
             ),
         )
@@ -42,7 +42,7 @@ class OutChannelProj(_BaseConv):
                 kernel_size=1,
                 stride=1,
                 padding=0,
-                act_fun=Tchebychev(5),
+                act_fun=Tchebychev(8),
                 res_act_fun=F.silu,
             ),
         )
@@ -68,7 +68,7 @@ class StrideConvBlock(_BaseConv):
                 kernel_size=4,
                 stride=2,
                 padding=1,
-                act_fun=Tchebychev(5),
+                act_fun=Tchebychev(8),
                 res_act_fun=F.silu,
             ),
         )
@@ -88,7 +88,7 @@ class ConvBlock(_BaseConv):
                 kernel_size=3,
                 stride=1,
                 padding=1,
-                act_fun=Tchebychev(5),
+                act_fun=Tchebychev(8),
                 res_act_fun=F.silu,
             ),
         )
