@@ -1,7 +1,7 @@
 import glob
 from os import mkdir
 from os.path import exists, isdir, join
-from typing import Literal, Tuple
+from typing import Tuple
 
 import torch as th
 import torch.nn.functional as th_f
@@ -26,27 +26,6 @@ def unwrap(phi: th.Tensor) -> th.Tensor:
     return phi + phi_adj.cumsum(1)
 
 
-def bark_scale(
-    magnitude: th.Tensor, mode: Literal["scale", "unscale"]
-) -> th.Tensor:
-    assert (
-        len(magnitude.size()) == 2
-    ), f"(STFT, TIME), actual = {magnitude.size()}"
-
-    min_hz = 20.0
-    max_hz = constants.SAMPLE_RATE // 2
-
-    lin_space: th.Tensor = (
-        th.linspace(min_hz, max_hz, magnitude.size()[0]) / 600.0
-    )
-    scale = 6.0 * th.arcsinh(lin_space)[:, None]
-    scale = scale / scale[-1, :]
-
-    res: th.Tensor = (
-        magnitude / scale if mode == "unscale" else magnitude * scale
-    )
-    return res
-
 
 def wav_to_stft(
     wav_p: str,
@@ -55,11 +34,7 @@ def wav_to_stft(
     epsilon: float = 1e-8,
 ) -> th.Tensor:
     raw_audio, sr = th_audio.load(wav_p)
-
-    assert sr == constants.SAMPLE_RATE, (
-        f"Audio sample rate must be {constants.SAMPLE_RATE}Hz, "
-        f'file "{wav_p}" is {sr}Hz'
-    )
+    raw_audio = th_audio.functional.resample(raw_audio, sr, constants.SAMPLE_RATE)
 
     raw_audio_mono = raw_audio.mean(0)
     raw_audio_mono = (
@@ -95,7 +70,6 @@ def stft_to_magnitude_phase(
     magnitude = th.abs(complex_values)
     phase = th.angle(complex_values)
 
-    magnitude = bark_scale(magnitude, "scale")
     magnitude = th_f.pad(magnitude, (1, 0, 0, 0), "constant", 0.0)
 
     phase = unwrap(phase)
@@ -129,8 +103,6 @@ def magnitude_phase_to_wav(
     sample_rate: int,
     n_fft: int = constants.N_FFT,
     stft_stride: int = constants.STFT_STRIDE,
-    threshold: float = 1.0 / 2**8,
-    magn_scale: float = 1.0,
 ) -> None:
     assert (
         len(magnitude_phase.size()) == 4
@@ -152,9 +124,6 @@ def magnitude_phase_to_wav(
     phase = magnitude_phase_flattened[1, :, :]
 
     magnitude = (magnitude + 1.0) / 2.0
-    magnitude[magnitude < threshold] = 0.0
-    magnitude = bark_scale(magnitude, "unscale")
-    magnitude = magnitude * magn_scale
 
     phase = (phase + 1.0) / 2.0 * 2.0 * th.pi - th.pi
     phase = simpson(th.zeros(phase.size()[0], 1), phase, 1, 1.0)

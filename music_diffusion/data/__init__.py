@@ -1,5 +1,4 @@
 from .audio import (
-    bark_scale,
     create_dataset,
     magnitude_phase_to_wav,
     stft_to_magnitude_phase,
