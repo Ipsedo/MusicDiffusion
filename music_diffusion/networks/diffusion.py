@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from abc import ABC
 from statistics import mean
 from typing import List, Optional, Tuple

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import torch as th
 from torch.nn import functional as th_f
 

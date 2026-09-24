@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import List, NamedTuple, Optional, Tuple
 
 from .networks import Denoiser, Noiser

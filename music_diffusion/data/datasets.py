@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 from os import listdir
 from os.path import isdir, isfile, join
