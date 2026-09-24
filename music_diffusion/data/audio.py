@@ -26,7 +26,6 @@ def unwrap(phi: th.Tensor) -> th.Tensor:
     return phi + phi_adj.cumsum(1)
 
 
-
 def wav_to_stft(
     wav_p: str,
     n_per_seg: int = constants.N_FFT,
@@ -34,7 +33,9 @@ def wav_to_stft(
     epsilon: float = 1e-8,
 ) -> th.Tensor:
     raw_audio, sr = th_audio.load(wav_p)
-    raw_audio = th_audio.functional.resample(raw_audio, sr, constants.SAMPLE_RATE)
+    raw_audio = th_audio.functional.resample(
+        raw_audio, sr, constants.SAMPLE_RATE
+    )
 
     raw_audio_mono = raw_audio.mean(0)
     raw_audio_mono = (

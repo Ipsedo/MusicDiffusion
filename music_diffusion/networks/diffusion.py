@@ -194,6 +194,7 @@ class Denoiser(Diffuser):
         steps: int,
         time_size: int,
         unet_channels: List[Tuple[int, int]],
+        unet_group_norm_num: list[int],
     ) -> None:
         super().__init__(steps)
 
@@ -214,6 +215,7 @@ class Denoiser(Diffuser):
 
         self.__unet = TimeUNet(
             unet_channels,
+            unet_group_norm_num,
             time_size,
             self._steps,
         )

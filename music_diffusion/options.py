@@ -6,6 +6,7 @@ from .networks import Denoiser, Noiser
 class ModelOptions(NamedTuple):
     steps: int
     unet_channels: List[Tuple[int, int]]
+    unet_group_norm_num: list[int]
     time_size: int
     cuda: bool
 
@@ -14,6 +15,7 @@ class ModelOptions(NamedTuple):
             self.steps,
             self.time_size,
             self.unet_channels,
+            self.unet_group_norm_num,
         )
 
     def new_noiser(self) -> Noiser:
@@ -44,4 +46,3 @@ class GenerateOptions(NamedTuple):
     output_dir: str
     frames: int
     musics: int
-    magn_scale: float

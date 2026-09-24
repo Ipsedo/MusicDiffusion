@@ -5,7 +5,6 @@ import pytest
 import torch as th
 
 from music_diffusion.data import (
-    bark_scale,
     magnitude_phase_to_wav,
     simpson,
     stft_to_magnitude_phase,
@@ -70,28 +69,6 @@ def test_wav_to_stft(wav_path: str, nperseg: int, stride: int) -> None:
     assert len(stft.size()) == 2
     assert stft.size()[0] == nperseg // 2
     assert th.is_complex(stft)
-
-
-@pytest.mark.parametrize("nfft", [128, 256, 512])
-@pytest.mark.parametrize("nb_vec", [128, 256, 512])
-def test_bark_scale(nfft: int, nb_vec: int) -> None:
-    delta = 1e-2
-
-    magn = th.rand(nfft, nb_vec)
-
-    magn_scaled = bark_scale(magn, "scale")
-
-    assert len(magn_scaled.size()) == 2
-    assert magn_scaled.size()[0] == nfft
-    assert magn_scaled.size()[1] == nb_vec
-
-    magn_unscaled = bark_scale(magn_scaled, "unscale")
-
-    assert len(magn_unscaled.size()) == 2
-    assert magn_unscaled.size()[0] == nfft
-    assert magn_unscaled.size()[1] == nb_vec
-
-    assert th.all((magn - magn_unscaled) < delta)
 
 
 @pytest.mark.parametrize("nfft", [128, 256, 512])

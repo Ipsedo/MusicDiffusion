@@ -1,7 +1,6 @@
 from typing import Literal
 
 from torch import nn
-from torch.nn.utils.parametrizations import weight_norm
 
 
 class _BaseConv(nn.Sequential):
@@ -20,18 +19,18 @@ class ChannelProjBlock(_BaseConv):
         self,
         in_channels: int,
         out_channels: int,
+        group_norm_num: int,
     ) -> None:
         super().__init__(
             out_channels,
-            weight_norm(
-                nn.Conv2d(
-                    in_channels,
-                    out_channels,
-                    kernel_size=(1, 1),
-                    stride=(1, 1),
-                    padding=(0, 0),
-                )
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=(1, 1),
+                stride=(1, 1),
+                padding=(0, 0),
             ),
+            nn.GroupNorm(group_norm_num, out_channels),
             nn.Mish(),
         )
 
@@ -44,14 +43,12 @@ class OutChannelProj(_BaseConv):
     ) -> None:
         super().__init__(
             out_channels,
-            weight_norm(
-                nn.Conv2d(
-                    in_channels,
-                    out_channels,
-                    kernel_size=(1, 1),
-                    stride=(1, 1),
-                    padding=(0, 0),
-                )
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=(1, 1),
+                stride=(1, 1),
+                padding=(0, 0),
             ),
         )
 
@@ -64,14 +61,12 @@ class EndConvBlock(_BaseConv):
     ) -> None:
         super().__init__(
             out_channels,
-            weight_norm(
-                nn.Conv2d(
-                    in_channels,
-                    out_channels,
-                    kernel_size=(3, 3),
-                    stride=(1, 1),
-                    padding=(1, 1),
-                )
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=(3, 3),
+                stride=(1, 1),
+                padding=(1, 1),
             ),
         )
 
@@ -81,6 +76,7 @@ class StrideConvBlock(_BaseConv):
         self,
         in_channels: int,
         out_channels: int,
+        group_norm_num: int,
         scale: Literal["up", "down"],
     ) -> None:
         conv_constructor = {
@@ -90,15 +86,14 @@ class StrideConvBlock(_BaseConv):
 
         super().__init__(
             out_channels,
-            weight_norm(
-                conv_constructor[scale](
-                    in_channels,
-                    out_channels,
-                    kernel_size=(4, 4),
-                    stride=(2, 2),
-                    padding=(1, 1),
-                )
+            conv_constructor[scale](
+                in_channels,
+                out_channels,
+                kernel_size=(4, 4),
+                stride=(2, 2),
+                padding=(1, 1),
             ),
+            nn.GroupNorm(group_norm_num, out_channels),
             nn.Mish(),
         )
 
@@ -108,17 +103,17 @@ class ConvBlock(_BaseConv):
         self,
         in_channels: int,
         out_channels: int,
+        group_norm_num: int,
     ) -> None:
         super().__init__(
             out_channels,
-            weight_norm(
-                nn.Conv2d(
-                    in_channels,
-                    out_channels,
-                    kernel_size=(3, 3),
-                    stride=(1, 1),
-                    padding=(1, 1),
-                )
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=(3, 3),
+                stride=(1, 1),
+                padding=(1, 1),
             ),
+            nn.GroupNorm(group_norm_num, out_channels),
             nn.Mish(),
         )

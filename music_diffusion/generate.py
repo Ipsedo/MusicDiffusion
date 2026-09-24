@@ -89,5 +89,4 @@ def generate(
                 SAMPLE_RATE,
                 N_FFT,
                 STFT_STRIDE,
-                magn_scale=generate_options.magn_scale,
             )

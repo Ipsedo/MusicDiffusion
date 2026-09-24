@@ -25,15 +25,13 @@ def _channels(string: str) -> List[Tuple[int, int]]:
     return [_match_channels(layer) for layer in regex_layer.findall(string)]
 
 
-def _attentions(string: str) -> List[bool]:
-    regex_true_false = re.compile(r"(?:True)|(?:False)")
-    regex_match = re.compile(
-        r"^ *\[(?: *(?:(?:True)|(?:False)) *,)* *(?:(?:True)|(?:False)) *] *$"
-    )
+def _group_norm_nums(string: str) -> List[int]:
+    regex_group = re.compile(r"\d+")
+    regex_match = re.compile(r"^ *\[(?: *\d+ *,)* *\d+ *] *$")
 
     assert regex_match.match(string), "usage : [True, False, True, ...]"
 
-    return [use_att == "True" for use_att in regex_true_false.findall(string)]
+    return [int(group) for group in regex_group.findall(string)]
 
 
 def main() -> None:
@@ -71,6 +69,11 @@ def main() -> None:
             (128, 256),
             (256, 512),
         ],
+    )
+    model_parser.add_argument(
+        "--unet-group-norm-nums",
+        type=_group_norm_nums,
+        default=[2, 4, 8, 16, 32, 64],
     )
     model_parser.add_argument("--time-size", type=int, default=16)
     model_parser.add_argument("--cuda", action="store_true")
@@ -120,6 +123,7 @@ def main() -> None:
         model_options = ModelOptions(
             steps=args.steps,
             unet_channels=args.unet_channels,
+            unet_group_norm_num=args.unet_group_norm_num,
             time_size=args.time_size,
             cuda=args.cuda,
         )
@@ -152,7 +156,6 @@ def main() -> None:
                 output_dir=args.output_dir,
                 frames=args.frames,
                 musics=args.musics,
-                magn_scale=args.magn_scale,
             )
 
             generate(model_options, generate_options)
