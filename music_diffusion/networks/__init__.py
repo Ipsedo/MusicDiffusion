@@ -1,4 +1,4 @@
-from .diffusion import Denoiser, Noiser
+from .denoiser import Denoiser
 from .functions import (
     discretized_nll,
     hellinger,
@@ -11,4 +11,5 @@ from .functions import (
     normal_kl_div,
     normal_wasserstein,
 )
+from .noiser import Noiser
 from .unet import TimeUNet
