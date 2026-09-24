@@ -156,7 +156,7 @@ def create_dataset(
     dataset_output_dir: str,
 ) -> None:
 
-    w_p = glob.glob(audio_path)
+    w_p = glob.glob(audio_path, recursive=True)
 
     if not exists(dataset_output_dir):
         mkdir(dataset_output_dir)
