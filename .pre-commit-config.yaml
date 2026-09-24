@@ -29,23 +29,23 @@ repos:
         files: "\\.(py)$"
   - repo: local
     hooks:
-      - id: mypy
+      - id: identity
         name: mypy
         language: system
         entry: mypy
-        args: [ music_diffusion, tests ]
+        args: [ src/music_diffusion, tests ]
         types: [ python ]
         pass_filenames: false
         require_serial: true
-      - id: pylint
+      - id: identity
         name: pylint
         language: system
         entry: pylint
-        args: [ music_diffusion, tests ]
+        args: [ src/music_diffusion, tests ]
         types: [ python ]
         pass_filenames: false
         require_serial: true
-      - id: pytest
+      - id: identity
         name: pytest
         language: system
         entry: python

@@ -1,3 +1,43 @@
+[project]
+name = "music_diffusion"
+version = "1.0.0"
+description = "Music synthesis with diffusion models"
+readme = "README.md"
+authors = [
+    { name = "samuel" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "ema-pytorch>=0.8.3",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.11.2",
+    "mlflow>=3.16.1",
+    "numpy>=2.5.3",
+    "torch>=2.14.0",
+    "torchaudio>=2.11.0",
+    "torchcodec>=0.16.0",
+    "torchvision>=0.29.0",
+    "tqdm>=4.70.1",
+]
+
+[dependency-groups]
+dev = [
+    "black[d]>=26.5.1",
+    "isort>=9.0.1",
+    "mypy>=2.3.1",
+    "pre-commit>=4.6.2",
+    "pycln>=2.6.0",
+    "pylint>=4.0.9",
+    "pytest>=9.1.1",
+]
+
+[project.scripts]
+music_diffusion = "music_diffusion:main"
+
+[build-system]
+requires = ["uv_build>=0.12.15,<0.13.0"]
+build-backend = "uv_build"
+
 [tool.black]
 line-length = 79
 

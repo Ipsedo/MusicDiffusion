@@ -133,11 +133,11 @@ dmypy.json
 
 # output directories
 out/
+outputs/
 res/
 mlruns/
+mlflow.db
 
 # poids trop volumineux pour GitHub (>100 Mo) : conserves sur disque,
 # publies en GitHub Release plutot que versionnes
 resources/**/denoiser*.pt
-outputs/
-mlflow.db
