@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import pytest
 import torch as th
 
@@ -14,7 +12,7 @@ def test_normal_log_prob(
     step_batch_size: int,
     batch_size: int,
     channels: int,
-    img_sizes: Tuple[int, int],
+    img_sizes: tuple[int, int],
     use_cuda: bool,
 ) -> None:
 
@@ -52,7 +50,7 @@ def test_normal_cdf(
     step_batch_size: int,
     batch_size: int,
     channels: int,
-    img_sizes: Tuple[int, int],
+    img_sizes: tuple[int, int],
     use_cuda: bool,
 ) -> None:
 

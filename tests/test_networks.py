@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 import pytest
 import torch as th
 
@@ -16,7 +14,7 @@ def test_noiser(
     step_batch_size: int,
     batch_size: int,
     channels: int,
-    img_sizes: Tuple[int, int],
+    img_sizes: tuple[int, int],
     use_cuda: bool,
 ) -> None:
     noiser = Noiser(steps)
@@ -84,7 +82,7 @@ def test_denoiser(
     steps: int,
     step_batch_size: int,
     batch_size: int,
-    img_sizes: Tuple[int, int],
+    img_sizes: tuple[int, int],
     time_size: int,
     use_cuda: bool,
 ) -> None:
@@ -212,8 +210,8 @@ def test_denoiser(
 @pytest.mark.parametrize("nb_steps", [1, 2])
 def test_unet(
     batch_size: int,
-    size: Tuple[int, int],
-    channels: List[Tuple[int, int]],
+    size: tuple[int, int],
+    channels: list[tuple[int, int]],
     group_norm_nums: list[int],
     steps: int,
     time_size: int,
