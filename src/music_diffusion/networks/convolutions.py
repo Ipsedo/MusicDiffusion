@@ -1,77 +1,27 @@
 from typing import Literal
 
+import torch as th
 from torch import nn
 
-
-class _BaseConv(nn.Sequential):
-    def __init__(self, out_channels: int, *modules: nn.Module):
-        super().__init__(*modules)
-
-        self.__out_channels = out_channels
-
-    @property
-    def out_channels(self) -> int:
-        return self.__out_channels
+from .time import TimeToScaleShift
 
 
-class ChannelProjBlock(_BaseConv):
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        group_norm_num: int,
-    ) -> None:
-        super().__init__(
-            out_channels,
-            nn.Conv2d(
-                in_channels,
-                out_channels,
-                kernel_size=(1, 1),
-                stride=(1, 1),
-                padding=(0, 0),
-            ),
-            nn.GroupNorm(group_norm_num, out_channels),
-            nn.SiLU(),
-        )
-
-
-class OutChannelProj(_BaseConv):
+class OutChannelProj(nn.Conv2d):
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
     ) -> None:
         super().__init__(
+            in_channels,
             out_channels,
-            nn.Conv2d(
-                in_channels,
-                out_channels,
-                kernel_size=(1, 1),
-                stride=(1, 1),
-                padding=(0, 0),
-            ),
+            kernel_size=(1, 1),
+            stride=(1, 1),
+            padding=(0, 0),
         )
 
 
-class EndConvBlock(_BaseConv):
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-    ) -> None:
-        super().__init__(
-            out_channels,
-            nn.Conv2d(
-                in_channels,
-                out_channels,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
-            ),
-        )
-
-
-class StrideConvBlock(_BaseConv):
+class StrideConvBlock(nn.Sequential):
     def __init__(
         self,
         in_channels: int,
@@ -85,35 +35,65 @@ class StrideConvBlock(_BaseConv):
         }
 
         super().__init__(
-            out_channels,
             conv_constructor[scale](
                 in_channels,
                 out_channels,
                 kernel_size=(4, 4),
                 stride=(2, 2),
                 padding=(1, 1),
+                bias=False,
             ),
             nn.GroupNorm(group_norm_num, out_channels),
             nn.SiLU(),
         )
 
 
-class ConvBlock(_BaseConv):
+class TimeConvBlock(nn.Module):
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
         group_norm_num: int,
+        time_size: int,
     ) -> None:
-        super().__init__(
-            out_channels,
+        super().__init__()
+
+        self.__conv = nn.Sequential(
             nn.Conv2d(
                 in_channels,
                 out_channels,
                 kernel_size=(3, 3),
-                stride=(1, 1),
                 padding=(1, 1),
+                stride=(1, 1),
+                bias=False,
             ),
             nn.GroupNorm(group_norm_num, out_channels),
             nn.SiLU(),
+            nn.Conv2d(
+                out_channels,
+                out_channels,
+                kernel_size=(3, 3),
+                padding=(1, 1),
+                stride=(1, 1),
+                bias=False,
+            ),
+            nn.GroupNorm(group_norm_num, out_channels),
         )
+
+        self.__time_decoder = TimeToScaleShift(out_channels, time_size)
+
+        self.__act = nn.SiLU()
+
+    def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
+        b, t = x.size()[:2]
+
+        scale, shift = self.__time_decoder(time_emb)
+
+        out: th.Tensor = self.__conv(x.flatten(0, 1))
+        out = th.unflatten(out, 0, (b, t))
+
+        out = out * (scale + 1.0) + shift
+
+        out = self.__act(out)
+
+        return out

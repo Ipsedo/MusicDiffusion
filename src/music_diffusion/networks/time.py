@@ -1,11 +1,7 @@
 import math
-from typing import Iterable
 
 import torch as th
 from torch import nn
-from torch.nn.utils.parametrizations import weight_norm
-
-from .convolutions import _BaseConv
 
 
 class SinusoidTimeEmbedding(nn.Module):
@@ -66,49 +62,40 @@ class TimeBypass(nn.Module):
         return out
 
 
-class TimeWrapper(nn.Module):
-    def __init__(
-        self,
-        time_size: int,
-        conv: _BaseConv,
-    ) -> None:
+class TimeToScaleShift(nn.Module):
+    def __init__(self, channels: int, time_size: int) -> None:
         super().__init__()
 
-        self.__block = conv
-
-        channels = conv.out_channels
-
-        self.__to_channels = nn.Sequential(
-            weight_norm(nn.Linear(time_size, channels * 2)),
+        self.__to_scale_shift = nn.Sequential(
+            nn.Linear(time_size, channels * 2, bias=False),
+            nn.LayerNorm(channels * 2),
             nn.SiLU(),
-            weight_norm(nn.Linear(channels * 2, channels * 2)),
+            nn.Linear(channels * 2, channels * 2, bias=False),
+            nn.LayerNorm(channels * 2),
         )
 
-    def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
-        b, t = x.size()[:2]
+    @property
+    def last_weights(self) -> th.Tensor:
+        last_module = self.__to_scale_shift[-2]
 
-        proj_time_emb = self.__to_channels(time_emb)
+        if not isinstance(last_module, nn.Linear):
+            raise RuntimeError("Can't find last linear module")
+
+        return last_module.weight
+
+    @property
+    def first_weights(self) -> th.Tensor:
+        first_module = self.__to_scale_shift[0]
+
+        if not isinstance(first_module, nn.Linear):
+            raise RuntimeError("Can't find first linear module")
+
+        return first_module.weight
+
+    def forward(self, time_emb: th.Tensor) -> tuple[th.Tensor, th.Tensor]:
+        proj_time_emb = self.__to_scale_shift(time_emb)
         proj_time_emb = proj_time_emb[:, :, :, None, None]
+
         scale, shift = th.chunk(proj_time_emb, chunks=2, dim=2)
 
-        out: th.Tensor = self.__block(x.flatten(0, 1))
-        out = th.unflatten(out, 0, (b, t))
-
-        out = out * (scale + 1.0) + shift
-
-        return out
-
-
-class SequentialTimeWrapper(nn.ModuleList):
-    def __init__(
-        self,
-        time_size: int,
-        conv_layers: Iterable[_BaseConv],
-    ):
-        super().__init__(TimeWrapper(time_size, c) for c in conv_layers)
-
-    def forward(self, x: th.Tensor, time_emb: th.Tensor) -> th.Tensor:
-        out = x
-        for m in self:
-            out = m(out, time_emb)
-        return out
+        return scale, shift

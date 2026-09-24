@@ -1,8 +1,8 @@
 import torch as th
 from torch import nn
 
-from .convolutions import ConvBlock, OutChannelProj, StrideConvBlock
-from .time import SequentialTimeWrapper, SinusoidTimeEmbedding, TimeBypass
+from .convolutions import OutChannelProj, StrideConvBlock, TimeConvBlock
+from .time import SinusoidTimeEmbedding, TimeBypass
 
 
 class TimeUNet(nn.Module):
@@ -35,13 +35,7 @@ class TimeUNet(nn.Module):
         # Encoder stuff
 
         self.__encoder = nn.ModuleList(
-            SequentialTimeWrapper(
-                time_size,
-                [
-                    ConvBlock(c_i, c_o, g),
-                    ConvBlock(c_o, c_o, g),
-                ],
-            )
+            TimeConvBlock(c_i, c_o, g, time_size)
             for (c_i, c_o), g in zip(
                 encoding_channels, encoding_group_norm_num
             )
@@ -55,13 +49,7 @@ class TimeUNet(nn.Module):
         # Middle stuff
         c_m = encoding_channels[-1][1]
         g_m = encoding_group_norm_num[-1]
-        self.__middle_block = SequentialTimeWrapper(
-            time_size,
-            [
-                ConvBlock(c_m, c_m, g_m),
-                ConvBlock(c_m, c_m, g_m),
-            ],
-        )
+        self.__middle_block = TimeConvBlock(c_m, c_m, g_m, time_size)
 
         # Decoder stuff
         self.__decoder_up = nn.ModuleList(
@@ -70,13 +58,7 @@ class TimeUNet(nn.Module):
         )
 
         self.__decoder = nn.ModuleList(
-            SequentialTimeWrapper(
-                time_size,
-                [
-                    ConvBlock(c_i * 2, c_o, g),
-                    ConvBlock(c_o, c_o, g),
-                ],
-            )
+            TimeConvBlock(c_i * 2, c_o, g, time_size)
             for (c_i, c_o), g in zip(
                 decoding_channels, decoding_group_norm_num
             )
