@@ -140,3 +140,4 @@ mlruns/
 # publies en GitHub Release plutot que versionnes
 resources/**/denoiser*.pt
 outputs/
+mlflow.db

@@ -1,6 +1,6 @@
 from abc import ABC
 from statistics import mean
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import torch as th
@@ -134,7 +134,7 @@ class Diffuser(ABC, nn.Module):
 class Noiser(Diffuser):
     def forward(
         self, x_0: th.Tensor, t: th.Tensor, eps: Optional[th.Tensor] = None
-    ) -> Tuple[th.Tensor, th.Tensor]:
+    ) -> tuple[th.Tensor, th.Tensor]:
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2
         assert x_0.size(0) == t.size(0)
@@ -175,7 +175,7 @@ class Noiser(Diffuser):
         x_t: th.Tensor,
         x_0: th.Tensor,
         t: th.Tensor,
-    ) -> Tuple[th.Tensor, th.Tensor]:
+    ) -> tuple[th.Tensor, th.Tensor]:
         assert len(x_t.size()) == 5
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2
@@ -193,8 +193,8 @@ class Denoiser(Diffuser):
         self,
         steps: int,
         time_size: int,
-        unet_channels: List[Tuple[int, int]],
-        unet_group_norm_num: list[int],
+        unet_channels: list[tuple[int, int]],
+        unet_group_norm_nums: list[int],
     ) -> None:
         super().__init__(steps)
 
@@ -215,7 +215,7 @@ class Denoiser(Diffuser):
 
         self.__unet = TimeUNet(
             unet_channels,
-            unet_group_norm_num,
+            unet_group_norm_nums,
             time_size,
             self._steps,
         )
@@ -224,7 +224,7 @@ class Denoiser(Diffuser):
 
     def forward(
         self, x_t: th.Tensor, t: th.Tensor
-    ) -> Tuple[th.Tensor, th.Tensor]:
+    ) -> tuple[th.Tensor, th.Tensor]:
         assert len(x_t.size()) == 5
         assert len(t.size()) == 2
         assert x_t.size(0) == t.size(0)
@@ -312,7 +312,7 @@ class Denoiser(Diffuser):
         t: th.Tensor,
         eps_theta: th.Tensor,
         v_theta: th.Tensor,
-    ) -> Tuple[th.Tensor, th.Tensor]:
+    ) -> tuple[th.Tensor, th.Tensor]:
         assert len(x_t.size()) == 5
         assert len(t.size()) == 2
         assert len(eps_theta.size()) == 5

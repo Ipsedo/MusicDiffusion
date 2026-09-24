@@ -1,5 +1,4 @@
 from math import log, sqrt
-from typing import Tuple
 
 import torch as th
 from torch.distributions import Normal
@@ -128,7 +127,7 @@ def discretized_nll(
     mu: th.Tensor,
     var: th.Tensor,
     precision: float = BIN_SIZE,
-    cut_off: Tuple[float, float] = (-0.999, 0.999),
+    cut_off: tuple[float, float] = (-0.999, 0.999),
     epsilon: float = 1e-20,
 ) -> th.Tensor:
     div_factor = -log(epsilon)

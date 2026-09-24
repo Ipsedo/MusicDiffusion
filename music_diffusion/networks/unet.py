@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 import torch as th
 from torch import nn
 
@@ -10,8 +8,8 @@ from .time import SequentialTimeWrapper, SinusoidTimeEmbedding, TimeBypass
 class TimeUNet(nn.Module):
     def __init__(
         self,
-        channels: List[Tuple[int, int]],
-        group_norm_num: list[int],
+        channels: list[tuple[int, int]],
+        group_norm_nums: list[int],
         time_size: int,
         steps: int,
     ) -> None:
@@ -23,14 +21,14 @@ class TimeUNet(nn.Module):
         )
 
         encoding_channels = channels.copy()
-        encoding_group_norm_num = group_norm_num.copy()
+        encoding_group_norm_num = group_norm_nums.copy()
 
         decoding_channels = [(c_o, c_i) for c_i, c_o in reversed(channels)]
         decoding_channels[-1] = (
             decoding_channels[-1][0],
             decoding_channels[-1][0],
         )
-        decoding_group_norm_num = list(reversed(group_norm_num.copy()))
+        decoding_group_norm_num = list(reversed(group_norm_nums.copy()))
 
         self.__time_embedder = SinusoidTimeEmbedding(steps, time_size)
 
@@ -96,7 +94,7 @@ class TimeUNet(nn.Module):
 
     def forward(
         self, img: th.Tensor, t: th.Tensor
-    ) -> Tuple[th.Tensor, th.Tensor]:
+    ) -> tuple[th.Tensor, th.Tensor]:
         time_vec = self.__time_embedder(t)
 
         bypasses = []
@@ -122,7 +120,6 @@ class TimeUNet(nn.Module):
             out = th.cat([out, bypass], dim=2)
             out = block(out, time_vec)
 
-        print(out.size())
         eps: th.Tensor = self.__eps_end_conv(out)
         v: th.Tensor = self.__v_end_conv(out)
 

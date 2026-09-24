@@ -1,7 +1,6 @@
 import glob
 from os import mkdir
 from os.path import exists, isdir, join
-from typing import Tuple
 
 import torch as th
 import torch.nn.functional as th_f
@@ -67,7 +66,7 @@ def stft_to_magnitude_phase(
     complex_values: th.Tensor,
     nb_vec: int = constants.N_VEC,
     epsilon: float = 1e-8,
-) -> Tuple[th.Tensor, th.Tensor]:
+) -> tuple[th.Tensor, th.Tensor]:
     magnitude = th.abs(complex_values)
     phase = th.angle(complex_values)
 

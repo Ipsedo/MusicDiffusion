@@ -1,12 +1,12 @@
-from typing import List, NamedTuple, Optional, Tuple
+from typing import NamedTuple, Optional
 
 from .networks import Denoiser, Noiser
 
 
 class ModelOptions(NamedTuple):
     steps: int
-    unet_channels: List[Tuple[int, int]]
-    unet_group_norm_num: list[int]
+    unet_channels: list[tuple[int, int]]
+    unet_group_norm_nums: list[int]
     time_size: int
     cuda: bool
 
@@ -15,7 +15,7 @@ class ModelOptions(NamedTuple):
             self.steps,
             self.time_size,
             self.unet_channels,
-            self.unet_group_norm_num,
+            self.unet_group_norm_nums,
         )
 
     def new_noiser(self) -> Noiser:

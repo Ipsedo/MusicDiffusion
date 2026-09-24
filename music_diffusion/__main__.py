@@ -1,6 +1,5 @@
 import argparse
 import re
-from typing import List, Tuple
 
 from .data import create_dataset
 from .generate import generate
@@ -8,7 +7,7 @@ from .options import GenerateOptions, ModelOptions, TrainOptions
 from .train import train
 
 
-def _channels(string: str) -> List[Tuple[int, int]]:
+def _channels(string: str) -> list[tuple[int, int]]:
     regex_match = re.compile(
         r"^ *\[(?: *\( *\d+ *, *\d+ *\) *,)* *\( *\d+ *, *\d+ *\) *] *$"
     )
@@ -17,7 +16,7 @@ def _channels(string: str) -> List[Tuple[int, int]]:
 
     assert regex_match.match(string), "usage : [(10, 20), (20, 40), ...]"
 
-    def _match_channels(layer_str: str) -> Tuple[int, int]:
+    def _match_channels(layer_str: str) -> tuple[int, int]:
         matched = regex_channel.findall(layer_str)
         assert len(matched) == 2
         return int(matched[0]), int(matched[1])
@@ -25,7 +24,7 @@ def _channels(string: str) -> List[Tuple[int, int]]:
     return [_match_channels(layer) for layer in regex_layer.findall(string)]
 
 
-def _group_norm_nums(string: str) -> List[int]:
+def _group_norm_nums(string: str) -> list[int]:
     regex_group = re.compile(r"\d+")
     regex_match = re.compile(r"^ *\[(?: *\d+ *,)* *\d+ *] *$")
 
@@ -123,7 +122,7 @@ def main() -> None:
         model_options = ModelOptions(
             steps=args.steps,
             unet_channels=args.unet_channels,
-            unet_group_norm_num=args.unet_group_norm_num,
+            unet_group_norm_nums=args.unet_group_norm_nums,
             time_size=args.time_size,
             cuda=args.cuda,
         )
