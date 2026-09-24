@@ -25,6 +25,7 @@ disable = [
     "missing-class-docstring",
     "missing-function-docstring",
     "too-many-instance-attributes",
+    "too-many-positional-arguments",
     "too-many-arguments",
     "too-many-locals",
     "too-many-statements",

@@ -1,6 +1,7 @@
 torch
 torchaudio
 torchvision
+torchcodec
 ema-pytorch
 jupyter
 mlflow
