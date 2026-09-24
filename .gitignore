@@ -135,3 +135,7 @@ dmypy.json
 out/
 res/
 mlruns/
+
+# poids trop volumineux pour GitHub (>100 Mo) : conserves sur disque,
+# publies en GitHub Release plutot que versionnes
+resources/**/denoiser*.pt
