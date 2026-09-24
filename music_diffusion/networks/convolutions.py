@@ -31,7 +31,7 @@ class ChannelProjBlock(_BaseConv):
                 padding=(0, 0),
             ),
             nn.GroupNorm(group_norm_num, out_channels),
-            nn.Mish(),
+            nn.SiLU(),
         )
 
 
@@ -94,7 +94,7 @@ class StrideConvBlock(_BaseConv):
                 padding=(1, 1),
             ),
             nn.GroupNorm(group_norm_num, out_channels),
-            nn.Mish(),
+            nn.SiLU(),
         )
 
 
@@ -115,5 +115,5 @@ class ConvBlock(_BaseConv):
                 padding=(1, 1),
             ),
             nn.GroupNorm(group_norm_num, out_channels),
-            nn.Mish(),
+            nn.SiLU(),
         )
