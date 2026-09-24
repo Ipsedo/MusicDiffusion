@@ -1,0 +1,23 @@
+{
+  "model": "fable",
+  "askBeforeRunningTool": false,
+  "permissions": {
+    "allow": [
+      "Read(./*)",
+      "Read(./**)",
+      "Search(./*)",
+      "Grep",
+      "Glob",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(cd:*)",
+      "Bash(echo:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(python:*)"
+    ]
+  }
+}
