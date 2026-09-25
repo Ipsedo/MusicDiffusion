@@ -1,0 +1,95 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: [ CI ]
+    types: [ completed ]
+    branches: [ master ]
+
+permissions:
+  contents: write
+
+jobs:
+  check-version:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release: ${{ steps.version.outputs.release }}
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+
+      - name: Compare pyproject version with latest release
+        id: version
+        run: |
+          uv run --no-project --with packaging python - <<'PY' >> "$GITHUB_OUTPUT"
+          import subprocess, sys, tomllib
+          from packaging.version import InvalidVersion, Version
+
+          with open("pyproject.toml", "rb") as f:
+              raw = tomllib.load(f)["project"]["version"]
+          if "snapshot" in raw.lower():
+              print(f"snapshot version {raw}, skipping", file=sys.stderr)
+              print(f"version={raw}")
+              print("release=false")
+              sys.exit(0)
+          current = Version(raw)
+
+          tags = subprocess.run(
+              ["git", "tag", "--list"], capture_output=True, text=True, check=True
+          ).stdout.split()
+          released = []
+          for tag in tags:
+              try:
+                  released.append(Version(tag.removeprefix("v")))
+              except InvalidVersion:
+                  pass
+          latest = max(released, default=None)
+
+          snapshot = current.is_devrelease
+          newer = latest is None or current > latest
+          print(f"current={current}, latest={latest}, snapshot={snapshot}", file=sys.stderr)
+          print(f"version={current}")
+          print(f"release={str(not snapshot and newer).lower()}")
+          PY
+
+  build:
+    needs: check-version
+    if: needs.check-version.outputs.release == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.check-version.outputs.version }}
+        run: |
+          gh release create "$VERSION" dist/* \
+            --target "${{ github.event.workflow_run.head_sha }}" \
+            --title "$VERSION" \
+            --generate-notes
