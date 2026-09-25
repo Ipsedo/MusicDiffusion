@@ -1,6 +1,5 @@
-from os import mkdir
-from os.path import dirname, exists, isfile, join
-from shutil import rmtree
+from os.path import exists, isfile, join
+from tempfile import TemporaryDirectory
 
 import pytest
 import torch as th
@@ -21,13 +20,19 @@ def test_saver(save_every: int, nb_samples: int) -> None:
     optim = th.optim.Adam(denoiser.parameters())
     ema = EMA(denoiser)
 
-    tmp_dir = join(dirname(__file__), "__tmp_dir__")
-    mkdir(tmp_dir)
+    with TemporaryDirectory() as tmp_dir:
 
-    saver = Saver(
-        channels, noiser, denoiser, optim, ema, tmp_dir, save_every, nb_samples
-    )
-    try:
+        saver = Saver(
+            channels,
+            noiser,
+            denoiser,
+            optim,
+            ema,
+            tmp_dir,
+            save_every,
+            nb_samples,
+        )
+
         for _ in range(save_every - 1):
             saver.save()
 
@@ -66,6 +71,3 @@ def test_saver(save_every: int, nb_samples: int) -> None:
             assert exists(join(tmp_dir, f"sample_0_ID{i}.wav")) and isfile(
                 join(tmp_dir, f"sample_0_ID{i}.wav")
             )
-
-    finally:
-        rmtree(tmp_dir)

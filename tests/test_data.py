@@ -76,17 +76,15 @@ def test_wav_to_stft(wav_path: str, nperseg: int, stride: int) -> None:
 @pytest.mark.parametrize("nb_vec", [128, 256, 512])
 def test_stft_to_magn_phase(nfft: int, stft_nb: int, nb_vec: int) -> None:
     size = (nfft, stft_nb)
+    nb_observation = stft_nb // nb_vec
+
     stft = th.complex(th.randn(*size), th.randn(*size))
     magn, phase = stft_to_magnitude_phase(stft, nb_vec, epsilon=1e-8)
 
-    assert len(magn.size()) == 3
-    assert magn.size()[1] == nfft
-    assert magn.size()[2] == nb_vec
+    assert magn.size() == (nb_observation, nfft, nb_vec)
     assert th.all(th.logical_and(th.ge(magn, -1), th.le(magn, 1)))
 
-    assert len(phase.size()) == 3
-    assert phase.size()[1] == nfft
-    assert phase.size()[2] == nb_vec
+    assert phase.size() == (nb_observation, nfft, nb_vec)
     assert th.all(th.logical_and(th.ge(phase, -1), th.le(phase, 1)))
 
 
