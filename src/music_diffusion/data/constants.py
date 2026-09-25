@@ -9,3 +9,5 @@ SAMPLE_RATE: Final[int] = 16000
 OUTPUT_SIZES: Final[tuple[int, int]] = (N_FFT // 2, N_VEC)
 
 BIN_SIZE: Final[float] = 1.0 / 2.0**16.0
+
+TOP_DB: Final[float] = 80.0

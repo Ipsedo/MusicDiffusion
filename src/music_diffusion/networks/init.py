@@ -17,4 +17,6 @@ def weights_init(m: nn.Module) -> None:
             nn.init.zeros_(m.bias)
     elif isinstance(m, TimeToScaleShift):
         nn.init.xavier_normal_(m.first_weights)
+
         nn.init.zeros_(m.last_weights)
+        nn.init.zeros_(m.last_bias)

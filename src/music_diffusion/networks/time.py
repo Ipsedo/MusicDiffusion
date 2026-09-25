@@ -70,27 +70,33 @@ class TimeToScaleShift(nn.Module):
             nn.Linear(time_size, channels * 2, bias=False),
             nn.LayerNorm(channels * 2),
             nn.SiLU(),
-            nn.Linear(channels * 2, channels * 2, bias=False),
-            nn.LayerNorm(channels * 2),
+            nn.Linear(channels * 2, channels * 2),
         )
 
-    @property
-    def last_weights(self) -> th.Tensor:
-        last_module = self.__to_scale_shift[-2]
+    def __get_linear_at(self, index: int) -> nn.Linear:
+        last_module = self.__to_scale_shift[index]
 
         if not isinstance(last_module, nn.Linear):
             raise RuntimeError("Can't find last linear module")
 
-        return last_module.weight
+        return last_module
+
+    @property
+    def last_bias(self) -> th.Tensor:
+        last_linear = self.__get_linear_at(-1)
+
+        if last_linear.bias is None:
+            raise RuntimeError("Can't find last linear module bias")
+
+        return last_linear.bias
+
+    @property
+    def last_weights(self) -> th.Tensor:
+        return self.__get_linear_at(-1).weight
 
     @property
     def first_weights(self) -> th.Tensor:
-        first_module = self.__to_scale_shift[0]
-
-        if not isinstance(first_module, nn.Linear):
-            raise RuntimeError("Can't find first linear module")
-
-        return first_module.weight
+        return self.__get_linear_at(0).weight
 
     def forward(self, time_emb: th.Tensor) -> tuple[th.Tensor, th.Tensor]:
         proj_time_emb = self.__to_scale_shift(time_emb)

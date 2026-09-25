@@ -65,6 +65,7 @@ def wav_to_stft(
 def stft_to_magnitude_phase(
     complex_values: th.Tensor,
     nb_vec: int = constants.N_VEC,
+    top_db: float = constants.TOP_DB,
     epsilon: float = 1e-8,
 ) -> tuple[th.Tensor, th.Tensor]:
     magnitude = th.abs(complex_values)
@@ -76,14 +77,12 @@ def stft_to_magnitude_phase(
     phase = th_f.pad(phase, (1, 0, 0, 0), "constant", 0.0)
     phase = th.gradient(phase, dim=1, spacing=1.0, edge_order=1)[0]
 
-    max_magnitude = magnitude.max()
-    min_magnitude = magnitude.min()
-    magnitude = (
-        2
-        * (magnitude - min_magnitude)
-        / (max_magnitude - min_magnitude + epsilon)
-        - 1
+    # dB relative to track maximum, floored at -top_db, then to [-1, 1]
+    magnitude_db = 20.0 * th.log10(
+        magnitude / (magnitude.max() + epsilon) + epsilon
     )
+    magnitude_db = th.clamp(magnitude_db, -top_db, 0.0)
+    magnitude = 2.0 * (magnitude_db + top_db) / top_db - 1.0
 
     max_phase = phase.max()
     min_phase = phase.min()
@@ -103,6 +102,7 @@ def magnitude_phase_to_wav(
     sample_rate: int,
     n_fft: int = constants.N_FFT,
     stft_stride: int = constants.STFT_STRIDE,
+    top_db: float = constants.TOP_DB,
 ) -> None:
     assert (
         len(magnitude_phase.size()) == 4
@@ -123,7 +123,8 @@ def magnitude_phase_to_wav(
     magnitude = magnitude_phase_flattened[0, :, :]
     phase = magnitude_phase_flattened[1, :, :]
 
-    magnitude = (magnitude + 1.0) / 2.0
+    magnitude_db = (magnitude + 1.0) / 2.0 * top_db - top_db
+    magnitude = th.pow(10.0, magnitude_db / 20.0)
 
     phase = (phase + 1.0) / 2.0 * 2.0 * th.pi - th.pi
     phase = simpson(th.zeros(phase.size()[0], 1), phase, 1, 1.0)
