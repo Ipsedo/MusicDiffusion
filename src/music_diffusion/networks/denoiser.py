@@ -1,5 +1,4 @@
 from statistics import mean
-from typing import Optional
 
 import numpy as np
 import torch as th
@@ -62,7 +61,7 @@ class Denoiser(AbstractDiffuser):
         x_t: th.Tensor,
         eps: th.Tensor,
         t: th.Tensor,
-        alphas_cum_prod: Optional[th.Tensor],
+        alphas_cum_prod: th.Tensor | None,
     ) -> th.Tensor:
         alphas_cum_prod = (
             select_time_scheduler(self._alphas_cum_prod, t)
@@ -79,10 +78,10 @@ class Denoiser(AbstractDiffuser):
         x_t: th.Tensor,
         eps_theta: th.Tensor,
         t: th.Tensor,
-        alphas: Optional[th.Tensor] = None,
-        betas: Optional[th.Tensor] = None,
-        alphas_cum_prod: Optional[th.Tensor] = None,
-        alphas_cum_prod_prev: Optional[th.Tensor] = None,
+        alphas: th.Tensor | None = None,
+        betas: th.Tensor | None = None,
+        alphas_cum_prod: th.Tensor | None = None,
+        alphas_cum_prod_prev: th.Tensor | None = None,
     ) -> th.Tensor:
         x_0_clipped = self.__x0_from_noise(x_t, eps_theta, t, alphas_cum_prod)
 
@@ -114,8 +113,8 @@ class Denoiser(AbstractDiffuser):
         self,
         v: th.Tensor,
         t: th.Tensor,
-        betas: Optional[th.Tensor] = None,
-        betas_tiddle: Optional[th.Tensor] = None,
+        betas: th.Tensor | None = None,
+        betas_tiddle: th.Tensor | None = None,
     ) -> th.Tensor:
 
         betas = (

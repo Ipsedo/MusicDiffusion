@@ -1,5 +1,4 @@
 from abc import ABC
-from typing import Optional
 
 import torch as th
 from torch import nn
@@ -85,10 +84,10 @@ class AbstractDiffuser(ABC, nn.Module):
         x_t: th.Tensor,
         x_0: th.Tensor,
         t: th.Tensor,
-        alphas: Optional[th.Tensor] = None,
-        betas: Optional[th.Tensor] = None,
-        alphas_cum_prod: Optional[th.Tensor] = None,
-        alphas_cum_prod_prev: Optional[th.Tensor] = None,
+        alphas: th.Tensor | None = None,
+        betas: th.Tensor | None = None,
+        alphas_cum_prod: th.Tensor | None = None,
+        alphas_cum_prod_prev: th.Tensor | None = None,
     ) -> th.Tensor:
         alphas_cum_prod_prev = (
             select_time_scheduler(self._alphas_cum_prod_prev, t)

@@ -1,9 +1,9 @@
-from typing import NamedTuple, Optional
+from pydantic import BaseModel
 
 from .networks import Denoiser, Noiser
 
 
-class ModelOptions(NamedTuple):
+class ModelOptions(BaseModel):
     steps: int
     unet_channels: list[tuple[int, int]]
     unet_group_norm_nums: list[int]
@@ -22,7 +22,7 @@ class ModelOptions(NamedTuple):
         return Noiser(self.steps)
 
 
-class TrainOptions(NamedTuple):
+class TrainOptions(BaseModel):
     run_name: str
     dataset_path: str
     batch_size: int
@@ -33,14 +33,14 @@ class TrainOptions(NamedTuple):
     save_every: int
     output_directory: str
     nb_samples: int
-    noiser_state_dict: Optional[str]
-    denoiser_state_dict: Optional[str]
-    ema_state_dict: Optional[str]
-    optim_state_dict: Optional[str]
+    noiser_state_dict: str | None
+    denoiser_state_dict: str | None
+    ema_state_dict: str | None
+    optim_state_dict: str | None
 
 
-class GenerateOptions(NamedTuple):
-    fast_sample: Optional[int]
+class GenerateOptions(BaseModel):
+    fast_sample: int | None
     denoiser_dict_state: str
     ema_denoiser: bool
     output_dir: str

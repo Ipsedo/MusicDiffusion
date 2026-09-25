@@ -1,5 +1,3 @@
-from typing import Optional
-
 import torch as th
 
 from .diffusion import AbstractDiffuser
@@ -8,7 +6,7 @@ from .functions import select_time_scheduler
 
 class Noiser(AbstractDiffuser):
     def forward(
-        self, x_0: th.Tensor, t: th.Tensor, eps: Optional[th.Tensor] = None
+        self, x_0: th.Tensor, t: th.Tensor, eps: th.Tensor | None = None
     ) -> tuple[th.Tensor, th.Tensor]:
         assert len(x_0.size()) == 4
         assert len(t.size()) == 2

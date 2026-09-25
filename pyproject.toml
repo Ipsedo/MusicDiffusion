@@ -13,6 +13,7 @@ dependencies = [
     "matplotlib>=3.11.2",
     "mlflow>=3.16.1",
     "numpy>=2.5.3",
+    "pydantic>=2.13.5",
     "torch>=2.14.0",
     "torchaudio>=2.11.0",
     "torchcodec>=0.16.0",
