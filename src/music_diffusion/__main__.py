@@ -110,7 +110,6 @@ def main() -> None:
     generate_parser.add_argument("--frames", type=int, required=True)
     generate_parser.add_argument("--musics", type=int, required=True)
     generate_parser.add_argument("--ema", action="store_true")
-    generate_parser.add_argument("--magn-scale", type=float, default=1.0)
 
     #######
     # Main

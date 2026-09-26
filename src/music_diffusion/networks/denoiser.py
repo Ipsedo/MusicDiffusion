@@ -4,6 +4,8 @@ import numpy as np
 import torch as th
 from tqdm import tqdm
 
+from music_diffusion.data import MAGN_MAX, MAGN_MIN
+
 from .diffusion import AbstractDiffuser
 from .functions import select_time_scheduler
 from .init import weights_init
@@ -34,6 +36,18 @@ class Denoiser(AbstractDiffuser):
             "_sqrt_betas",
             th.sqrt(self._betas),
         )
+
+        # x_0 clip bounds : standardized magnitude, then [-1, 1] for phase
+        self._x0_min: th.Tensor
+        self._x0_max: th.Tensor
+
+        x0_min = th.full((self.__channels, 1, 1), -1.0)
+        x0_max = th.full((self.__channels, 1, 1), 1.0)
+        x0_min[0] = MAGN_MIN
+        x0_max[0] = MAGN_MAX
+
+        self.register_buffer("_x0_min", x0_min, persistent=False)
+        self.register_buffer("_x0_max", x0_max, persistent=False)
 
         self.__unet = TimeUNet(
             unet_channels,
@@ -71,7 +85,7 @@ class Denoiser(AbstractDiffuser):
         x_0: th.Tensor = (x_t - eps * th.sqrt(1 - alphas_cum_prod)) / th.sqrt(
             alphas_cum_prod
         )
-        return th.clip(x_0, -1.0, 1.0)
+        return th.clip(x_0, self._x0_min, self._x0_max)
 
     def __mu_clipped(
         self,

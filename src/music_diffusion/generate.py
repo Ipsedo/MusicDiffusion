@@ -9,6 +9,7 @@ from .data import (
     OUTPUT_SIZES,
     SAMPLE_RATE,
     STFT_STRIDE,
+    destandardize_magnitude,
     magnitude_phase_to_wav,
 )
 from .options import GenerateOptions, ModelOptions
@@ -75,6 +76,8 @@ def generate(
             if generate_options.fast_sample is not None
             else denoiser.sample(x_t, verbose=True)
         )
+
+        x_0 = destandardize_magnitude(x_0)
 
         print("Saving sound...")
 

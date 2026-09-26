@@ -96,6 +96,30 @@ def stft_to_magnitude_phase(
     return magnitude, phase
 
 
+def standardize_magnitude(
+    magnitude_phase: th.Tensor,
+    mean: float = constants.MAGN_MEAN,
+    std: float = constants.MAGN_STD,
+) -> th.Tensor:
+    assert magnitude_phase.size(-3) == 2
+
+    magnitude, phase = magnitude_phase.unbind(dim=-3)
+
+    return th.stack([(magnitude - mean) / std, phase], dim=-3)
+
+
+def destandardize_magnitude(
+    magnitude_phase: th.Tensor,
+    mean: float = constants.MAGN_MEAN,
+    std: float = constants.MAGN_STD,
+) -> th.Tensor:
+    assert magnitude_phase.size(-3) == 2
+
+    magnitude, phase = magnitude_phase.unbind(dim=-3)
+
+    return th.stack([magnitude * std + mean, phase], dim=-3)
+
+
 def magnitude_phase_to_wav(
     magnitude_phase: th.Tensor,
     wav_path: str,

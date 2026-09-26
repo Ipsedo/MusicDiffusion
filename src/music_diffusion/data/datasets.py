@@ -7,6 +7,8 @@ import torch as th
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
+from .audio import standardize_magnitude
+
 
 class AudioDataset(Dataset):
     def __init__(self, dataset_path: str) -> None:
@@ -32,7 +34,7 @@ class AudioDataset(Dataset):
             join(self.__dataset_path, self.__all_files[index])
         )
 
-        return magn_phase
+        return standardize_magnitude(magn_phase)
 
     def __len__(self) -> int:
         return len(self.__all_files)

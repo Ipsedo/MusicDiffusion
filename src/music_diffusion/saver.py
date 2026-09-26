@@ -15,6 +15,7 @@ from .data import (
     ChangeType,
     InverseRangeChange,
     RangeChange,
+    destandardize_magnitude,
     magnitude_phase_to_wav,
 )
 from .networks import Denoiser, Noiser
@@ -100,6 +101,8 @@ class Saver:
                 self.__ema_denoiser.eval()
                 x_0 = self.__ema_denoiser.ema_model.sample(x_t, verbose=True)
                 self.__ema_denoiser.train()
+
+                x_0 = destandardize_magnitude(x_0)
 
                 th.save(
                     x_0,
