@@ -86,9 +86,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
         losses = Metric(train_options.metric_window)
         mse_losses = Metric(train_options.metric_window)
-        # vlb_losses = Metric(train_options.metric_window)
         kl_losses = Metric(train_options.metric_window)
-        # nll_losses = Metric(train_options.metric_window)
         grad_norms = Metric(train_options.metric_window)
 
         metric_step = 0
@@ -137,17 +135,13 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
                 losses.add_result(loss)
                 mse_losses.add_result(loss_mse)
-                # vlb_losses.add_result(loss_vlb)
                 kl_losses.add_result(loss_kl)
-                # nll_losses.add_result(loss_nll)
                 grad_norms.add_result(grad_norm)
 
                 mlflow.log_metrics(
                     {
                         "loss": losses.get_last_metric(),
-                        # "loss_vlb": vlb_losses.get_last_metric(),
                         "loss_kl": kl_losses.get_last_metric(),
-                        # "loss_nll": nll_losses.get_last_metric(),
                         "loss_mse": mse_losses.get_last_metric(),
                         "grad_norm": grad_norms.get_last_metric(),
                     },
@@ -161,9 +155,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     f"[{saver.curr_step} / {train_options.save_every - 1}] "
                     f"loss = {losses.get_smoothed_metric():.6f}, "
                     f"mse = {mse_losses.get_smoothed_metric():.6f}, "
-                    # f"vlb = {vlb_losses.get_smoothed_metric():.6f}, "
                     f"kl = {kl_losses.get_smoothed_metric():.6f}, "
-                    # f"nll = {nll_losses.get_smoothed_metric():.6f}, "
                     f"grad_norm = {grad_norms.get_smoothed_metric():.6f}"
                 )
 
