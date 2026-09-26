@@ -39,10 +39,10 @@ def test_noiser(
         device=device,
     )
 
-    x_t, eps = noiser(x_0, t)
+    x_t, v = noiser(x_0, t)
 
     __inner_check_size(x_t)
-    __inner_check_size(eps)
+    __inner_check_size(v)
 
     post_mu, post_var = noiser.posterior(x_t, x_0, t)
 
@@ -90,12 +90,12 @@ def test_denoiser(
         device=device,
     )
 
-    eps, v = denoiser(x_t, t)
+    v_theta, var_interp = denoiser(x_t, t)
 
-    __inner_check_size(eps)
-    __inner_check_size(v)
+    __inner_check_size(v_theta)
+    __inner_check_size(var_interp)
 
-    prior_mu, prior_var = denoiser.prior(x_t, t, eps, v)
+    prior_mu, prior_var = denoiser.prior(x_t, t, v_theta, var_interp)
 
     __inner_check_size(prior_mu)
 
@@ -188,7 +188,42 @@ def test_unet(
         device=device,
     )
 
-    eps, v = unet(x_t, t)
+    v_theta, var_interp = unet(x_t, t)
 
-    __inner_check_size(eps)
-    __inner_check_size(v)
+    __inner_check_size(v_theta)
+    __inner_check_size(var_interp)
+
+
+@pytest.mark.parametrize("steps", [4, 16])
+@pytest.mark.parametrize("step_batch_size", [1, 2])
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_velocity_prior_matches_posterior(
+    steps: int,
+    step_batch_size: int,
+    batch_size: int,
+    device: th.device,
+) -> None:
+    in_channels = 2
+    img_sizes = (16, 16)
+
+    noiser = Noiser(steps)
+    denoiser = Denoiser(steps, 2, [(in_channels, 8), (8, 16)], [2, 4])
+
+    noiser.to(device)
+    denoiser.to(device)
+
+    x_0 = th.rand(batch_size, in_channels, *img_sizes, device=device)
+    t = th.randint(
+        0,
+        steps,
+        (batch_size, step_batch_size),
+        device=device,
+    )
+
+    x_t, v = noiser(x_0, t)
+
+    post_mu, _ = noiser.posterior(x_t, x_0, t)
+    prior_mu, _ = denoiser.prior(x_t, t, v, th.zeros_like(v))
+
+    # true velocity => denoiser prior mean == noiser posterior mean
+    assert th.allclose(prior_mu, post_mu, atol=1e-5)

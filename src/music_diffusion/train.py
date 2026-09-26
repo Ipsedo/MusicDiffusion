@@ -112,20 +112,17 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                     device=device,
                 )
 
-                x_t, eps = noiser(x_0, t)
-                eps_theta, v_theta = denoiser(x_t, t)
+                x_t, v = noiser(x_0, t)
+                v_theta, var_interp = denoiser(x_t, t)
 
-                loss_mse = mse(eps, eps_theta)
+                loss_mse = mse(v, v_theta)
 
                 q_mu, q_var = noiser.posterior(x_t, x_0, t)
                 p_mu, p_var = denoiser.prior(
-                    x_t, t, eps_theta.detach(), v_theta
+                    x_t, t, v_theta.detach(), var_interp
                 )
 
                 loss_kl = normal_kl_div(q_mu, q_var, p_mu, p_var)
-                # loss_nll = negative_log_likelihood(x_0, p_mu, p_var)
-                # loss_nll = discretized_nll(x_0.unsqueeze(1), p_mu, p_var)
-                # loss_vlb = th.where(th.eq(t, 0), loss_nll, loss_kl)
 
                 loss = loss_kl + loss_mse
                 loss = loss.mean()

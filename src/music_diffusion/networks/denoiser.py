@@ -24,19 +24,6 @@ class Denoiser(AbstractDiffuser):
 
         self.__channels = unet_channels[0][0]
 
-        self._sqrt_alpha: th.Tensor
-        self._sqrt_betas: th.Tensor
-
-        self.register_buffer(
-            "_sqrt_alpha",
-            th.sqrt(self._alphas),
-        )
-
-        self.register_buffer(
-            "_sqrt_betas",
-            th.sqrt(self._betas),
-        )
-
         # x_0 clip bounds : standardized magnitude, then [-1, 1] for phase
         self._x0_min: th.Tensor
         self._x0_max: th.Tensor
@@ -66,38 +53,45 @@ class Denoiser(AbstractDiffuser):
         assert x_t.size(0) == t.size(0)
         assert x_t.size(1) == t.size(1)
 
-        eps_theta, v_theta = self.__unet(x_t, t)
+        v_theta, var_interp = self.__unet(x_t, t)
 
-        return eps_theta, v_theta
+        return v_theta, var_interp
 
-    def __x0_from_noise(
+    def __x0_from_velocity(
         self,
         x_t: th.Tensor,
-        eps: th.Tensor,
+        v_theta: th.Tensor,
         t: th.Tensor,
-        alphas_cum_prod: th.Tensor | None,
+        alphas_cum_prod: th.Tensor | None = None,
     ) -> th.Tensor:
         alphas_cum_prod = (
             select_time_scheduler(self._alphas_cum_prod, t)
             if alphas_cum_prod is None
             else alphas_cum_prod
         )
-        x_0: th.Tensor = (x_t - eps * th.sqrt(1 - alphas_cum_prod)) / th.sqrt(
-            alphas_cum_prod
+        # v = sqrt(a_bar) * eps - sqrt(1 - a_bar) * x_0
+        # => x_0 = sqrt(a_bar) * x_t - sqrt(1 - a_bar) * v
+        x_0: th.Tensor = (
+            th.sqrt(alphas_cum_prod) * x_t
+            - th.sqrt(1 - alphas_cum_prod) * v_theta
         )
-        return th.clip(x_0, self._x0_min, self._x0_max)
+        return x_0
 
     def __mu_clipped(
         self,
         x_t: th.Tensor,
-        eps_theta: th.Tensor,
+        v_theta: th.Tensor,
         t: th.Tensor,
         alphas: th.Tensor | None = None,
         betas: th.Tensor | None = None,
         alphas_cum_prod: th.Tensor | None = None,
         alphas_cum_prod_prev: th.Tensor | None = None,
     ) -> th.Tensor:
-        x_0_clipped = self.__x0_from_noise(x_t, eps_theta, t, alphas_cum_prod)
+        x_0_clipped = th.clip(
+            self.__x0_from_velocity(x_t, v_theta, t, alphas_cum_prod),
+            self._x0_min,
+            self._x0_max,
+        )
 
         mu: th.Tensor = self._mu_tiddle(
             x_t,
@@ -112,20 +106,16 @@ class Denoiser(AbstractDiffuser):
         return mu
 
     def __mu(
-        self, x_t: th.Tensor, eps_theta: th.Tensor, t: th.Tensor
+        self, x_t: th.Tensor, v_theta: th.Tensor, t: th.Tensor
     ) -> th.Tensor:
-
-        mu: th.Tensor = (
-            x_t
-            - eps_theta
-            * select_time_scheduler(self._betas, t)
-            / select_time_scheduler(self._sqrt_one_minus_alphas_cum_prod, t)
-        ) / select_time_scheduler(self._sqrt_alpha, t)
+        mu: th.Tensor = self._mu_tiddle(
+            x_t, self.__x0_from_velocity(x_t, v_theta, t), t
+        )
         return mu
 
     def __var(
         self,
-        v: th.Tensor,
+        var_interp: th.Tensor,
         t: th.Tensor,
         betas: th.Tensor | None = None,
         betas_tiddle: th.Tensor | None = None,
@@ -140,20 +130,23 @@ class Denoiser(AbstractDiffuser):
             else betas_tiddle
         )
 
-        return th.exp(v * th.log(betas) + (1.0 - v) * th.log(betas_tiddle))
+        return th.exp(
+            var_interp * th.log(betas)
+            + (1.0 - var_interp) * th.log(betas_tiddle)
+        )
 
     def prior(
         self,
         x_t: th.Tensor,
         t: th.Tensor,
-        eps_theta: th.Tensor,
         v_theta: th.Tensor,
+        var_interp: th.Tensor,
     ) -> tuple[th.Tensor, th.Tensor]:
         assert len(x_t.size()) == 5
         assert len(t.size()) == 2
-        assert len(eps_theta.size()) == 5
+        assert len(v_theta.size()) == 5
 
-        return self.__mu(x_t, eps_theta, t), self.__var(v_theta, t)
+        return self.__mu(x_t, v_theta, t), self.__var(var_interp, t)
 
     @th.no_grad()
     def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
@@ -174,7 +167,7 @@ class Denoiser(AbstractDiffuser):
 
             t_tensor = th.tensor([[t]], device=device)
 
-            eps, v = self.__unet(
+            v_theta, var_interp = self.__unet(
                 x_t.unsqueeze(1),
                 t_tensor.repeat(x_t.size(0), 1),
             )
@@ -182,8 +175,10 @@ class Denoiser(AbstractDiffuser):
             # original sampling method
             # see : https://github.com/hojonathanho/diffusion/issues/5
             # see : https://github.com/openai/improved-diffusion/issues/64
-            mu = self.__mu_clipped(x_t.unsqueeze(1), eps, t_tensor).squeeze(1)
-            sigma = self.__var(v, t_tensor).sqrt().squeeze(1)
+            mu = self.__mu_clipped(
+                x_t.unsqueeze(1), v_theta, t_tensor
+            ).squeeze(1)
+            sigma = self.__var(var_interp, t_tensor).sqrt().squeeze(1)
 
             x_t = mu + sigma * z
 
@@ -236,14 +231,14 @@ class Denoiser(AbstractDiffuser):
                 else th.zeros_like(x_t, device=device)
             )
 
-            eps, v = self.__unet(
+            v_theta, var_interp = self.__unet(
                 x_t.unsqueeze(1),
                 th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
             )
 
             mu = self.__mu_clipped(
                 x_t.unsqueeze(1),
-                eps,
+                v_theta,
                 t,
                 alphas_s[s_t, None, None],
                 betas_s[s_t, None, None],
@@ -253,7 +248,10 @@ class Denoiser(AbstractDiffuser):
             mu = mu.squeeze(1)
 
             var = self.__var(
-                v, t, betas_s[s_t, None, None], betas_tiddle_s[s_t, None, None]
+                var_interp,
+                t,
+                betas_s[s_t, None, None],
+                betas_tiddle_s[s_t, None, None],
             )
             var = var.squeeze(1)
 
