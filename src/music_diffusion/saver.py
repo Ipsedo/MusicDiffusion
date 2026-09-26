@@ -60,6 +60,17 @@ class Saver:
             ]
         )
 
+        # save string repr
+        with open(
+            join(self.__output_dir, "noiser.txt"), "w", encoding="utf-8"
+        ) as f:
+            f.write(str(self.__noiser))
+
+        with open(
+            join(self.__output_dir, "denoiser.txt"), "w", encoding="utf-8"
+        ) as f:
+            f.write(str(self.__denoiser))
+
     def save(self) -> None:
         if self.__curr_idx % self.__save_every == self.__save_every - 1:
 

@@ -1,0 +1,156 @@
+from typing import Callable
+
+import torch as th
+from torch import nn
+from torch.nn import functional as th_f
+
+
+class CellModel(nn.Module):
+    def __init__(
+        self,
+        neuron_number: int,
+        input_size: int,
+        activation_function: nn.Module,
+    ) -> None:
+        super().__init__()
+
+        std = 1e-1
+
+        def __init_weights(w: th.Tensor) -> None:
+            th.nn.init.normal_(w, 0.0, std)
+
+        self.__weights = nn.Linear(input_size, neuron_number, bias=False)
+        self.__recurrent_weights = nn.Linear(
+            neuron_number, neuron_number, bias=False
+        )
+        self.__biases = nn.Parameter(th.zeros(1, neuron_number))
+
+        self.__activation_function = activation_function
+
+        __init_weights(self.weight)
+        __init_weights(self.recurrent_weight)
+
+    def forward(self, x_t: th.Tensor, input_t: th.Tensor) -> th.Tensor:
+        # x_t: (batch, input_size)
+        out: th.Tensor = self.__activation_function(
+            self.__recurrent_weights(x_t)
+            + self.__weights(input_t)
+            + self.__biases
+        )
+
+        return out
+
+    @property
+    def activation_function(self) -> Callable[[th.Tensor], th.Tensor]:
+        return self.__activation_function
+
+    @property
+    def weight(self) -> th.Tensor:
+        return self.__weights.weight
+
+    @property
+    def recurrent_weight(self) -> th.Tensor:
+        return self.__recurrent_weights.weight
+
+    @property
+    def bias(self) -> th.Tensor:
+        return self.__biases
+
+
+class LiquidCell(nn.Module):
+    def __init__(
+        self,
+        neuron_number: int,
+        input_size: int,
+        unfolding_steps: int,
+        activation_function: nn.Module,
+        delta_t: float,
+    ) -> None:
+        super().__init__()
+
+        self.__a = nn.Parameter(th.ones(1, neuron_number))
+        self.__raw_tau = nn.Parameter(th.zeros(1, neuron_number))
+
+        self.__f = CellModel(neuron_number, input_size, activation_function)
+
+        self.__unfolding_steps = unfolding_steps
+        self.__delta_t = delta_t
+
+    @property
+    def __tau(self) -> th.Tensor:
+        # pylint: disable=not-callable
+        return th_f.softplus(self.__raw_tau) + 1e-3
+
+    def forward(self, x_t: th.Tensor, input_t: th.Tensor) -> th.Tensor:
+        x_t_next = x_t
+        delta_t = self.__delta_t / self.__unfolding_steps
+
+        for _ in range(self.__unfolding_steps):
+            f = self.__f(x_t_next, input_t)
+            x_t_next = (x_t_next + delta_t * f * self.__a) / (
+                1.0 + delta_t * (1.0 / self.__tau + f)
+            )
+
+        return x_t_next
+
+    @property
+    def activation_function(self) -> Callable[[th.Tensor], th.Tensor]:
+        return self.__f.activation_function
+
+    @property
+    def a(self) -> th.Tensor:
+        return self.__a
+
+    @property
+    def raw_tau(self) -> th.Tensor:
+        return self.__raw_tau
+
+
+class LiquidRecurrent(nn.Module):
+    def __init__(
+        self,
+        neuron_number: int,
+        input_size: int,
+        output_size: int,
+        unfolding_steps: int,
+        delta_t: float,
+    ) -> None:
+        super().__init__()
+
+        self.__cell = LiquidCell(
+            neuron_number, input_size, unfolding_steps, nn.SiLU(), delta_t
+        )
+
+        self.__to_output = nn.Sequential(
+            nn.Linear(neuron_number, output_size),
+            nn.LayerNorm(output_size),
+            nn.SiLU(),
+        )
+
+        self.__neuron_number = neuron_number
+
+    def _get_first_x(self, batch_size: int) -> th.Tensor:
+        return 1e-1 * th.randn(
+            batch_size,
+            self.__neuron_number,
+            device=next(self.parameters()).device,
+        )
+
+    @property
+    def _activation_function(self) -> Callable[[th.Tensor], th.Tensor]:
+        return self.__cell.activation_function
+
+    def forward(self, x: th.Tensor) -> th.Tensor:
+        x_t = self._get_first_x(x.size(0))
+
+        assert (
+            len(x.size()) == 3
+        ), "Processed input needs to have 3 dimensions (Batch, Time, Features)"
+
+        results = []
+
+        for t in range(x.size(1)):
+            x_t = self.__cell(x_t, x[:, t, :])
+            results.append(self.__to_output(x_t))
+
+        return th.stack(results, 1)
