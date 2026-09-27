@@ -127,6 +127,7 @@ def magnitude_phase_to_wav(
     n_fft: int = constants.N_FFT,
     stft_stride: int = constants.STFT_STRIDE,
     top_db: float = constants.TOP_DB,
+    epsilon: float = 1e-8,
 ) -> None:
     assert (
         len(magnitude_phase.size()) == 4
@@ -172,6 +173,10 @@ def magnitude_phase_to_wav(
         win_length=n_fft,
         normalized=True,
     )
+
+    # magnitude is relative to the track maximum (absolute level is lost),
+    # so restore the peak normalization applied in wav_to_stft
+    raw_audio = raw_audio / (raw_audio.abs().max() + epsilon)
 
     th_audio.save(wav_path, raw_audio[None, :], sample_rate)
 
