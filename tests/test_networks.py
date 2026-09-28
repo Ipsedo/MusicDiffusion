@@ -1,9 +1,117 @@
+from typing import Literal
+
 import pytest
 import torch as th
+from torch import nn
 
 from music_diffusion.networks import Denoiser, Noiser, TimeUNet
+from music_diffusion.networks.convolutions import (
+    StrideConvBlock,
+    TimeConvBlock,
+)
+from music_diffusion.networks.time import TimeBypass
 
 from .check_size import check_size
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("step_batch_size", [1, 2])
+@pytest.mark.parametrize("input_channels", [2, 3])
+@pytest.mark.parametrize("output_channels", [2, 3])
+def test_time_bypass(
+    batch_size: int,
+    step_batch_size: int,
+    input_channels: int,
+    output_channels: int,
+    device: th.device,
+) -> None:
+    sizes = (4, 4)
+
+    conv2d_time_bypass = TimeBypass(
+        nn.Conv2d(input_channels, output_channels, 3, 1, 1)
+    )
+    conv2d_time_bypass.to(device)
+
+    x = th.randn(
+        batch_size, step_batch_size, input_channels, *sizes, device=device
+    )
+
+    out = conv2d_time_bypass(x)
+
+    check_size(out, batch_size, step_batch_size, output_channels, sizes)
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("in_channels", [4, 8])
+@pytest.mark.parametrize("out_channels", [4, 8])
+@pytest.mark.parametrize("group_norm_num", [1, 2])
+@pytest.mark.parametrize("up_or_down", ["up", "down"])
+@pytest.mark.parametrize("img_sizes", [(32, 32), (16, 32)])
+def test_time_stride_conv_block(
+    batch_size: int,
+    in_channels: int,
+    out_channels: int,
+    group_norm_num: int,
+    up_or_down: Literal["up", "down"],
+    img_sizes: tuple[int, int],
+    device: th.device,
+) -> None:
+    out_sizes = (
+        (img_sizes[0] // 2, img_sizes[1] // 2)
+        if up_or_down == "down"
+        else (img_sizes[0] * 2, img_sizes[1] * 2)
+    )
+
+    time_conv_block = StrideConvBlock(
+        in_channels, out_channels, group_norm_num, up_or_down
+    )
+    time_conv_block.to(device)
+
+    x = th.randn(
+        batch_size, in_channels, img_sizes[0], img_sizes[1], device=device
+    )
+
+    out = time_conv_block(x)
+
+    assert out.size() == (batch_size, out_channels, out_sizes[0], out_sizes[1])
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("step_btch_size", [1, 2])
+@pytest.mark.parametrize("in_channels", [4, 8])
+@pytest.mark.parametrize("out_channels", [4, 8])
+@pytest.mark.parametrize("group_norm_num", [1, 2])
+@pytest.mark.parametrize("time_size", [2, 4])
+@pytest.mark.parametrize("img_sizes", [(32, 32), (16, 32)])
+def test_time_conv_block(
+    batch_size: int,
+    step_btch_size: int,
+    in_channels: int,
+    out_channels: int,
+    group_norm_num: int,
+    time_size: int,
+    img_sizes: tuple[int, int],
+    device: th.device,
+) -> None:
+    time_conv_block = TimeConvBlock(
+        in_channels, out_channels, group_norm_num, time_size
+    )
+
+    time_conv_block.to(device)
+
+    x = th.randn(
+        batch_size,
+        step_btch_size,
+        in_channels,
+        img_sizes[0],
+        img_sizes[1],
+        device=device,
+    )
+    t_emb = th.randn(batch_size, step_btch_size, time_size)
+
+    out = time_conv_block(x, t_emb)
+
+    check_size(out, batch_size, step_btch_size, out_channels, img_sizes)
 
 
 @pytest.mark.parametrize("steps", [2, 3])
@@ -39,10 +147,10 @@ def test_noiser(
         device=device,
     )
 
-    x_t, eps = noiser(x_0, t)
+    x_t, v = noiser(x_0, t)
 
     __inner_check_size(x_t)
-    __inner_check_size(eps)
+    __inner_check_size(v)
 
     post_mu, post_var = noiser.posterior(x_t, x_0, t)
 
@@ -90,12 +198,12 @@ def test_denoiser(
         device=device,
     )
 
-    eps, v = denoiser(x_t, t)
+    v_theta, var_interp = denoiser(x_t, t)
 
-    __inner_check_size(eps)
-    __inner_check_size(v)
+    __inner_check_size(v_theta)
+    __inner_check_size(var_interp)
 
-    prior_mu, prior_var = denoiser.prior(x_t, t, eps, v)
+    prior_mu, prior_var = denoiser.prior(x_t, t, v_theta, var_interp)
 
     __inner_check_size(prior_mu)
 
@@ -188,7 +296,42 @@ def test_unet(
         device=device,
     )
 
-    eps, v = unet(x_t, t)
+    v_theta, var_interp = unet(x_t, t)
 
-    __inner_check_size(eps)
-    __inner_check_size(v)
+    __inner_check_size(v_theta)
+    __inner_check_size(var_interp)
+
+
+@pytest.mark.parametrize("steps", [4, 16])
+@pytest.mark.parametrize("step_batch_size", [1, 2])
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_velocity_prior_matches_posterior(
+    steps: int,
+    step_batch_size: int,
+    batch_size: int,
+    device: th.device,
+) -> None:
+    in_channels = 2
+    img_sizes = (16, 16)
+
+    noiser = Noiser(steps)
+    denoiser = Denoiser(steps, 2, [(in_channels, 8), (8, 16)], [2, 4])
+
+    noiser.to(device)
+    denoiser.to(device)
+
+    x_0 = th.rand(batch_size, in_channels, *img_sizes, device=device)
+    t = th.randint(
+        0,
+        steps,
+        (batch_size, step_batch_size),
+        device=device,
+    )
+
+    x_t, v = noiser(x_0, t)
+
+    post_mu, _ = noiser.posterior(x_t, x_0, t)
+    prior_mu, _ = denoiser.prior(x_t, t, v, th.zeros_like(v))
+
+    # true velocity => denoiser prior mean == noiser posterior mean
+    assert th.allclose(prior_mu, post_mu, atol=1e-5)

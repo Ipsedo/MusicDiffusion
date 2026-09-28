@@ -30,23 +30,6 @@ class SinusoidTimeEmbedding(nn.Module):
         return out
 
 
-class TimeEmbedding(nn.Module):
-    def __init__(self, steps: int, size: int):
-        super().__init__()
-
-        self.__emb = nn.Embedding(steps, size)
-
-    def forward(self, t_index: th.Tensor) -> th.Tensor:
-        b, t = t_index.size()
-
-        t_index = t_index.flatten()
-
-        out: th.Tensor = self.__emb(t_index)
-        out = th.unflatten(out, 0, (b, t))
-
-        return out
-
-
 class TimeBypass(nn.Module):
     def __init__(self, module: nn.Module) -> None:
         super().__init__()

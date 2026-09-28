@@ -1,11 +1,11 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 import torch as th
 
 # pylint: disable=too-few-public-methods
 
 
-class ImgTransform(metaclass=ABCMeta):
+class ImgTransform(ABC):
     @abstractmethod
     def __call__(self, img_data: th.Tensor) -> th.Tensor:
         pass
@@ -15,13 +15,13 @@ class ChannelMinMaxNorm(ImgTransform):
     def __init__(self, epsilon: float = 1e-8) -> None:
         self.__epsilon = epsilon
 
-    def __call__(self, x: th.Tensor) -> th.Tensor:
-        assert len(x.size()) == 4
+    def __call__(self, img_data: th.Tensor) -> th.Tensor:
+        assert len(img_data.size()) == 4
 
-        x_max = th.amax(x, dim=(-2, -1), keepdim=True)
-        x_min = th.amin(x, dim=(-2, -1), keepdim=True)
+        x_max = th.amax(img_data, dim=(-2, -1), keepdim=True)
+        x_min = th.amin(img_data, dim=(-2, -1), keepdim=True)
 
-        out: th.Tensor = (x - x_min) / (x_max - x_min + self.__epsilon)
+        out: th.Tensor = (img_data - x_min) / (x_max - x_min + self.__epsilon)
 
         return out
 

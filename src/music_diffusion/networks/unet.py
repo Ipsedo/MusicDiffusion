@@ -66,11 +66,11 @@ class TimeUNet(nn.Module):
 
         c_o = decoding_channels[-1][1]
         out_channels = encoding_channels[0][0]
-        self.__eps_end_conv = TimeBypass(
+        self.__velocity_end_conv = TimeBypass(
             OutChannelProj(c_o, out_channels),
         )
 
-        self.__v_end_conv = TimeBypass(
+        self.__var_end_conv = TimeBypass(
             OutChannelProj(c_o, out_channels),
         )
 
@@ -102,7 +102,7 @@ class TimeUNet(nn.Module):
             out = th.cat([out, bypass], dim=2)
             out = block(out, time_vec)
 
-        eps: th.Tensor = self.__eps_end_conv(out)
-        v: th.Tensor = self.__v_end_conv(out)
+        v_theta: th.Tensor = self.__velocity_end_conv(out)
+        var_interp: th.Tensor = self.__var_end_conv(out)
 
-        return eps, v
+        return v_theta, var_interp

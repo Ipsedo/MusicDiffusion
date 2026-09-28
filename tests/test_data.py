@@ -5,8 +5,12 @@ import pytest
 import torch as th
 
 from music_diffusion.data import (
+    MAGN_MAX,
+    MAGN_MIN,
+    destandardize_magnitude,
     magnitude_phase_to_wav,
     simpson,
+    standardize_magnitude,
     stft_to_magnitude_phase,
     trapezoid,
     wav_to_stft,
@@ -109,3 +113,22 @@ def test_magn_phase_to_wav(
     finally:
         if exists(wav_path):
             remove(wav_path)
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("sizes", [(16, 32), (32, 32)])
+def test_standardize_magnitude(
+    batch_size: int, sizes: tuple[int, int]
+) -> None:
+    magn_phase = th.rand(batch_size, 2, *sizes) * 2.0 - 1.0
+
+    standardized = standardize_magnitude(magn_phase)
+
+    assert standardized.size() == magn_phase.size()
+    assert th.all(th.ge(standardized[:, 0], MAGN_MIN - 1e-5))
+    assert th.all(th.le(standardized[:, 0], MAGN_MAX + 1e-5))
+    assert th.equal(standardized[:, 1], magn_phase[:, 1])
+
+    assert th.allclose(
+        destandardize_magnitude(standardized), magn_phase, atol=1e-6
+    )

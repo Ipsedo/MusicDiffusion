@@ -32,7 +32,16 @@ class Noiser(AbstractDiffuser):
             + eps * sqrt_one_minus_alphas_cum_prod
         )
 
-        return x_t, eps
+        # v = sqrt(a_bar) * eps - sqrt(1 - a_bar) * x_0
+        velocity: th.Tensor = select_time_scheduler(
+            self._sqrt_alphas_cum_prod, t
+        ) * eps - select_time_scheduler(
+            self._sqrt_one_minus_alphas_cum_prod, t
+        ) * x_0.unsqueeze(
+            1
+        )
+
+        return x_t, velocity
 
     def __mu(self, x_t: th.Tensor, x_0: th.Tensor, t: th.Tensor) -> th.Tensor:
         mu: th.Tensor = self._mu_tiddle(x_t, x_0.unsqueeze(1), t)
