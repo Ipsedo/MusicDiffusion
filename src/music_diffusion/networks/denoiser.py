@@ -165,11 +165,11 @@ class Denoiser(AbstractDiffuser):
                 else th.zeros_like(x_t, device=device)
             )
 
-            t_tensor = th.tensor([[t]], device=device)
+            t_tensor = th.tensor([[t]], device=device).repeat(x_t.size(0), 1)
 
             v_theta, var_interp = self.__unet(
                 x_t.unsqueeze(1),
-                t_tensor.repeat(x_t.size(0), 1),
+                t_tensor,
             )
 
             # original sampling method
@@ -202,7 +202,6 @@ class Denoiser(AbstractDiffuser):
         )
 
         alphas_cum_prod_s = self._alphas_cum_prod[steps]
-        # alphas_cum_prod_prev_s = self._alphas_cum_prod_prev[steps]
         alphas_cum_prod_prev_s = th.cat(
             [th.tensor([1], device=device), alphas_cum_prod_s[:-1]], dim=0
         )
@@ -219,11 +218,13 @@ class Denoiser(AbstractDiffuser):
 
         alphas_s = 1.0 - betas_s
 
-        times = steps.flip(0).cpu().numpy().tolist()
+        times: list[int] = steps.flip(0).cpu().numpy().tolist()
         tqdm_bar = tqdm(times, disable=not verbose, leave=False)
 
         for s_t, t in enumerate(tqdm_bar):
             s_t = len(times) - s_t - 1
+
+            t_tensor = th.tensor([[t]], device=device).repeat(x_t.size(0), 1)
 
             z = (
                 th.randn_like(x_t, device=device)
@@ -233,13 +234,13 @@ class Denoiser(AbstractDiffuser):
 
             v_theta, var_interp = self.__unet(
                 x_t.unsqueeze(1),
-                th.tensor([[t]], device=device).repeat(x_t.size(0), 1),
+                t_tensor,
             )
 
             mu = self.__mu_clipped(
                 x_t.unsqueeze(1),
                 v_theta,
-                t,
+                t_tensor,
                 alphas_s[s_t, None, None],
                 betas_s[s_t, None, None],
                 alphas_cum_prod_s[s_t, None, None],
@@ -249,7 +250,7 @@ class Denoiser(AbstractDiffuser):
 
             var = self.__var(
                 var_interp,
-                t,
+                t_tensor,
                 betas_s[s_t, None, None],
                 betas_tiddle_s[s_t, None, None],
             )
