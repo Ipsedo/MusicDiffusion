@@ -15,7 +15,7 @@ cd /path/to/MusicDiffusion
 python -m music_diffusion model --cuda train your_mlflow_run_name --input-dataset /path/to/music_dataset --output-dir /path/to/train_output
 ```
 
-Then when model has converged, generate your music :
+Then when the model has converged, generate your music :
 ```bash
 cd /path/to/MusicDiffusion
 # generate 3 music of around 10 * 4s long each with fast sample method, the whole using EMA model (10th checkpoint)
