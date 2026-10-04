@@ -53,7 +53,7 @@ def main() -> None:
     # Train and Generate
     #####################
 
-    # Model hyper parameters
+    # Model hyperparameters
     model_parser = sub_command.add_parser("model")
 
     model_parser.add_argument("--steps", type=int, default=4096)
@@ -61,12 +61,12 @@ def main() -> None:
         "--unet-channels",
         type=_channels,
         default=[
-            (2, 16),
+            (2, 8),
+            (8, 16),
             (16, 32),
             (32, 64),
             (64, 128),
             (128, 256),
-            (256, 512),
         ],
     )
     model_parser.add_argument(
@@ -75,6 +75,8 @@ def main() -> None:
         default=[2, 4, 8, 16, 32, 64],
     )
     model_parser.add_argument("--time-size", type=int, default=16)
+    model_parser.add_argument("--ltc-neuron-number", type=int, default=512)
+    model_parser.add_argument("--ltc-unfolding-steps", type=int, default=6)
     model_parser.add_argument("--cuda", action="store_true")
 
     # Sub command run {train, generate}
@@ -123,6 +125,8 @@ def main() -> None:
             unet_channels=args.unet_channels,
             unet_group_norm_nums=args.unet_group_norm_nums,
             time_size=args.time_size,
+            ltc_neuron_number=args.ltc_neuron_number,
+            ltc_unfolding_steps=args.ltc_unfolding_steps,
             cuda=args.cuda,
         )
 

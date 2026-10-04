@@ -19,6 +19,10 @@ class Denoiser(AbstractDiffuser):
         time_size: int,
         unet_channels: list[tuple[int, int]],
         unet_group_norm_nums: list[int],
+        ltc_neuron_number: int,
+        ltc_unfolding_steps: int,
+        ltc_delta_t: float,
+        stft_size: int,
     ) -> None:
         super().__init__(steps)
 
@@ -41,6 +45,10 @@ class Denoiser(AbstractDiffuser):
             unet_group_norm_nums,
             time_size,
             self._steps,
+            ltc_neuron_number,
+            ltc_unfolding_steps,
+            ltc_delta_t,
+            stft_size,
         )
 
         self.apply(weights_init)
