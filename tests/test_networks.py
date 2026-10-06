@@ -211,10 +211,6 @@ def test_denoiser(
         time_size,
         [(in_channels, 8), (8, 16)],
         [2, 4],
-        3,
-        2,
-        1.0,
-        img_sizes[0],
     )
 
     denoiser.to(device)
@@ -309,9 +305,7 @@ def test_unet(
     def __inner_check_size(tensor: th.Tensor) -> None:
         check_size(tensor, batch_size, step_batch_size, channels[0][0], size)
 
-    unet = TimeUNet(
-        channels, group_norm_nums, time_size, steps, 3, 2, 1.0, size[0]
-    )
+    unet = TimeUNet(channels, group_norm_nums, time_size, steps)
 
     unet.to(device)
     unet.eval()
@@ -349,9 +343,7 @@ def test_velocity_prior_matches_posterior(
     img_sizes = (16, 16)
 
     noiser = Noiser(steps)
-    denoiser = Denoiser(
-        steps, 2, [(in_channels, 8), (8, 16)], [2, 4], 3, 2, 1.0, img_sizes[0]
-    )
+    denoiser = Denoiser(steps, 2, [(in_channels, 8), (8, 16)], [2, 4])
 
     noiser.to(device)
     denoiser.to(device)

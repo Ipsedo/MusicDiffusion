@@ -3,6 +3,7 @@ from typing import Literal
 import torch as th
 from torch import nn
 
+from .normalization import RowGroupNorm
 from .time import TimeToScaleShift
 
 
@@ -43,7 +44,7 @@ class StrideConvBlock(nn.Sequential):
                 padding=(1, 1),
                 bias=False,
             ),
-            nn.GroupNorm(group_norm_num, out_channels),
+            RowGroupNorm(group_norm_num, out_channels),
             nn.SiLU(),
         )
 
@@ -67,7 +68,7 @@ class TimeConvBlock(nn.Module):
                 stride=(1, 1),
                 bias=False,
             ),
-            nn.GroupNorm(group_norm_num, out_channels),
+            RowGroupNorm(group_norm_num, out_channels),
             nn.SiLU(),
             nn.Conv2d(
                 out_channels,
@@ -77,7 +78,7 @@ class TimeConvBlock(nn.Module):
                 stride=(1, 1),
                 bias=False,
             ),
-            nn.GroupNorm(group_norm_num, out_channels),
+            RowGroupNorm(group_norm_num, out_channels),
         )
 
         self.__time_decoder = TimeToScaleShift(out_channels, time_size)

@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 
-from .data.constants import N_FFT, SAMPLE_RATE, STFT_STRIDE
 from .networks import Denoiser, Noiser
 
 
@@ -9,8 +8,6 @@ class ModelOptions(BaseModel):
     unet_channels: list[tuple[int, int]]
     unet_group_norm_nums: list[int]
     time_size: int
-    ltc_neuron_number: int
-    ltc_unfolding_steps: int
     cuda: bool
 
     def new_denoiser(self) -> Denoiser:
@@ -19,10 +16,6 @@ class ModelOptions(BaseModel):
             self.time_size,
             self.unet_channels,
             self.unet_group_norm_nums,
-            self.ltc_neuron_number,
-            self.ltc_unfolding_steps,
-            1.0 / (SAMPLE_RATE / STFT_STRIDE),
-            N_FFT // 2,
         )
 
     def new_noiser(self) -> Noiser:

@@ -5,7 +5,6 @@ import pytest
 import torch as th
 from ema_pytorch import EMA
 
-from music_diffusion.data.constants import N_FFT
 from music_diffusion.networks import Denoiser, Noiser
 from music_diffusion.saver import Saver
 
@@ -17,7 +16,7 @@ def test_saver(save_every: int, nb_samples: int) -> None:
     channels = 2
 
     noiser = Noiser(steps)
-    denoiser = Denoiser(steps, 1, [(channels, 4)], [1], 2, 1, 1.0, N_FFT // 2)
+    denoiser = Denoiser(steps, 1, [(channels, 4)], [1])
     optim = th.optim.Adam(denoiser.parameters())
     ema = EMA(denoiser)
 

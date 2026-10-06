@@ -2,7 +2,6 @@ import torch as th
 from torch import nn
 
 from .convolutions import OutChannelProj, StrideConvBlock, TimeConvBlock
-from .liquid import LiquidRecurrent
 from .time import SinusoidTimeEmbedding, TimeBypass
 
 
@@ -13,10 +12,6 @@ class TimeUNet(nn.Module):
         group_norm_nums: list[int],
         time_size: int,
         steps: int,
-        ltc_neuron_number: int,
-        ltc_unfolding_steps: int,
-        ltc_delta_t: float,
-        stft_size: int,
     ) -> None:
         super().__init__()
 
@@ -55,17 +50,6 @@ class TimeUNet(nn.Module):
         c_m = encoding_channels[-1][1]
         g_m = encoding_group_norm_num[-1]
         self.__middle_block = TimeConvBlock(c_m, c_m, g_m, time_size)
-
-        middle_freq = stft_size // (2 ** len(encoding_channels))
-
-        self.__ltc = LiquidRecurrent(
-            ltc_neuron_number,
-            middle_freq * c_m,
-            middle_freq * c_m,
-            ltc_unfolding_steps,
-            nn.SiLU(),
-            ltc_delta_t,
-        )
 
         # Decoder stuff
         self.__decoder_up = nn.ModuleList(
@@ -108,7 +92,6 @@ class TimeUNet(nn.Module):
             out = down(out)
 
         out = self.__middle_block(out, time_vec)
-        out = self.__forward_ltc(out)
 
         for up, bypass, block in zip(
             self.__decoder_up,
@@ -123,18 +106,3 @@ class TimeUNet(nn.Module):
         var_interp: th.Tensor = self.__var_end_conv(out)
 
         return v_theta, var_interp
-
-    def __forward_ltc(self, x_encoded: th.Tensor) -> th.Tensor:
-        b, bs, c, f, _ = x_encoded.size()
-
-        x = th.flatten(x_encoded, 0, 1)
-        x = th.flatten(x, 1, 2)
-        x = th.permute(x, (0, 2, 1))
-
-        out = self.__ltc(x)
-
-        out = th.permute(out, (0, 2, 1))
-        out = th.unflatten(out, 1, (c, f))
-        out = th.unflatten(out, 0, (b, bs))
-
-        return out
