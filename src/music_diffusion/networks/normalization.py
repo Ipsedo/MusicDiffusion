@@ -77,12 +77,14 @@ class RowGroupNorm(nn.Module):
         xg = x.reshape(b, g, c // g, h, w)
         xf = xg.float()
 
-        mean_row = xf.mean(dim=(2, 4))
-        sq_row = (xf * xf).mean(dim=(2, 4))
+        # per time step statistics : over the group channels and frequencies
+        mean_col = xf.mean(dim=(2, 3))
+        sq_col = (xf * xf).mean(dim=(2, 3))
 
-        stats = th.stack([mean_row, sq_row], dim=2).reshape(b * g * 2, 1, h)
+        stats = th.stack([mean_col, sq_col], dim=2).reshape(b * g * 2, 1, w)
 
         # pylint: disable=not-callable
+        # smooth the statistics over the neighboring time steps
         stats = th_f.avg_pool1d(
             stats,
             kernel_size=2 * k + 1,
@@ -91,11 +93,11 @@ class RowGroupNorm(nn.Module):
             count_include_pad=False,
         )
 
-        mean, sq = stats.reshape(b, g, 2, h).unbind(dim=2)
+        mean, sq = stats.reshape(b, g, 2, w).unbind(dim=2)
         var = (sq - mean * mean).clamp_min(0.0)
 
-        mean = mean.reshape(b, g, 1, h, 1)
-        var = var.reshape(b, g, 1, h, 1)
+        mean = mean.reshape(b, g, 1, 1, w)
+        var = var.reshape(b, g, 1, 1, w)
 
         y = (xf - mean) * th.rsqrt(var + self.__eps)
         y = y.reshape(b, c, h, w).to(x.dtype)
