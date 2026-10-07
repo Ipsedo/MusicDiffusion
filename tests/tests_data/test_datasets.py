@@ -348,16 +348,6 @@ def test_audio_dataset_reference_covers_song(tmp_path: Path) -> None:
     assert seen == {1, 2, 3, 4}
 
 
-def test_audio_dataset_legacy_format(tmp_path: Path) -> None:
-    dataset_dir = tmp_path / "legacy"
-    dataset_dir.mkdir()
-
-    th.save(_make_item(0, 0), dataset_dir / "magn_phase_0.pt")
-
-    with pytest.raises(RuntimeError, match="create_data"):
-        AudioDataset(str(dataset_dir))
-
-
 def test_audio_dataset_not_a_dir(tmp_path: Path) -> None:
     not_a_dir = tmp_path / "file.txt"
     not_a_dir.write_text("")

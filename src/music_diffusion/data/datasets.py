@@ -11,29 +11,19 @@ from .audio import standardize_magnitude
 
 
 class AudioDataset(Dataset):
-    _FILE_RE = re.compile(r"^magn_phase_(\d+)_(\d+)\.pt$")
-    _LEGACY_FILE_RE = re.compile(r"^magn_phase_\d+\.pt$")
-
     def __init__(self, dataset_path: str) -> None:
         super().__init__()
 
         assert isdir(dataset_path)
 
+        file_regex = re.compile(r"^magn_phase_(\d+)_(\d+)\.pt$")
+
         entries = [
             (int(m.group(1)), int(m.group(2)), f)
             for f in tqdm(listdir(dataset_path))
             if isfile(join(dataset_path, f))
-            and (m := self._FILE_RE.match(f)) is not None
+            and (m := file_regex.match(f)) is not None
         ]
-
-        if len(entries) == 0 and any(
-            self._LEGACY_FILE_RE.match(f) for f in listdir(dataset_path)
-        ):
-            raise RuntimeError(
-                f"'{dataset_path}' only contains legacy 'magn_phase_N.pt' "
-                "files without song identity, regenerate it with the "
-                "'create_data' command"
-            )
 
         entries.sort()
 
