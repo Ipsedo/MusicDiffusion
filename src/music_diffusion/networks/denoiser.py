@@ -20,7 +20,7 @@ class Denoiser(AbstractDiffuser):
         time_size: int,
         unet_channels: list[tuple[int, int]],
         unet_group_norm_nums: list[int],
-        z_size: int = 0,
+        z_size: int,
     ) -> None:
         super().__init__(steps)
 
@@ -61,7 +61,6 @@ class Denoiser(AbstractDiffuser):
         return self.__z_size
 
     def encode(self, x_ref: th.Tensor) -> th.Tensor:
-        """Conditioning vector z of clean reference chunks (B, C, H, W)."""
         assert len(x_ref.size()) == 4
         assert x_ref.size(1) == self.__channels
 
@@ -75,7 +74,6 @@ class Denoiser(AbstractDiffuser):
     def null_condition(
         self, batch_size: int, device: th.device | str
     ) -> th.Tensor:
-        """The z used in place of a dropped condition (unconditional)."""
         return th.zeros(batch_size, self.__z_size, device=device)
 
     def __check_z(self, z: th.Tensor | None, batch_size: int) -> th.Tensor:
@@ -108,11 +106,6 @@ class Denoiser(AbstractDiffuser):
         z: th.Tensor,
         guidance_scale: float,
     ) -> tuple[th.Tensor, th.Tensor]:
-        """U-Net outputs with classifier-free guidance on the velocity.
-
-        v = v_uncond + s * (v_cond - v_uncond), the learned variance
-        interpolation is taken from the conditional pass.
-        """
         if guidance_scale == 1.0 or self.__z_size == 0:
             v_theta, var_interp = self.__unet(x_t, t, z)
             return v_theta, var_interp

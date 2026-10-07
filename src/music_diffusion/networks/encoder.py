@@ -5,14 +5,6 @@ from .convolutions import StrideConvBlock
 
 
 class ChunkEncoder(nn.Module):
-    """Map a clean chunk (B, C, H, W) to a global conditioning vector z.
-
-    The vector is trained in a cross-chunk fashion : the encoder sees one
-    chunk of a piece while the denoiser reconstructs another one, so z can
-    only hold what is invariant across the piece (instruments, register,
-    tempo, texture) and not the content of any specific chunk.
-    """
-
     def __init__(
         self,
         channels: list[tuple[int, int]],

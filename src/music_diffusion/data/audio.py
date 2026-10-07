@@ -185,15 +185,6 @@ def create_dataset(
     audio_path: str,
     dataset_output_dir: str,
 ) -> None:
-    """Split each audio file into consecutive chunks of N_VEC STFT vectors.
-
-    Chunks are saved as ``magn_phase_{song}_{chunk}.pt`` where ``song`` is
-    the index of the source audio file (among the files that produced at
-    least one chunk) and ``chunk`` is the position of the chunk in the
-    track. Both are needed to build (reference, target) pairs from the same
-    piece during training.
-    """
-
     w_p = glob.glob(audio_path, recursive=True)
 
     if not exists(dataset_output_dir):

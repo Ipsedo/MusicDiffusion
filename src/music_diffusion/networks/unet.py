@@ -12,7 +12,7 @@ class TimeUNet(nn.Module):
         group_norm_nums: list[int],
         time_size: int,
         steps: int,
-        z_size: int = 0,
+        z_size: int,
     ) -> None:
         super().__init__()
 

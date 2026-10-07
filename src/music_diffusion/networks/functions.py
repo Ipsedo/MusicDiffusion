@@ -30,11 +30,6 @@ def mse(p: th.Tensor, q: th.Tensor) -> th.Tensor:
 
 
 def drop_condition(z: th.Tensor, p: float) -> th.Tensor:
-    """Zero the conditioning vector of each sample with probability p.
-
-    Used at training time so the denoiser also learns the unconditional
-    distribution, which enables classifier-free guidance at sampling time.
-    """
     assert 0.0 <= p <= 1.0
 
     if p == 0.0:

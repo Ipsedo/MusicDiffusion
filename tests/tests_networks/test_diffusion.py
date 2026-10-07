@@ -19,7 +19,7 @@ def test_velocity_prior_matches_posterior(
     img_sizes = (16, 16)
 
     noiser = Noiser(steps)
-    denoiser = Denoiser(steps, 2, [(in_channels, 8), (8, 16)], [2, 4])
+    denoiser = Denoiser(steps, 2, [(in_channels, 8), (8, 16)], [2, 4], 2)
 
     noiser.to(device)
     denoiser.to(device)
