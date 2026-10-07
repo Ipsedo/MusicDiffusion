@@ -7,6 +7,7 @@ from tqdm import tqdm
 from music_diffusion.data import MAGN_MAX, MAGN_MIN
 
 from .diffusion import AbstractDiffuser
+from .encoder import ChunkEncoder
 from .functions import select_time_scheduler
 from .init import weights_init
 from .unet import TimeUNet
@@ -19,10 +20,12 @@ class Denoiser(AbstractDiffuser):
         time_size: int,
         unet_channels: list[tuple[int, int]],
         unet_group_norm_nums: list[int],
+        z_size: int = 0,
     ) -> None:
         super().__init__(steps)
 
         self.__channels = unet_channels[0][0]
+        self.__z_size = z_size
 
         # x_0 clip bounds : standardized magnitude, then [-1, 1] for phase
         self._x0_min: th.Tensor
@@ -41,19 +44,91 @@ class Denoiser(AbstractDiffuser):
             unet_group_norm_nums,
             time_size,
             self._steps,
+            z_size,
+        )
+
+        # global conditioning encoder, same depth as the U-Net encoder
+        self.__encoder = (
+            ChunkEncoder(unet_channels, unet_group_norm_nums, z_size)
+            if z_size > 0
+            else None
         )
 
         self.apply(weights_init)
 
+    @property
+    def z_size(self) -> int:
+        return self.__z_size
+
+    def encode(self, x_ref: th.Tensor) -> th.Tensor:
+        """Conditioning vector z of clean reference chunks (B, C, H, W)."""
+        assert len(x_ref.size()) == 4
+        assert x_ref.size(1) == self.__channels
+
+        if self.__encoder is None:
+            return th.zeros(x_ref.size(0), 0, device=x_ref.device)
+
+        z: th.Tensor = self.__encoder(x_ref)
+
+        return z
+
+    def null_condition(
+        self, batch_size: int, device: th.device | str
+    ) -> th.Tensor:
+        """The z used in place of a dropped condition (unconditional)."""
+        return th.zeros(batch_size, self.__z_size, device=device)
+
+    def __check_z(self, z: th.Tensor | None, batch_size: int) -> th.Tensor:
+        if z is None:
+            device = "cuda" if next(self.parameters()).is_cuda else "cpu"
+            z = self.null_condition(batch_size, device)
+
+        assert z.size() == (batch_size, self.__z_size)
+
+        return z
+
     def forward(
-        self, x_t: th.Tensor, t: th.Tensor
+        self, x_t: th.Tensor, t: th.Tensor, z: th.Tensor | None = None
     ) -> tuple[th.Tensor, th.Tensor]:
         assert len(x_t.size()) == 5
         assert len(t.size()) == 2
         assert x_t.size(0) == t.size(0)
         assert x_t.size(1) == t.size(1)
 
-        v_theta, var_interp = self.__unet(x_t, t)
+        z = self.__check_z(z, x_t.size(0))
+
+        v_theta, var_interp = self.__unet(x_t, t, z)
+
+        return v_theta, var_interp
+
+    def __predict(
+        self,
+        x_t: th.Tensor,
+        t: th.Tensor,
+        z: th.Tensor,
+        guidance_scale: float,
+    ) -> tuple[th.Tensor, th.Tensor]:
+        """U-Net outputs with classifier-free guidance on the velocity.
+
+        v = v_uncond + s * (v_cond - v_uncond), the learned variance
+        interpolation is taken from the conditional pass.
+        """
+        if guidance_scale == 1.0 or self.__z_size == 0:
+            v_theta, var_interp = self.__unet(x_t, t, z)
+            return v_theta, var_interp
+
+        z_null = self.null_condition(z.size(0), z.device)
+
+        v_theta, var_interp = self.__unet(
+            th.cat([x_t, x_t], dim=0),
+            th.cat([t, t], dim=0),
+            th.cat([z, z_null], dim=0),
+        )
+
+        v_cond, v_uncond = th.chunk(v_theta, 2, dim=0)
+        var_interp, _ = th.chunk(var_interp, 2, dim=0)
+
+        v_theta = v_uncond + guidance_scale * (v_cond - v_uncond)
 
         return v_theta, var_interp
 
@@ -149,17 +224,25 @@ class Denoiser(AbstractDiffuser):
         return self.__mu(x_t, v_theta, t), self.__var(var_interp, t)
 
     @th.no_grad()
-    def sample(self, x_t: th.Tensor, verbose: bool = False) -> th.Tensor:
+    def sample(
+        self,
+        x_t: th.Tensor,
+        z: th.Tensor | None = None,
+        guidance_scale: float = 1.0,
+        verbose: bool = False,
+    ) -> th.Tensor:
         assert len(x_t.size()) == 4
         assert x_t.size(1) == self.__channels
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
 
+        z = self.__check_z(z, x_t.size(0))
+
         times = list(reversed(range(self._steps)))
         tqdm_bar = tqdm(times, disable=not verbose, leave=False)
 
         for t in tqdm_bar:
-            z = (
+            noise = (
                 th.randn_like(x_t, device=device)
                 if t > 0
                 else th.zeros_like(x_t, device=device)
@@ -167,9 +250,8 @@ class Denoiser(AbstractDiffuser):
 
             t_tensor = th.tensor([[t]], device=device).repeat(x_t.size(0), 1)
 
-            v_theta, var_interp = self.__unet(
-                x_t.unsqueeze(1),
-                t_tensor,
+            v_theta, var_interp = self.__predict(
+                x_t.unsqueeze(1), t_tensor, z, guidance_scale
             )
 
             # original sampling method
@@ -180,7 +262,7 @@ class Denoiser(AbstractDiffuser):
             ).squeeze(1)
             sigma = self.__var(var_interp, t_tensor).sqrt().squeeze(1)
 
-            x_t = mu + sigma * z
+            x_t = mu + sigma * noise
 
             tqdm_bar.set_description(
                 f"Generate {x_t.size(0)} data with size {tuple(x_t.size()[1:])}"
@@ -190,12 +272,19 @@ class Denoiser(AbstractDiffuser):
 
     @th.no_grad()
     def fast_sample(
-        self, x_t: th.Tensor, n_steps: int, verbose: bool = False
+        self,
+        x_t: th.Tensor,
+        n_steps: int,
+        z: th.Tensor | None = None,
+        guidance_scale: float = 1.0,
+        verbose: bool = False,
     ) -> th.Tensor:
         assert len(x_t.size()) == 4
         assert x_t.size(1) == self.__channels
 
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
+
+        z = self.__check_z(z, x_t.size(0))
 
         steps = th.linspace(
             0, self._steps - 1, steps=n_steps, dtype=th.long, device=device
@@ -226,15 +315,14 @@ class Denoiser(AbstractDiffuser):
 
             t_tensor = th.tensor([[t]], device=device).repeat(x_t.size(0), 1)
 
-            z = (
+            noise = (
                 th.randn_like(x_t, device=device)
                 if t > 0
                 else th.zeros_like(x_t, device=device)
             )
 
-            v_theta, var_interp = self.__unet(
-                x_t.unsqueeze(1),
-                t_tensor,
+            v_theta, var_interp = self.__predict(
+                x_t.unsqueeze(1), t_tensor, z, guidance_scale
             )
 
             mu = self.__mu_clipped(
@@ -256,7 +344,7 @@ class Denoiser(AbstractDiffuser):
             )
             var = var.squeeze(1)
 
-            x_t = mu + var.sqrt() * z
+            x_t = mu + var.sqrt() * noise
 
             tqdm_bar.set_description(
                 f"Generate {x_t.size(0)} data with size {tuple(x_t.size()[1:])}"

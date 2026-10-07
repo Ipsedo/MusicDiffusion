@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from .data import AudioDataset
 from .metrics import Metric
-from .networks import mse, normal_kl_div
+from .networks import drop_condition, mse, normal_kl_div
 from .options import ModelOptions, TrainOptions
 from .saver import Saver
 
@@ -47,6 +47,15 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
         if train_options.optim_state_dict is not None:
             optim.load_state_dict(th.load(train_options.optim_state_dict))
 
+        dataset = AudioDataset(train_options.dataset_path)
+
+        assert len(dataset) >= train_options.nb_samples
+
+        # fixed reference chunks, one identity per periodic sample
+        x_ref_samples = th.stack(
+            [dataset[i][0] for i in range(train_options.nb_samples)], dim=0
+        )
+
         saver = Saver(
             model_options.unet_channels[0][0],
             noiser,
@@ -55,10 +64,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             denoiser_ema,
             train_options.output_directory,
             train_options.save_every,
-            train_options.nb_samples,
+            x_ref_samples,
         )
-
-        dataset = AudioDataset(train_options.dataset_path)
 
         dataloader = DataLoader(
             dataset,
@@ -77,6 +84,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 "epochs": train_options.epochs,
                 "steps": model_options.steps,
                 "time_size": model_options.time_size,
+                "z_size": model_options.z_size,
+                "cond_dropout": train_options.cond_dropout,
                 "unet_channels": model_options.unet_channels,
                 "input_dataset": train_options.dataset_path,
             }
@@ -95,10 +104,15 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
             tqdm_bar = tqdm(dataloader)
 
-            for x_0 in tqdm_bar:
+            for x_ref, x_0 in tqdm_bar:
 
                 if model_options.cuda:
+                    x_ref = x_ref.cuda()
                     x_0 = x_0.cuda()
+
+                # identity from another chunk of the same piece
+                z = denoiser.encode(x_ref)
+                z = drop_condition(z, train_options.cond_dropout)
 
                 t = th.randint(
                     0,
@@ -111,7 +125,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 )
 
                 x_t, v = noiser(x_0, t)
-                v_theta, var_interp = denoiser(x_t, t)
+                v_theta, var_interp = denoiser(x_t, t, z)
 
                 loss_mse = mse(v, v_theta)
 

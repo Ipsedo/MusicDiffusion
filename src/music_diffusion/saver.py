@@ -31,17 +31,23 @@ class Saver:
         ema_denoiser: EMA,
         output_dir: str,
         save_every: int,
-        nb_sample: int,
+        x_ref: th.Tensor,
     ) -> None:
+        """x_ref : (nb_sample, C, H, W) standardized reference chunks, one
+        identity per periodic sample."""
 
         if not exists(output_dir):
             mkdir(output_dir)
         elif not isdir(output_dir):
             raise NotADirectoryError(output_dir)
 
+        assert len(x_ref.size()) == 4
+        assert x_ref.size(1) == in_channels
+
         self.__output_dir = output_dir
         self.__save_every = save_every
-        self.__nb_sample = nb_sample
+        self.__nb_sample = x_ref.size(0)
+        self.__x_ref = x_ref
 
         self.__in_channels = in_channels
         self.__noiser = noiser
@@ -70,6 +76,19 @@ class Saver:
             join(self.__output_dir, "denoiser.txt"), "w", encoding="utf-8"
         ) as f:
             f.write(str(self.__denoiser))
+
+        # save the reference chunks once, to compare with the samples
+        x_ref_cpu = destandardize_magnitude(self.__x_ref.detach().cpu())
+        th.save(x_ref_cpu, join(self.__output_dir, "reference_magn_phase.pt"))
+
+        for i in range(self.__nb_sample):
+            magnitude_phase_to_wav(
+                x_ref_cpu[i, None],
+                join(self.__output_dir, f"reference_ID{i}.wav"),
+                SAMPLE_RATE,
+                N_FFT,
+                STFT_STRIDE,
+            )
 
     def save(self) -> None:
         if self.__curr_idx % self.__save_every == self.__save_every - 1:
@@ -110,7 +129,9 @@ class Saver:
                 )
 
                 self.__ema_denoiser.eval()
-                x_0 = self.__ema_denoiser.ema_model.sample(x_t, verbose=True)
+                ema_denoiser = self.__ema_denoiser.ema_model
+                z = ema_denoiser.encode(self.__x_ref.to(device))
+                x_0 = ema_denoiser.sample(x_t, z, verbose=True)
                 self.__ema_denoiser.train()
 
                 x_0 = destandardize_magnitude(x_0)

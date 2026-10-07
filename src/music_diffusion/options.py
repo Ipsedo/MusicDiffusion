@@ -8,6 +8,7 @@ class ModelOptions(BaseModel):
     unet_channels: list[tuple[int, int]]
     unet_group_norm_nums: list[int]
     time_size: int
+    z_size: int
     cuda: bool
 
     def new_denoiser(self) -> Denoiser:
@@ -16,6 +17,7 @@ class ModelOptions(BaseModel):
             self.time_size,
             self.unet_channels,
             self.unet_group_norm_nums,
+            self.z_size,
         )
 
     def new_noiser(self) -> Noiser:
@@ -29,6 +31,7 @@ class TrainOptions(BaseModel):
     step_batch_size: int
     epochs: int
     learning_rate: float
+    cond_dropout: float
     metric_window: int
     save_every: int
     output_directory: str

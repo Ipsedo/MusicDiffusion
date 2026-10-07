@@ -57,9 +57,38 @@ def generate(
 
     height, width = OUTPUT_SIZES
 
+    def sample(x_t: th.Tensor, z: th.Tensor) -> th.Tensor:
+        return (
+            denoiser.fast_sample(
+                x_t, generate_options.fast_sample, z, verbose=True
+            )
+            if generate_options.fast_sample is not None
+            else denoiser.sample(x_t, z, verbose=True)
+        )
+
     with th.no_grad():
 
-        print("Pass rand data to generator...")
+        # 1. one frame per music without condition
+        print("Generate first frame without condition...")
+
+        x_first = sample(
+            th.randn(
+                generate_options.musics,
+                model_options.unet_channels[0][0],
+                height,
+                width,
+                device=device,
+            ),
+            denoiser.null_condition(generate_options.musics, device),
+        )
+
+        # 2. the identity of each music is the one of its first frame
+        print("Encode first frame...")
+
+        z = denoiser.encode(x_first)
+
+        # 3. the whole music, conditioned by this identity
+        print(f"Generate {generate_options.frames} frames with condition...")
 
         x_t = th.randn(
             generate_options.musics,
@@ -69,13 +98,7 @@ def generate(
             device=device,
         )
 
-        x_0 = (
-            denoiser.fast_sample(
-                x_t, generate_options.fast_sample, verbose=True
-            )
-            if generate_options.fast_sample is not None
-            else denoiser.sample(x_t, verbose=True)
-        )
+        x_0 = sample(x_t, z)
 
         x_0 = destandardize_magnitude(x_0)
 

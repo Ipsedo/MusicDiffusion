@@ -27,3 +27,19 @@ def normal_kl_div(
 
 def mse(p: th.Tensor, q: th.Tensor) -> th.Tensor:
     return th.pow(p - q, 2.0)  # .mean(dim=[2, 3, 4])
+
+
+def drop_condition(z: th.Tensor, p: float) -> th.Tensor:
+    """Zero the conditioning vector of each sample with probability p.
+
+    Used at training time so the denoiser also learns the unconditional
+    distribution, which enables classifier-free guidance at sampling time.
+    """
+    assert 0.0 <= p <= 1.0
+
+    if p == 0.0:
+        return z
+
+    keep = th.rand(z.size(0), device=z.device) >= p
+
+    return z * keep[:, None].to(z.dtype)

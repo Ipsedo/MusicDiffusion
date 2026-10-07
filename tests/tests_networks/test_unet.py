@@ -21,6 +21,7 @@ from .check_size import check_size
 @pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("step_batch_size", [1, 2])
+@pytest.mark.parametrize("z_size", [0, 3])
 def test_unet(
     batch_size: int,
     size: tuple[int, int],
@@ -29,12 +30,13 @@ def test_unet(
     steps: int,
     time_size: int,
     step_batch_size: int,
+    z_size: int,
     device: th.device,
 ) -> None:
     def __inner_check_size(tensor: th.Tensor) -> None:
         check_size(tensor, batch_size, step_batch_size, channels[0][0], size)
 
-    unet = TimeUNet(channels, group_norm_nums, time_size, steps)
+    unet = TimeUNet(channels, group_norm_nums, time_size, steps, z_size)
 
     unet.to(device)
     unet.eval()
@@ -53,7 +55,44 @@ def test_unet(
         device=device,
     )
 
-    v_theta, var_interp = unet(x_t, t)
+    z = th.randn(batch_size, z_size, device=device) if z_size > 0 else None
+
+    v_theta, var_interp = unet(x_t, t, z)
 
     __inner_check_size(v_theta)
     __inner_check_size(var_interp)
+
+
+def test_unet_z_required(device: th.device) -> None:
+    unet = TimeUNet([(2, 4)], [2], 2, 2, z_size=3)
+    unet.to(device)
+    unet.eval()
+
+    x_t = th.randn(1, 1, 2, 8, 8, device=device)
+    t = th.zeros(1, 1, dtype=th.long, device=device)
+
+    with pytest.raises(AssertionError):
+        unet(x_t, t)
+
+    with pytest.raises(AssertionError):
+        unet(x_t, t, th.randn(1, 4, device=device))
+
+
+def test_unet_z_changes_output(device: th.device) -> None:
+    th.manual_seed(0)
+
+    unet = TimeUNet([(2, 4)], [2], 2, 2, z_size=3)
+    unet.to(device)
+    unet.eval()
+
+    # the last FiLM layer is zero-initialized : perturb it so z has an effect
+    for p in unet.parameters():
+        p.data.add_(th.randn_like(p) * 1e-1)
+
+    x_t = th.randn(1, 1, 2, 8, 8, device=device)
+    t = th.zeros(1, 1, dtype=th.long, device=device)
+
+    v_a, _ = unet(x_t, t, th.zeros(1, 3, device=device))
+    v_b, _ = unet(x_t, t, th.ones(1, 3, device=device))
+
+    assert not th.allclose(v_a, v_b)
