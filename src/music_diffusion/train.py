@@ -47,15 +47,6 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
         if train_options.optim_state_dict is not None:
             optim.load_state_dict(th.load(train_options.optim_state_dict))
 
-        dataset = AudioDataset(train_options.dataset_path)
-
-        assert len(dataset) >= train_options.nb_samples
-
-        # fixed reference chunks, one identity per periodic sample
-        x_ref_samples = th.stack(
-            [dataset[i][0] for i in range(train_options.nb_samples)], dim=0
-        )
-
         saver = Saver(
             model_options.unet_channels[0][0],
             noiser,
@@ -64,8 +55,10 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
             denoiser_ema,
             train_options.output_directory,
             train_options.save_every,
-            x_ref_samples,
+            train_options.nb_samples,
         )
+
+        dataset = AudioDataset(train_options.dataset_path)
 
         dataloader = DataLoader(
             dataset,

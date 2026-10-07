@@ -11,16 +11,6 @@ from .audio import standardize_magnitude
 
 
 class AudioDataset(Dataset):
-    """Dataset of (reference, target) chunk pairs taken from the same song.
-
-    Each item ``i`` returns ``(x_ref, x_target)`` where ``x_target`` is the
-    ``i``-th chunk and ``x_ref`` is another chunk of the same song, drawn
-    uniformly among the song chunks. The reference is only meant to be seen
-    by the conditioning encoder, so the conditioning vector can only carry
-    what is shared across the whole piece. A song with a single chunk returns
-    the same chunk twice.
-    """
-
     _FILE_RE = re.compile(r"^magn_phase_(\d+)_(\d+)\.pt$")
     _LEGACY_FILE_RE = re.compile(r"^magn_phase_\d+\.pt$")
 

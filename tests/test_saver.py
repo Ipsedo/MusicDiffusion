@@ -5,7 +5,6 @@ import pytest
 import torch as th
 from ema_pytorch import EMA
 
-from music_diffusion.data import OUTPUT_SIZES
 from music_diffusion.networks import Denoiser, Noiser
 from music_diffusion.saver import Saver
 
@@ -21,8 +20,6 @@ def test_saver(tmp_path: Path, save_every: int, nb_samples: int) -> None:
     optim = th.optim.Adam(denoiser.parameters())
     ema = EMA(denoiser)
 
-    x_ref = th.randn(nb_samples, channels, *OUTPUT_SIZES)
-
     saver = Saver(
         channels,
         noiser,
@@ -31,12 +28,8 @@ def test_saver(tmp_path: Path, save_every: int, nb_samples: int) -> None:
         ema,
         str(tmp_path),
         save_every,
-        x_ref,
+        nb_samples,
     )
-
-    assert exists(tmp_path / "reference_magn_phase.pt")
-    for i in range(nb_samples):
-        assert exists(tmp_path / f"reference_ID{i}.wav")
 
     for _ in range(save_every - 1):
         saver.save()
