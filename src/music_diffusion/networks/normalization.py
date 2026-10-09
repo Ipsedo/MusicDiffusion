@@ -52,7 +52,10 @@ class RowGroupNorm(nn.Module):
         super().__init__()
 
         if num_channels % num_groups != 0:
-            raise ValueError("num_channels doit être divisible par num_groups")
+            raise ValueError(
+                f"num_channels must by divisible by num_groups "
+                f"(channels={num_channels}, groups={num_groups})"
+            )
 
         self.__num_groups = num_groups
         self.__num_channels = num_channels

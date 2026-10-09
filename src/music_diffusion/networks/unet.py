@@ -32,7 +32,6 @@ class TimeUNet(nn.Module):
         decoding_group_norm_num = list(reversed(group_norm_nums.copy()))
 
         self.__time_embedder = SinusoidTimeEmbedding(steps, time_size)
-        self.__z_size = z_size
 
         # conditioning vector = [time embedding, global z]
         cond_size = time_size + z_size
@@ -80,17 +79,12 @@ class TimeUNet(nn.Module):
         )
 
     def forward(
-        self, img: th.Tensor, t: th.Tensor, z: th.Tensor | None = None
+        self, img: th.Tensor, t: th.Tensor, z: th.Tensor
     ) -> tuple[th.Tensor, th.Tensor]:
         time_vec = self.__time_embedder(t)
 
-        if self.__z_size > 0:
-            assert z is not None, "z is required when z_size > 0"
-            assert z.size() == (img.size(0), self.__z_size)
-
-            # same z for every diffusion step of a sample
-            z = z[:, None, :].expand(-1, time_vec.size(1), -1)
-            time_vec = th.cat([time_vec, z], dim=2)
+        z = z[:, None, :].expand(-1, time_vec.size(1), -1)
+        time_vec = th.cat([time_vec, z], dim=2)
 
         bypasses = []
 

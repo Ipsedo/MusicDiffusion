@@ -21,7 +21,7 @@ from .check_size import check_size
 @pytest.mark.parametrize("steps", [2, 3])
 @pytest.mark.parametrize("time_size", [2, 4])
 @pytest.mark.parametrize("step_batch_size", [1, 2])
-@pytest.mark.parametrize("z_size", [0, 3])
+@pytest.mark.parametrize("z_size", [2, 3])
 def test_unet(
     batch_size: int,
     size: tuple[int, int],
@@ -55,27 +55,12 @@ def test_unet(
         device=device,
     )
 
-    z = th.randn(batch_size, z_size, device=device) if z_size > 0 else None
+    z = th.randn(batch_size, z_size, device=device)
 
     v_theta, var_interp = unet(x_t, t, z)
 
     __inner_check_size(v_theta)
     __inner_check_size(var_interp)
-
-
-def test_unet_z_required(device: th.device) -> None:
-    unet = TimeUNet([(2, 4)], [2], 2, 2, z_size=3)
-    unet.to(device)
-    unet.eval()
-
-    x_t = th.randn(1, 1, 2, 8, 8, device=device)
-    t = th.zeros(1, 1, dtype=th.long, device=device)
-
-    with pytest.raises(AssertionError):
-        unet(x_t, t)
-
-    with pytest.raises(AssertionError):
-        unet(x_t, t, th.randn(1, 4, device=device))
 
 
 def test_unet_z_changes_output(device: th.device) -> None:

@@ -63,18 +63,18 @@ def main() -> None:
         default=[
             (2, 16),
             (16, 32),
-            (32, 64),
-            (64, 128),
-            (128, 256),
-            (256, 512),
+            (32, 48),
+            (48, 64),
+            (64, 96),
+            (96, 128),
         ],
     )
     model_parser.add_argument(
         "--unet-group-norm-nums",
         type=_group_norm_nums,
-        default=[2, 4, 8, 16, 32, 64],
+        default=[2, 4, 4, 8, 8, 16],
     )
-    model_parser.add_argument("--time-size", type=int, default=16)
+    model_parser.add_argument("--time-size", type=int, default=32)
     model_parser.add_argument(
         "--z-size",
         type=int,
