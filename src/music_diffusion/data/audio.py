@@ -185,7 +185,6 @@ def create_dataset(
     audio_path: str,
     dataset_output_dir: str,
 ) -> None:
-
     w_p = glob.glob(audio_path, recursive=True)
 
     if not exists(dataset_output_dir):
@@ -193,7 +192,8 @@ def create_dataset(
     elif not isdir(dataset_output_dir):
         raise NotADirectoryError(dataset_output_dir)
 
-    idx = 0
+    song_idx = 0
+    total = 0
 
     tqdm_bar = tqdm(w_p)
 
@@ -213,7 +213,7 @@ def create_dataset(
 
         for s_idx in range(nb_sample):
             magnitude_phase_path = join(
-                dataset_output_dir, f"magn_phase_{idx}.pt"
+                dataset_output_dir, f"magn_phase_{song_idx}_{s_idx}.pt"
             )
 
             magnitude_phase = th.stack(
@@ -223,6 +223,7 @@ def create_dataset(
 
             th.save(magnitude_phase, magnitude_phase_path)
 
-            idx += 1
+        song_idx += 1
+        total += nb_sample
 
-        tqdm_bar.set_description(f"total : {idx}")
+        tqdm_bar.set_description(f"songs : {song_idx}, chunks : {total}")

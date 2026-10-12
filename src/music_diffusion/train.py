@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from .data import AudioDataset
 from .metrics import Metric
-from .networks import mse, normal_kl_div
+from .networks import drop_condition, mse, normal_kl_div
 from .options import ModelOptions, TrainOptions
 from .saver import Saver
 
@@ -77,6 +77,8 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 "epochs": train_options.epochs,
                 "steps": model_options.steps,
                 "time_size": model_options.time_size,
+                "z_size": model_options.z_size,
+                "cond_dropout": train_options.cond_dropout,
                 "unet_channels": model_options.unet_channels,
                 "input_dataset": train_options.dataset_path,
             }
@@ -95,10 +97,15 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
 
             tqdm_bar = tqdm(dataloader)
 
-            for x_0 in tqdm_bar:
+            for x_ref, x_0 in tqdm_bar:
 
                 if model_options.cuda:
+                    x_ref = x_ref.cuda()
                     x_0 = x_0.cuda()
+
+                # identity from another chunk of the same piece
+                z = denoiser.encode(x_ref)
+                z = drop_condition(z, train_options.cond_dropout)
 
                 t = th.randint(
                     0,
@@ -111,7 +118,7 @@ def train(model_options: ModelOptions, train_options: TrainOptions) -> None:
                 )
 
                 x_t, v = noiser(x_0, t)
-                v_theta, var_interp = denoiser(x_t, t)
+                v_theta, var_interp = denoiser(x_t, t, z)
 
                 loss_mse = mse(v, v_theta)
 

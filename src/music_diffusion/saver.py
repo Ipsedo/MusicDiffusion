@@ -109,6 +109,7 @@ class Saver:
                     device=device,
                 )
 
+                # a single frame : no condition needed
                 self.__ema_denoiser.eval()
                 x_0 = self.__ema_denoiser.ema_model.sample(x_t, verbose=True)
                 self.__ema_denoiser.train()

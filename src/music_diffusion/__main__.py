@@ -53,7 +53,7 @@ def main() -> None:
     # Train and Generate
     #####################
 
-    # Model hyper parameters
+    # Model hyperparameters
     model_parser = sub_command.add_parser("model")
 
     model_parser.add_argument("--steps", type=int, default=4096)
@@ -63,18 +63,24 @@ def main() -> None:
         default=[
             (2, 16),
             (16, 32),
-            (32, 64),
-            (64, 128),
-            (128, 256),
-            (256, 512),
+            (32, 48),
+            (48, 64),
+            (64, 96),
+            (96, 128),
         ],
     )
     model_parser.add_argument(
         "--unet-group-norm-nums",
         type=_group_norm_nums,
-        default=[2, 4, 8, 16, 32, 64],
+        default=[2, 4, 4, 8, 8, 16],
     )
-    model_parser.add_argument("--time-size", type=int, default=16)
+    model_parser.add_argument("--time-size", type=int, default=32)
+    model_parser.add_argument(
+        "--z-size",
+        type=int,
+        default=32,
+        help="size of the global conditioning vector, 0 to disable",
+    )
     model_parser.add_argument("--cuda", action="store_true")
 
     # Sub command run {train, generate}
@@ -88,10 +94,16 @@ def main() -> None:
     train_parser.add_argument("run_name", type=str)
 
     train_parser.add_argument("-i", "--input-dataset", type=str, required=True)
-    train_parser.add_argument("--batch-size", type=int, default=16)
+    train_parser.add_argument("--batch-size", type=int, default=12)
     train_parser.add_argument("--step-batch-size", type=int, default=1)
     train_parser.add_argument("--epochs", type=int, default=1000)
     train_parser.add_argument("--learning-rate", type=float, default=1e-4)
+    train_parser.add_argument(
+        "--cond-dropout",
+        type=float,
+        default=0.1,
+        help="probability to drop z (needed for classifier-free guidance)",
+    )
     train_parser.add_argument("--metric-window", type=int, default=64)
     train_parser.add_argument("--save-every", type=int, default=16384)
     train_parser.add_argument("-o", "--output-dir", type=str, required=True)
@@ -123,6 +135,7 @@ def main() -> None:
             unet_channels=args.unet_channels,
             unet_group_norm_nums=args.unet_group_norm_nums,
             time_size=args.time_size,
+            z_size=args.z_size,
             cuda=args.cuda,
         )
 
@@ -134,6 +147,7 @@ def main() -> None:
                 step_batch_size=args.step_batch_size,
                 epochs=args.epochs,
                 learning_rate=args.learning_rate,
+                cond_dropout=args.cond_dropout,
                 metric_window=args.metric_window,
                 save_every=args.save_every,
                 output_directory=args.output_dir,

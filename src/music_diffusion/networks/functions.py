@@ -27,3 +27,14 @@ def normal_kl_div(
 
 def mse(p: th.Tensor, q: th.Tensor) -> th.Tensor:
     return th.pow(p - q, 2.0)  # .mean(dim=[2, 3, 4])
+
+
+def drop_condition(z: th.Tensor, p: float) -> th.Tensor:
+    assert 0.0 <= p <= 1.0
+
+    if p == 0.0:
+        return z
+
+    keep = th.rand(z.size(0), device=z.device) >= p
+
+    return z * keep[:, None].to(z.dtype)
